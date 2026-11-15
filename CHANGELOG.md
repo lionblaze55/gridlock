@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.71
+- Fixed: choosing "Meet in person" when buying or selling a part closed the where-to-meet dialog straight away, so in-person part deals never started. Any dialog button that opens a follow-up dialog now keeps it open.
+
 ## 1.70
 - Phones held upright: selecting an item in the backpack, stash, trunk, farm storage or parts shelf opens its card as a bottom sheet over the lower half of the screen, with the grid scrolling above it. Buttons are full width; tap the handle to close it.
 - Parts detail shows condition and actions first, description after.

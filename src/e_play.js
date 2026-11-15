@@ -2,6 +2,7 @@
 const dlgEl = document.getElementById('dlg');
 let dlgTyper = null;
 function showDialog(who, text, opts) {
+  G.dlgSeq = (G.dlgSeq || 0) + 1;
   const wasOpen = G.dlgOpen; G.dlgOpen = true; dlgEl.classList.add('show'); if (!wasOpen) Snd.play('pop');
   dlgEl.querySelector('.who').textContent = who;
   const por = dlgEl.querySelector('.por'), q = G.talkPed; if (q) { por.style.display = 'block'; drawPortrait(por, q); } else por.style.display = 'none';
@@ -11,7 +12,7 @@ function showDialog(who, text, opts) {
   const o = dlgEl.querySelector('.opts'); o.innerHTML = '';
   (opts || [{ t: 'OK' }]).forEach(op => {
     const b = document.createElement('button'); b.textContent = op.t; if (op.c) b.className = op.c; if (op.d) b.disabled = true;
-    b.onclick = e => { e.stopPropagation(); Snd.play('ui'); const keep = op.f ? op.f() : null; if (!keep) closeDialog(); };
+    b.onclick = e => { e.stopPropagation(); Snd.play('ui'); const s0 = G.dlgSeq; const keep = op.f ? op.f() : null; if (!keep && G.dlgSeq === s0) closeDialog(); };
     o.appendChild(b);
   });
 }
