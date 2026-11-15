@@ -8488,8 +8488,8 @@ const lname = l => l.kind === 'part' ? pkName(l.pk) : CAR_TYPES[l.type].name;
 function buyListing(l, price) {
   if (l.kind !== 'part') return buyListingQ(l, price);
   const M = VMK(), ship = 25; if (!payAny(price + ship)) return false; M.pfeed = (M.pfeed || []).filter(x => x !== l); for (const x of M.msgs) if (x.lid === l.id && !x.done) x.done = 1;
-  if (l.ghost) { setTimeout(() => { G.big = { text: 'SCAMMED', col: '#ff5252', t: 3.4, sub: 'The box never came. ' + money(price) + ' gone.', small: 1 }; Snd.play('bad'); }, 4000); doSave(true); return true; }
-  const [k, v] = l.pk.split(':'); partAdd(k, +v); Snd.play('cash'); msg(pkName(l.pk) + ' delivered to your garage shelf.', '#2ecc71'); doSave(true); return true;
+  if (l.ghost) { toast('Paid — ' + l.seller + ' says it ships today'); setTimeout(() => { mkNote(l.seller + ' deleted their account'); G.big = { text: 'SCAMMED', col: '#ff5252', t: 3.4, sub: 'The tracking number is fake. ' + money(price) + ' gone.', small: 1 }; Snd.play('bad'); }, 20000); doSave(true); return true; }
+  const [k, v] = l.pk.split(':'); partAdd(k, +v); Snd.play('cash'); msg('📦 ' + pkName(l.pk) + ' shipped — it\'s on your garage shelf.', '#2ecc71'); doSave(true); return true;
 }
 // seller replies work the same for parts — just name them right
 function offerSeller(l, price) { offerSellerQ(l, price); const m = VMK().msgs[0]; if (l.kind === 'part' && m) { m.pname = pkName(l.pk); m.text = 'You: Would you take ' + money(price) + ' for the ' + pkName(l.pk).split(' — ')[1] + '?'; } }
@@ -8510,7 +8510,7 @@ function partsMarket(H, P, top) {
     for (const l of L) { const v = pkValue(l.pk), r = H.row(top, l.rare ? '💎' : '🔩', pkName(l.pk) + ' · ' + money(l.ask), (l.ask < v * .8 ? '🔥 Way under market · ' : l.ask > v * 1.15 ? '💸 Pricey · ' : '') + (l.rare ? 'RARE · ' : '') + 'mod shop ' + money(pkShop(l.pk)), [H.btn(P.sel === l.id ? 'Viewing' : 'View', () => { P.sel = l.id; }, P.sel === l.id ? 'on' : '')]); if (P.sel === l.id) r.classList.add('sel'); }
     const l = (M.pfeed || []).find(x => x.id === P.sel), c2 = H.col(l ? pkName(l.pk) : 'Listing'); if (!l) { H.empty(c2, 'Rare parts cost a fortune at mod shops. Private sellers let them go for a lot less — sometimes for a steal. Watch for "pay first, I ship" types.'); return; }
     for (const m of M.msgs) if (m.lid === l.id) m.unread = 0; const deal = M.msgs.find(m => m.lid === l.id && m.kind === 'deal' && !m.done);
-    H.row(c2, l.rare ? '💎' : '🔩', '"' + l.desc + '"', l.seller, []); H.row(c2, '💵', 'Asking ' + money(l.ask), 'Mod shops charge ' + money(pkShop(l.pk)) + ' · private sales usually ' + money(r50(pkValue(l.pk) * .85)) + '–' + money(r50(pkValue(l.pk) * 1.1)), []);
+    H.row(c2, l.rare ? '💎' : '🔩', '"' + l.desc + '"', l.seller + (typeof profTxt === 'function' ? ' · ' + profTxt(l) : ''), []).classList.add('pmsg'); H.row(c2, '💵', 'Asking ' + money(l.ask), 'Mod shops charge ' + money(pkShop(l.pk)) + ' · private sales usually ' + money(r50(pkValue(l.pk) * .85)) + '–' + money(r50(pkValue(l.pk) * 1.1)), []);
     if (deal) H.row(c2, '🤝', 'Agreed: ' + money(deal.price), 'Pay and it ships to your garage', [H.btn('Pay ' + money(deal.price), () => buyListing(l, deal.price), 'y', !canPay(deal.price + 25))]);
     const off = P.moff && P.moff.id === l.id ? P.moff : (P.moff = { id: l.id, v: r50(l.ask * .8) });
     H.row(c2, '✉', money(off.v) + ' · ' + Math.round(off.v / l.ask * 100) + '%', 'Your offer', [H.btn('−10%', () => { off.v = r50(off.v - l.ask * .1); }), H.btn('+$50', () => { off.v = Math.min(l.ask, r50(off.v + 50)); }), H.btn('Send', () => offerSeller(l, off.v), 'y', M.msgs.some(m => m.lid === l.id && m.kind === 'wait'))]);
@@ -9532,6 +9532,29 @@ function ejectTick(s, dt) { if (!s || !s.peds) return; const door = s.door;
 // ---------- you can't steal from your own place ----------
 const ownPlace = () => { const s = G.scene; if (!s || !s.b) return false; if (s.garage || canDecorate()) return true; const L = typeof LIFE === 'function' ? LIFE() : null; return !!(L && L.own && L.own[s.b.id]) || s.b.type === 'safehouse'; };
 { const _cr = crime; crime = function (sev, label) { if (ownPlace() && /theft|steal|shoplift|burglar/i.test(label || '')) return; return _cr(sev, label); }; }
+
+// ================= PARTS ONLINE: ship instead of meeting. Scammers still lurk — and they look shady if you read closely =================
+const SHADY_NAMES = ['xX_PartzKing_Xx', 'deals4u_88', 'tuner.bro.official', 'J0hn Smith', 'cheap_partz_fast', 'GenuineSeller100', 'mike__1990x', 'autoparts.wholesale.co', 'FastShip🔥🔥', 'trusted_seller_real'];
+const SHADY_DESC = ['BRAND NEW IN BOX!!! 90% OFF!! pay first i ship today', 'genuine 100% not fake. NO MEETUPS. gift card or wire only', 'moving overseas must sell FAST, pay first', 'Price firm. Payment upfront only, will ship asap trust me', 'never used!!! original packaging. no returns no questions', 'factory direct!! pay thru link in my bio'];
+function mkProf(scam) { const smart = scam && Math.random() < .15, sketchy = !scam && Math.random() < .08;
+  if (scam && !smart) return { joined: pick(['today', 'yesterday', '3 days ago']), rev: 0, rating: 0, shady: 1 };
+  if (sketchy) return { joined: pick(['last week', '2 weeks ago']), rev: rint(0, 2), rating: rint(3, 5), shady: 0 };
+  return { joined: pick(['2019', '2021', '2022', '2023', 'last year', '8 months ago']), rev: rint(4, 180), rating: +(rnd(4.1, 5)).toFixed(1), shady: 0 }; }
+function profTxt(l) { const p = l.prof || (l.prof = mkProf(l.ghost)); return 'joined ' + p.joined + ' · ' + (p.rev ? '★' + p.rating + ' (' + p.rev + ' reviews)' : 'no reviews'); }
+{ const _g = genPartListing; genPartListing = function (M) { const l = _g(M); l.prof = mkProf(l.ghost); if (l.ghost && l.prof.shady) { l.seller = pick(SHADY_NAMES); l.desc = pick(SHADY_DESC); } return l; }; }
+// buying a part: ship it, or meet if you'd rather see it first
+{ const _bl = buyListing; buyListing = function (l, price) { if (l.kind !== 'part') return _bl(l, price); const cl = f => () => { closeDialog(); f(); };
+  say('Buy ' + (pkName(l.pk).split(' — ')[1] || pkName(l.pk)), 'From ' + l.seller + ' · ' + profTxt(l) + '\n\nShipping is quick and easy — but you\'re trusting a stranger with your money. Meeting lets you see the part first.', [
+    { t: '📦 Pay & ship  ' + money(price + 25), c: 'y', f: cl(() => window._buyFinal(l, price)) }, { t: '🤝 Meet in person', f: cl(() => proposeMeet({ side: 'buy', l, price })) }, { t: 'Cancel' }]); return true; }; }
+// selling: online buyers, some of them fake
+const SHADY_BUY = o => pick(['Sent payment via PayPaI 👍 check ur email and ship today pls', 'I\'ll pay ' + money(o) + ' + extra for shipping, my cousin sends the money after u ship', 'Interested!! I overpaid by mistake, ship it and refund me the rest in gift cards', 'Payment is "on hold" until you send tracking. Ship first pls 🙏', 'Ship to my freight forwarder, payment already sent (pending)']);
+{ const _ht = heldTick; heldTick = function () { const M = VMK(), n = M.msgs.length; _ht(); for (const m of M.msgs.slice(0, M.msgs.length - n)) { if (!m.held || m.sb !== undefined) continue; m.sb = Math.random() < .12 ? 1 : 0; if (m.sb) { m.scamBuyer = 1; m.who = pick(SHADY_NAMES); { const ll = (M.plist || []).find(x => x.id === m.lid); m.offer = r50(Math.max(m.offer * rnd(1.05, 1.3), ll ? ll.ask * rnd(1, 1.15) : 0)); } m.text = SHADY_BUY(m.offer); } } }; }
+{ const _st = sellTo; sellTo = function (m) { const M = VMK(), l = (M.plist || []).find(x => x.id === m.lid); if (!(l && l.held)) return _st(m); const cl = f => () => { closeDialog(); f(); };
+  say('Sell to ' + m.who, money(m.offer) + ' for your ' + (unitName(l.pk).split(' — ')[1] || 'part') + '.\n\nShip it and get paid online, or meet so you get cash in hand.', [
+    { t: '📦 Ship it  (+' + money(m.offer - r50(m.offer * .05)) + ')', c: 'y', f: cl(() => shipSale(m, l)) }, { t: '🤝 Meet in person', f: cl(() => _st(m)) }, { t: 'Cancel' }]); }; }
+function shipSale(m, l) { const M = VMK(); if (!m.scamBuyer) { sellToC(m); return; }
+  M.plist = M.plist.filter(x => x !== l); m.done = 1; m.kind = 'mad'; m.text = 'Shipped to ' + m.who + ' — waiting for the payment to clear…'; Snd.play('pop'); toast('Shipped'); doSave(true);
+  setTimeout(() => { m.text = m.who + ' never paid. The "payment" was a fake email. Your part is gone.'; mkNote('Payment from ' + m.who + ' bounced'); G.big = { text: 'SCAMMED', col: '#ff5252', t: 3.4, sub: 'You shipped a part to a fake buyer.', small: 1 }; Snd.play('bad'); doSave(true); }, 18000); }
 
 // ================= MULTIPLAYER (room capability) =================
 const Net = {

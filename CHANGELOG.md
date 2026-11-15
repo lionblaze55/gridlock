@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.65
+- Buy and sell parts online with shipping; meeting in person is still an option.
+- Scam sellers and buyers still exist, and most look shady: new accounts, no reviews, "pay first", gift cards, fake payment emails.
+
 ## 1.64
 - No theft charges inside your own home, property or garage.
 - Farm tractors park facing away from the silo (they used to be stuck nose-first).

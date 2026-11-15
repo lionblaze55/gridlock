@@ -19,8 +19,8 @@ const lname = l => l.kind === 'part' ? pkName(l.pk) : CAR_TYPES[l.type].name;
 function buyListing(l, price) {
   if (l.kind !== 'part') return buyListingQ(l, price);
   const M = VMK(), ship = 25; if (!payAny(price + ship)) return false; M.pfeed = (M.pfeed || []).filter(x => x !== l); for (const x of M.msgs) if (x.lid === l.id && !x.done) x.done = 1;
-  if (l.ghost) { setTimeout(() => { G.big = { text: 'SCAMMED', col: '#ff5252', t: 3.4, sub: 'The box never came. ' + money(price) + ' gone.', small: 1 }; Snd.play('bad'); }, 4000); doSave(true); return true; }
-  const [k, v] = l.pk.split(':'); partAdd(k, +v); Snd.play('cash'); msg(pkName(l.pk) + ' delivered to your garage shelf.', '#2ecc71'); doSave(true); return true;
+  if (l.ghost) { toast('Paid — ' + l.seller + ' says it ships today'); setTimeout(() => { mkNote(l.seller + ' deleted their account'); G.big = { text: 'SCAMMED', col: '#ff5252', t: 3.4, sub: 'The tracking number is fake. ' + money(price) + ' gone.', small: 1 }; Snd.play('bad'); }, 20000); doSave(true); return true; }
+  const [k, v] = l.pk.split(':'); partAdd(k, +v); Snd.play('cash'); msg('📦 ' + pkName(l.pk) + ' shipped — it\'s on your garage shelf.', '#2ecc71'); doSave(true); return true;
 }
 // seller replies work the same for parts — just name them right
 function offerSeller(l, price) { offerSellerQ(l, price); const m = VMK().msgs[0]; if (l.kind === 'part' && m) { m.pname = pkName(l.pk); m.text = 'You: Would you take ' + money(price) + ' for the ' + pkName(l.pk).split(' — ')[1] + '?'; } }
@@ -41,7 +41,7 @@ function partsMarket(H, P, top) {
     for (const l of L) { const v = pkValue(l.pk), r = H.row(top, l.rare ? '💎' : '🔩', pkName(l.pk) + ' · ' + money(l.ask), (l.ask < v * .8 ? '🔥 Way under market · ' : l.ask > v * 1.15 ? '💸 Pricey · ' : '') + (l.rare ? 'RARE · ' : '') + 'mod shop ' + money(pkShop(l.pk)), [H.btn(P.sel === l.id ? 'Viewing' : 'View', () => { P.sel = l.id; }, P.sel === l.id ? 'on' : '')]); if (P.sel === l.id) r.classList.add('sel'); }
     const l = (M.pfeed || []).find(x => x.id === P.sel), c2 = H.col(l ? pkName(l.pk) : 'Listing'); if (!l) { H.empty(c2, 'Rare parts cost a fortune at mod shops. Private sellers let them go for a lot less — sometimes for a steal. Watch for "pay first, I ship" types.'); return; }
     for (const m of M.msgs) if (m.lid === l.id) m.unread = 0; const deal = M.msgs.find(m => m.lid === l.id && m.kind === 'deal' && !m.done);
-    H.row(c2, l.rare ? '💎' : '🔩', '"' + l.desc + '"', l.seller, []); H.row(c2, '💵', 'Asking ' + money(l.ask), 'Mod shops charge ' + money(pkShop(l.pk)) + ' · private sales usually ' + money(r50(pkValue(l.pk) * .85)) + '–' + money(r50(pkValue(l.pk) * 1.1)), []);
+    H.row(c2, l.rare ? '💎' : '🔩', '"' + l.desc + '"', l.seller + (typeof profTxt === 'function' ? ' · ' + profTxt(l) : ''), []).classList.add('pmsg'); H.row(c2, '💵', 'Asking ' + money(l.ask), 'Mod shops charge ' + money(pkShop(l.pk)) + ' · private sales usually ' + money(r50(pkValue(l.pk) * .85)) + '–' + money(r50(pkValue(l.pk) * 1.1)), []);
     if (deal) H.row(c2, '🤝', 'Agreed: ' + money(deal.price), 'Pay and it ships to your garage', [H.btn('Pay ' + money(deal.price), () => buyListing(l, deal.price), 'y', !canPay(deal.price + 25))]);
     const off = P.moff && P.moff.id === l.id ? P.moff : (P.moff = { id: l.id, v: r50(l.ask * .8) });
     H.row(c2, '✉', money(off.v) + ' · ' + Math.round(off.v / l.ask * 100) + '%', 'Your offer', [H.btn('−10%', () => { off.v = r50(off.v - l.ask * .1); }), H.btn('+$50', () => { off.v = Math.min(l.ask, r50(off.v + 50)); }), H.btn('Send', () => offerSeller(l, off.v), 'y', M.msgs.some(m => m.lid === l.id && m.kind === 'wait'))]);
