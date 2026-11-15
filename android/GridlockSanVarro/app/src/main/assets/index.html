@@ -8816,7 +8816,7 @@ function meetTick(dt) { if ((G.mtT = (G.mtT || 0) - dt) > 0) return; G.mtT = .4;
   for (const mt of M.meets) { rtInit(mt);
     if (mt.state === 'set' && M.clock > mt.due) { cancelMeet(mt, pick(['You never showed. Waste of my time.', 'I waited 20 minutes. Forget it.', 'No-show? Seriously? Blocked.'])); mkNote(mt.who.split(' ')[0] + ' gave up waiting'); continue; }
     if (mt.state === 'set' && !G.scene && dist2(p.x, p.y, mt.x, mt.y) < 650 * 650) spawnMeet(mt);
-    if (mt.state === 'here' && (!mt.q || mt.q.dead || !G.peds.includes(mt.q))) { if (mt.q && mt.q.dead) cancelMeet(mt, '…'); else mt.state = 'set'; }
+    if (mt.state === 'here' && (!mt.q || mt.q.dead || !(G.peds.includes(mt.q) || (G.scene && G.scene.peds && G.scene.peds.includes(mt.q))))) { if (mt.q && mt.q.dead) cancelMeet(mt, '…'); else mt.state = 'set'; }
     if (mt.state === 'here' && mt.q && !G.scene && dist2(p.x, p.y, mt.x, mt.y) > 1400 * 1400 && M.clock > mt.due - 60) { const i = G.peds.indexOf(mt.q); if (i >= 0) G.peds.splice(i, 1); if (mt.car && !mt.car.owned) { const j = G.cars.indexOf(mt.car); if (j >= 0) G.cars.splice(j, 1); } cancelMeet(mt, 'You left. I\'m out.'); }
     if (mt.state === 'scam') scamTick(mt);
   }
@@ -8913,6 +8913,14 @@ function meetBtns(H, m) { const M = VMK(), mt = (M.meets || []).find(x => x.id =
 function meetClear(g) { const d = g.b.door, ok = (x, y) => !solidW(x, y) && dist2(x, y, g.x, g.y) > 170 * 170 && dist2(x, y, d.x, d.y) > 150 * 150 && !homeGarages().some(h => dist2(x, y, h.x, h.y) < 170 * 170);
   for (let r = 190; r < 420; r += 30) for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, x = g.x + Math.cos(a) * r, y = g.y + Math.sin(a) * r; if (ok(x, y) && losClear(x, y, g.x, g.y)) return [x, y]; }
   return [g.x + T * 3, g.y]; }
+// ---------- meeting at your place: no waiting — scammers ghost you on the spot, everyone else is already at the door ----------
+{ const _mm = makeMeet; makeMeet = function (o, what, who, spot) { const M = VMK(), n = (M.meets || []).length; _mm(o, what, who, spot); const mt = M.meets[M.meets.length - 1]; if (!spot.home || !mt || M.meets.length === n) return;
+  if (mt.scam && !mt.rob && Math.random() < .55) { cancelMeet(mt, pick(['…', 'nvm', 'actually found one cheaper lol']) ); const m = M.msgs.find(x => x.id === mt.mid); if (m) { m.kind = 'mad'; m.text = who + ' blocked you as soon as you sent your address.'; } blockSelf && blockSelf(who); mkNote(who.split(' ')[0] + ' blocked you'); toast(who + ' blocked you — probably a scammer'); mt.state = 'off'; return; }
+  meetNow(mt); }; }
+function meetNow(mt) { const s = G.scene, g = homeGarages().find(h => dist2(h.x, h.y, mt.x, mt.y) < 600 * 600), atHome = s && g && (s.b === g.b || s.garage === g);
+  if (!atHome) { if (!G.scene && dist2(G.player.x, G.player.y, mt.x, mt.y) < 650 * 650) { spawnMeet(mt); } else msg('📍 ' + mt.who + ' is heading to your place — they\'ll be outside when you get there.', '#4fc3f7'); return; }
+  spawnMeet(mt); const q = mt.q; if (!q) return; const i = G.peds.indexOf(q); if (i >= 0) G.peds.splice(i, 1); q.x = s.door.x + T * .6; q.y = s.door.y - T * .9; q.inside = s; s.peds.push(q); q.still = 1; q.state = 'idle';
+  Snd.play('door'); pedSay(q, pick(['Hey! Door was open.', 'Knock knock 👋', 'This the place?'])); msg('🚪 ' + mt.who + ' is here — they let themselves in by the door.', '#2ecc71'); }
 
 // ================= ONE PART PER SLOT: aftermarket parts REPLACE the stock part in their slot; engine add-ons live on the engine; rims & tires live on the wheels =================
 const VAR = { gearbox: 'trn', exhaustp: 'exh', wiring: 'ecu' }, VARK = { trn: 'gearbox', exh: 'exhaustp', ecu: 'wiring' };

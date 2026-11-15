@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.66
+- Meeting at your place: scammers often block you right away; everyone else is already there (they come inside if you're home).
+
 ## 1.65
 - Buy and sell parts online with shipping; meeting in person is still an option.
 - Scam sellers and buyers still exist, and most look shady: new accounts, no reviews, "pay first", gift cards, fake payment emails.
