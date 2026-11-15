@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.68
+- Grid inventory: backpack, home stash, car trunks and farm storage show items as icon tiles with category filters and sorting. Tap a tile to move 1 / half / all, or press and drag it to the other side. Guns go in the home locker the same way.
+- Parts shelf shows loose parts as tiles with a condition bar; tap one for fix / slow fix / sell / scrap.
+- Marketplace: finished conversations disappear right away (a "Show finished" toggle brings them back), and the screen refreshes itself after accepting, paying, meeting or when new messages arrive.
+- Minimizing the app (or switching tabs) now silences all sound and pauses the game; sound comes back when you return.
+
 ## 1.67
 - Racing scene: Pinewood Raceway outside town (track races, cash duels, pink slips, betting on heats), street races you start by honking at flagged cars, gang-run car events, and a racing rep ladder from Rookie to King of Varro.
 - Fixed: Redline races were stuck on the countdown since 1.34 (a marketplace function had the same name and replaced the race tick).

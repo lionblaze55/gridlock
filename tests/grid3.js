@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; G.hgT=0; partAdd('eng',2,2); partAdd('tur',1,1); partAdd('rim',3,1); partAdd('exh',2,1);
+const g=homeGarages()[0]; Panel.open('hgarage',{g}); Panel.tab='parts'; Panel.render(); await w(150); o.tiles=document.querySelectorAll('#panel .gtile').length;
+document.querySelectorAll('#panel .gtile')[0].click(); await w(100); o.sel=[...document.querySelectorAll('#panel .pcol')[0].querySelectorAll('.prow')].map(r=>r.innerText.replace(/\n/g,' ')).slice(0,2);
+const b=[...document.querySelectorAll('#panel .pcol')[0].querySelectorAll('.prow button')].find(b=>/Scrap/.test(b.textContent)); const before=document.querySelectorAll('#panel .gtile').length; if(b) b.click(); await w(100); o.afterScrap=[before, document.querySelectorAll('#panel .gtile').length];
+Panel.close(); const c=G.cars.find(c=>!c.dead&&TRUNKCAP[c.type]>0); openStorage('trunk',c); await w(150); o.trunk=[...document.querySelectorAll('#panel .ggrid')].map(g=>g.dataset.side).join(','); return o;})()
