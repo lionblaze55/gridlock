@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); G.cash=3000; Panel.open('project',{tab:'build'}); await w(200); const o={tabs:[...document.querySelectorAll('#panel .ptabs button')].map(b=>b.textContent), cols:[...document.querySelectorAll('#panel .ptitle')].map(x=>x.textContent)}; return o;})()

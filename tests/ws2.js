@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const out={}; const g=homeGarages()[0]; const L=myCars(); L.length=0; L.push({type:'muscle',mods:{p:'#c00',tur:1,rim:2},legit:1}); L.push({type:'cruiser',mods:{mbr:2},legit:1}); recId(L[0]); recId(L[1]);
+G.stash.items.eng_sc8=1; G.stash.items.eng_bike=1; Panel.open('hgarage',{g,tab:'work'}); Panel.wsel=L[0].id; Panel.render(); await w(200);
+const t=wsTarget(L[0].id,g); tPull(t,'tur'); tPullEng(t); out.afterPull={mods:L[0].mods, noEng:L[0].noEng, eng:G.stash.items.eng_v8}; tFitEng(t,'eng_sc8'); out.afterFit={swp:L[0].mods.swp, noEng:L[0].noEng, stash:{v8:G.stash.items.eng_v8, sc8:G.stash.items.eng_sc8|0}}; Panel.render(); await w(300); return out;})()

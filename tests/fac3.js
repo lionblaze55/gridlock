@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const s=G.scene,p=G.player; FJ().lastT=-1e9; const tc=s.items.find(i=>i.t==='timeclock'); p.x=(tc.x+.3)*T; p.y=(tc.y+1.2)*T; doInteract(findInteract()); G.dlgOpen=false; document.querySelectorAll('.show').forEach(e=>{if(e.id==='dialog'||e.id==='dlg')e.classList.remove('show')}); const fk=s.items.find(i=>i.t==='fkpark'); p.x=(fk.x+fk.w/2)*T; p.y=(fk.y+fk.h/2)*T+40; doInteract(findInteract());
+// real driving with stick toward the dock (left)
+Input.stick={active:true,ox:90,oy:300,dx:-1,dy:0}; const x0=p.x; await w(1500); const moved=x0-p.x; Input.stick={active:false}; await w(300); return {moved:Math.round(moved), fork:!!G.fork, a:+p.a.toFixed(2)};})()

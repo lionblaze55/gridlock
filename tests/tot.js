@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}, p=G.player; let tot=0, boom=0; for(let i=0;i<40;i++){ const c=new Car('sedan',p.x+300+i*5,p.y+2000,0); G.cars.push(c); c.damage(c.st.hp*1.8); if(c.totaled) tot++; if(c.fireT) boom++; G.cars.splice(G.cars.indexOf(c),1);} o.crashOverkill={tot,boom};
+// owned titled car explodes -> dire tow
+const L=myCars(); L.length=0; const k=new Car('muscle',p.x+60,p.y,0); applyMods(k,{}); k.owned=1; k.legit=1; k.gid='gK'; G.cars.push(k); explodeCar(k); G.lvT=0; G.insT=0; await w(900); const r=L[0]; o.tow=r&&{cond:+r.cond.toFixed(2), wreck:r.wreck, legit:r.legit}; o.claims=CLAIMS().length;
+// totaled player car won't drive
+const t=new Car('sedan',p.x+90,p.y+40,0); t.owned=1; G.cars.push(t); enterCar(t); for(let i=0;i<20&&!t.totaled;i++){ t.hp=t.st.hp; t.fireT=0; t.damage(t.st.hp*1.7);} o.totaled=t.totaled; t.vx=t.vy=0; Input.stick={active:true,ox:90,oy:300,dx:0,dy:-1}; await w(800); Input.stick={active:false}; o.spd=Math.round(Math.hypot(t.vx,t.vy)); o.dead=t.dead; exitCar(true); return o;})()

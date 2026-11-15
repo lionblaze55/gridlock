@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); G.bldCD=0; useItem(G.scene.items.find(i=>i.t==='gdoor')); await w(1500); const t=G.scene.items.find(i=>i.t==='tgar'); G.player.x=(t.x+1)*T; G.player.y=(t.y+.6)*T; await w(400); return [t.x,t.y,G.scene.w,G.scene.h];})()

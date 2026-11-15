@@ -1,0 +1,1 @@
+(async()=>{const p=G.player; if(pCar()) exitCar(true); const q=new Ped(p.x+80,p.y,{role:'civ'}); q.a=Math.PI; G.peds.push(q); return {w: theftWitness(0)===q, st:q.state, los:losClear(q.x,q.y,p.x,p.y), cop:!!copSees(), scene:!!G.scene, dead:q.dead, a:q.a};})()

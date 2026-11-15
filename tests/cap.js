@@ -1,0 +1,1 @@
+(async()=>{G.cash=9e7; econRealty(); for(const k of ['home','farm','biz','club']){ const r=W.realty.find(r=>r.kind===k); if(r) buyProperty(r);} G.hgT=0; return homeGarages().map(g=>garName(g.b)+':'+capIn(g)).concat(['total '+garCap()]);})()

@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; G.peds=[]; const b=W.buildings.find(b=>b.type==='bar'&&b.door); p.x=b.door.x; p.y=b.door.y+30; const g=new Ped(p.x+150,p.y,{}); g.state='fight'; g.target=p; g.timer=30; G.peds.push(g); await w(100);
+const info={st:g.state, tgt:g.target===p, d:Math.round(dist(g.x,g.y,b.door.x,b.door.y)), los:losClear(g.x,g.y,p.x,p.y), cf:chasersFor(b).length, inside:g.inside, car:!!g.car};
+enterBuilding(b); info.follow=G.follow&&G.follow.length; await w(4000); info.after=G.scene&&G.scene.peds.includes(g); info.follow2=G.follow&&G.follow.length; return info;})()

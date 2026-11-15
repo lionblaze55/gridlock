@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; const it=G.scene.items.filter(i=>i.t==='gcar')[1]; useItem(it); await w(150); o.panel=Panel.mode; o.wsel=Panel.wsel===it.rid;
+const row=[...document.querySelectorAll('#panel .pcol')[1].querySelectorAll('.prow')].find(x=>x.textContent.includes('Engine')); row.querySelector('button').click(); await w(150); o.modal=!!document.querySelector('.pkmodal'); o.opts=[...document.querySelectorAll('.pkmodal .prow b')].map(b=>b.textContent); return o;})()

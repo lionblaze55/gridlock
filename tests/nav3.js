@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const b=[...document.querySelectorAll('#panel .prow')].find(r=>/Hospital/.test(r.textContent)).querySelector('button'); b.click(); await w(300); return G.nav&&G.nav.name;})()

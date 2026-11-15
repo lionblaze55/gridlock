@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const g=homeGarages()[0]; if(G.scene) exitBuilding(); G.bldCD=0; enterGarage(g); await w(1500); const gd=G.scene.items.find(i=>i.t==='gdoor'); G.player.x=(gd.x-.5)*T; G.player.y=(gd.y+.6)*T; await w(400); return 1;})()

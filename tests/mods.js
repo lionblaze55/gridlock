@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const st={0:0,1:0,2:0,3:0}; let n=0; for(let i=0;i<500;i++){ const t=pick(TRAFFIC_MIX.concat(PARK_MIX)); const c=new Car(t,0,0,0); streetMods(c,'downtown'); const k=Object.keys(c.mods||{}).filter(k=>k!=='p').length; st[k===0?0:k<=2?1:k<=7?2:3]++; n++; }
+const p=G.player; await w(3000); const seen=G.cars.filter(c=>c.mods&&Object.keys(c.mods).filter(k=>k!=='p').length).length; G.cam.z=1.6; await w(400); return {st, onStreetModded:seen+'/'+G.cars.length};})()

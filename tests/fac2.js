@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const s=G.scene,p=G.player; let o=findInteract(); doInteract(o); const d1=G.fjob.done; const c0=G.cash;
+for(let k=0;k<12&&G.fjob;k++){ const pal=s.items.find(i=>i.t==='pallet'&&!i.placed); if(!pal) break; p.a=0; p.x=(pal.x+pal.w/2)*T-40; p.y=(pal.y+pal.h/2)*T; doInteract(findInteract()); const bay=s.items.find(i=>i.t==='fbay'&&i.bay===G.fork.load.bay); p.a=-Math.PI/2; p.x=(bay.x+bay.w/2)*T; p.y=(bay.y+bay.h/2)*T+40; doInteract(findInteract()); }
+await w(300); return {d1, fjob:!!G.fjob, fork:!!G.fork, paid:G.cash-c0, big:G.big&&G.big.sub, stats:LIFE().fjob};})()

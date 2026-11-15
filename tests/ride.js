@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; const parks=W.blocks.filter(b=>parkBase(b.d)); const blk=parks[0]; p.x=(blk.bx+6)*T; p.y=(blk.by+13)*T;
+G.peds=G.peds.filter(q=>!q.amb); const R=[]; for(let i=0;i<40;i++){ const s=ambSpawnSpot(p.x,p.y,i%2?blk:null)||ambSpawnSpot(p.x,p.y,null); if(!s) continue; const q=makeRider(s[0],s[1],i%3?'bike':'skate'); R.push(q);} 
+const hist=new Map(); let stuckSamples=0, samples=0; const where={};
+for(let t=0;t<40;t++){ await w(500); for(const q of R){ if(!q.ride||q.dead||!G.peds.includes(q)) continue; const h=hist.get(q)||[]; h.push([q.x,q.y]); hist.set(q,h); if(h.length>6){ const [x0,y0]=h[h.length-7]; const d=Math.hypot(q.x-x0,q.y-y0); samples++; if(d<(q.ride==="bike"?150:110) && q.state!=='idle' && q.state!=='chat'){ stuckSamples++; const k=q.state+':'+(propsNear(q.x,q.y,30).filter(o=>o.solid).map(o=>o.t).join(',')||'none'); where[k]=(where[k]||0)+1; } } } }
+return {riders:R.length, alive:R.filter(q=>q.ride&&G.peds.includes(q)).length, stuckPct:+(stuckSamples/samples*100).toFixed(1), where};})()

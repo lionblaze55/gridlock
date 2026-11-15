@@ -1,0 +1,1 @@
+(async()=>{const M=VMK(); const L=myCars(); L.length=0; L.push({type:'sports',mods:{},legit:0,cond:.9}); const r=L[0]; recId(r); return {rec:recValue(r), legitFn:isLegitRec(r), proj:projValue(r.type,r.mods,r.cond,0), titled:projValue(r.type,r.mods,r.cond,1)};})()

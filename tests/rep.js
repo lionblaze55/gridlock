@@ -1,0 +1,2 @@
+(async()=>{const M=VMK(); const out=[]; for(const per of ['chill','grumpy','hustler','boomer']){ const l=genListing(M); l.arch='fair'; l.scam=0; l.ghost=0; l.temper=.1; l.persona=per; l.floor=r50(l.ask*.85); M.feed.push(l); const lines=[];
+for(const f of [.75,.8,.8,.78]){ if(M.blocked.includes(l.id)) break; offerSeller(l, r50(l.ask*f)); const m=M.msgs[0]; m.pend.f(m); m.pend=null; lines.push(m.kind+': '+m.text); } out.push(per+' → '+lines.join(' | ')); } return out;})()

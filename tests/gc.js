@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); enterGarage(homeGarages()[0]); await w(500); let err=null; try{ renderControls(); }catch(e){ err=String(e)+e.stack.slice(0,300);} let e2=null; try{ renderHUD(); }catch(e){ e2=String(e)+e.stack.slice(0,400);} return {err,e2,kbd:Input.kbd};})()

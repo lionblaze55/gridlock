@@ -1,0 +1,6 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; const parks=W.blocks.filter(b=>parkBase(b.d)); const blk=parks[0]; p.x=(blk.bx+6)*T; p.y=(blk.by+13)*T;
+G.peds=G.peds.filter(q=>!q.amb); const R=[]; for(let i=0;i<40;i++){ const s=ambSpawnSpot(p.x,p.y,i%2?blk:null)||ambSpawnSpot(p.x,p.y,null); if(!s) continue; R.push(makeRider(s[0],s[1],i%3?'bike':'skate'));}
+const tr=new Map(); const o0=riderSteer; window.riderSteer=function(q,dt){ const a=[q.mvx,q.mvy]; o0(q,dt); const t=tr.get(q)||[]; t.push([Math.round(q.x),Math.round(q.y),Math.round(a[0]),Math.round(a[1]),Math.round(q.mvx),Math.round(q.mvy),q.state[0]]); if(t.length>40)t.shift(); tr.set(q,t); };
+const hist=new Map(); let res=null;
+for(let t=0;t<40&&!res;t++){ await w(500); for(const q of R){ if(!q.ride||!G.peds.includes(q)) continue; const h=hist.get(q)||[]; h.push([q.x,q.y]); hist.set(q,h); if(h.length>6&&q.state==='walk'){ const [x0,y0]=h[h.length-7]; if(Math.hypot(q.x-x0,q.y-y0)<120){ res={trace:(tr.get(q)||[]).filter((_,i)=>i%3==0), props:propsNear(q.x,q.y,60).filter(o=>o.solid).map(o=>[o.t,Math.round(o.x),Math.round(o.y),o.r]), peds:G.peds.filter(o=>o!==q&&dist(o.x,o.y,q.x,q.y)<50).map(o=>[Math.round(o.x),Math.round(o.y),o.ride||o.role,o.state])}; break; } } } }
+return res;})()

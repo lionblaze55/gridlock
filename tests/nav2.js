@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); openGoto(); await w(400); const b=[...document.querySelectorAll('#panel .prow')].find(r=>/Hospital/.test(r.textContent)); return b&&b.textContent;})()

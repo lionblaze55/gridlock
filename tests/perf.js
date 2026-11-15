@@ -1,0 +1,2 @@
+(async()=>{const d=CAR_TYPES.sports, b=calcSt(d,{}), o={}; const pc=(m)=>{const s=calcSt(d,m); return ['max','acc','grip','steer','brk','hp','off'].map(k=>k+':'+(typeof s[k]==='number'?Math.round((s[k]/b[k]-1)*100):'?')).join(' ');};
+for (const [n,m] of [['eng3',{eng:3}],['tur1',{tur:1}],['trn1',{trn:1}],['trn2',{trn:2}],['exh3',{exh:3}],['ecu1',{ecu:1}],['wgt2',{wgt:2}],['awd',{drv:1}],['drift',{drv:2}],['tyr2',{tyr:2}],['tyr3 offroad',{tyr:3}],['brk2',{brk:2}],['hnd2',{hnd:2}],['arm3',{arm:3}]]) o[n]=pc(m); return o;})()

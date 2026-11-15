@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); if(G.scene) exitBuilding(); const b=__shopB['jewel']; if(!b) return 'none'; enterBuilding(b); await w(700); G.msgs=[]; G.toast=null; return b.name+' items:'+G.scene.items.length;})()

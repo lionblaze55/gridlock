@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); G.cash=5000; G.stash.items.eng_v8=2; G.stash.items.gearbox=1; G.save.lc={eng_v8:[.9,.05],gearbox:[.5]}; partAdd('tur',1); partAdd('rim',2); partAdd('sp',3);
+const g=homeGarages()[0]; Panel.open('hgarage',{g}); Panel.tab='parts'; Panel.render(); await w(150); const out={rows:[...document.querySelectorAll('#panel .pcol')[0].querySelectorAll('.prow')].map(x=>x.querySelector('b').textContent+' | '+[...x.querySelectorAll('button')].map(b=>b.textContent).join(','))};
+const c0=G.cash; [...document.querySelectorAll('#panel button')].find(b=>b.textContent.startsWith('Scrap all broken')).click(); await w(100); out.scrapped=G.cash-c0; out.v8=lcList('eng_v8');
+[...document.querySelectorAll('#panel .prow')].find(x=>x.textContent.includes('Turbo')).querySelector('button.y').click(); await w(150); out.market={msub:Panel.msub, sel:Panel.sel, title:document.querySelectorAll('#panel .pcol')[1].querySelector('.ptitle').textContent};
+Panel.close(); Panel.open('hgarage',{g}); Panel.tab='parts'; Panel.render(); await w(150); return out;})()

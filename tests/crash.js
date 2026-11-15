@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; G.peds=[]; G.cars=[]; const x0=roadCX(8), y0=roadCY(5)+700; const out=[];
+for (const sp of [350, 420, 480, 550]) { G.peds=[]; G.cars=[]; const n=new Car('sedan',x0,y0,0); n.driver={role:'civ',shirt:'#c00'}; makeTrafficAI(n,0,0); n.ai.cruise=0; G.cars.push(n); const m=new Car('sedan',x0,y0+260,-Math.PI/2); G.cars.push(m); p.x=m.x; p.y=m.y; enterCar(m); m.vx=0; m.vy=-sp; await w(900); const q=G.peds.find(o=>o.shirt==='#c00'); out.push({sp, ejected:!!q, dead:q&&q.dead, hp:q&&Math.round(q.hp), driver:!!n.driver}); exitCar(true); G.heat=0; }
+return out;})()

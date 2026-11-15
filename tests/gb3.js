@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const g=homeGarages()[0], p=G.player; const c=G.cars.find(c=>c.owned); const tx=Math.floor(g.x/T), ty=Math.floor(g.y/T); const o={sol:[W.solid[idx(tx,ty)],W.solid[idx(tx+1,ty)],W.solid[idx(tx-1,ty)]], type:c.type, L:c.L, W:c.W};
+c.x=g.x+10; c.y=g.y; c.a=0; c.vx=c.vy=0; await w(500); o.stay=[Math.round(c.x-g.x),Math.round(c.y-g.y)]; o.props=propsNear(g.ax,g.ay,60).map(q=>q.t); o.panel=Panel.mode; return o;})()

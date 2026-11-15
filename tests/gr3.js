@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; [...document.querySelectorAll('.pkmodal button')].find(b=>b.textContent==='Fit').click(); await w(150); o.modalGone=!document.querySelector('.pkmodal'); o.noEng=myCars()[1].noEng; Panel.close(); await w(700); o.sig=G.scene.items.filter(i=>i.t==='gcar').length;
+const i0=myCars().findIndex(r=>r.type==='muscle'); takeOut2(i0,G.scene.garage); await w(300); o.out={scene:!!G.scene, inCar:!!pCar(), type:pCar()&&pCar().type}; return o;})()

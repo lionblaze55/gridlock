@@ -1,0 +1,1 @@
+(async()=>{const p=G.player; const sp=randStreetPoint(0,99999,TILE.ROAD); p.x=sp[0]; p.y=sp[1]; const by=new Ped(p.x+80,p.y,{role:'civ'}); G.peds.push(by); const [ox,oy]=aimOrigin(); return {o:[ox-p.x,oy-p.y], inPeds:G.peds.includes(by), dead:by.dead, talking:by.talking, cone:aimCone('face',80), t:String(pickTarget(0,400,'face'))};})()

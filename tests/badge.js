@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const M=VMK(); const L=myCars(); L.length=0; L.push({type:'sedan',mods:{},legit:1}); recId(L[0]); const v=recValue(L[0]); M.list.push({id:'lZ',gid:L[0].id,ask:r50(v*.8),v,t:M.clock,nextT:M.clock,views:0}); marketTick(1); marketTick(1); await w(300); const u1=mktUnread(); return {u1};})()

@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; const q=new Ped(p.x-120,p.y,{}); q.gig=gigFor(); q.gigT=G.t+100; q.still=1; q.state='idle'; q.persist=1; G.peds.push(q); let n=0; const o=drawPedK; window.drawPedK=function(x){ if(x===q) n++; return o(x); }; await w(500); return {n, inPeds:G.peds.includes(q), gig:!!q.gig, dead:q.dead};})()

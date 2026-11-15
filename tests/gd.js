@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}, p=G.player; const L=myCars(); L.length=0; L.push({type:'muscle',mods:{},legit:1}); const g=homeGarages()[0]; enterGarage(g); await w(1400);
+const it=G.scene.items.find(i=>i.t==='gcar'); useItem(it); await w(300); o.btns=[...document.querySelectorAll('#dlg button')].map(b=>b.textContent); closeDialog();
+const gd=G.scene.items.find(i=>i.t==='gdoor'); p.x=(gd.x-.4)*T; p.y=(gd.y+gd.h/2)*T; await w(300); const fi=findInteract(); o.gdPrompt=fi&&fi.label; G.bldCD=0; useItem(gd); await w(400); o.inHome=G.scene&&G.scene.b.name; o.tgar=!!G.scene.items.find(i=>i.t==='tgar');
+G.bldCD=0; useItem(G.scene.items.find(i=>i.t==='tgar')); await w(400); o.backInGarage=!!(G.scene&&G.scene.garage);
+const it2=G.scene.items.find(i=>i.t==='gcar'); useItem(it2); await w(300); [...document.querySelectorAll('#dlg button')].find(b=>b.textContent.includes('Drive it out')).click(); await w(500); o.out={scene:!!G.scene, car:pCar()&&pCar().type}; return o;})()

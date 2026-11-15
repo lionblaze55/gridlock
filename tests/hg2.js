@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player, out={}; const b=[...document.querySelectorAll('#panel button')].find(b=>b.textContent==='Store it'); b.click(); await w(200); out.stored=myCars().map(r=>r.type); out.panel=Panel.mode;
+const g=homeGarages()[0]; p.x=g.x+30; p.y=g.y; await w(100); const o=findInteract(); out.label=o&&o.label; doInteract(o); await w(300); return out;})()

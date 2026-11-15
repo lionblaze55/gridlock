@@ -1,0 +1,19 @@
+// ================= MENU CLEAN-UP: one garage screen, one parts catalogue =================
+function openGarageAny() { const gs = homeGarages(); if (!gs.length) return toast('No garage here'); const p = G.scene ? G.outPos : G.player; let g = gs[0]; for (const h of gs) if (dist2(h.x, h.y, p.x, p.y) < dist2(g.x, g.y, p.x, p.y)) g = h; Panel.open('hgarage', { g }); }
+{ const pj = PMODES.project; PMODES.project = function (H) { if (typeof migrateShells === 'function') migrateShells(); this.tab = 'order'; const r = pj.call(this, H); H.title.textContent = '🛒 Car parts & shells — delivered to your garage';
+  const tabs = H.el.querySelector('.ptabs'); if (tabs) { tabs.innerHTML = ''; const mk = (t, f) => { const b = H.mk('button', '', t); b.onclick = () => { Snd.play('ui'); f(); }; tabs.appendChild(b); }; mk('🅿 Garage & workshop', openGarageAny); if (G.scene) mk('← Stash', () => Panel.open('store', { kind: 'home' })); mk('📱 Phone', () => Panel.open('phone', { tab: 'shop' })); }
+  partsShopCol(H); return r; }; }
+// ---------- property: buying adds garage space (and says so); selling is blocked while the cars wouldn't fit ----------
+const propSlots = id => { const b = W.buildings[id], r = b && b.realty; if (!r) return 0; const e = garSlots().find(s => s[0] === (r.name || b.name)); return e ? e[1] : 0; };
+{ const _bp = buyProperty; buyProperty = function (r) { const c0 = garCap(), ok = _bp(r); if (ok && garCap() > c0) msg('🅿 Garage space: ' + c0 + ' → ' + garCap() + ' (+' + (garCap() - c0) + ' from ' + r.name + '). It has its own GARAGE pad outside.', '#4fc3f7'); return ok; }; }
+function sellProperty(id) { const L = LIFE(), O = L.own[id], b = W.buildings[id], r = b && b.realty; if (!O || !r) return; const lose = propSlots(id), after = garCap() - lose;
+  if (garUsed() > after) return toast('Can\'t sell — you have ' + garUsed() + ' vehicles and would only have room for ' + after + '. Sell or scrap ' + (garUsed() - after) + ' first.');
+  const val = Math.round(r.price * .7 / 500) * 500 + Math.round(O.safe || 0); say('Sell ' + r.name + '?', 'You get ' + money(val) + ' (70% of its value' + (O.safe ? ' plus what\'s in the safe' : '') + ').' + (lose ? ' Garage space drops ' + garCap() + ' → ' + after + '.' : '') + ' Anything left inside is gone.', [
+    { t: 'Sell for ' + money(val), c: 'r', f: () => { closeDialog(); delete L.own[id]; G.hgT = 0; addCash(val); Snd.play('cash'); msg('Sold ' + r.name + ' for ' + money(val) + '.', '#2ecc71'); doSave(true); Panel.render && Panel.mode && Panel.render(); } }, { t: 'Keep it' }]); }
+{ const ph = PMODES.phone; PMODES.phone = function (H) { const r = ph.call(this, H); if (this.tab !== 'empire') return r; const ids = Object.keys(LIFE().own || {}).filter(id => W.buildings[id] && W.buildings[id].realty); if (!ids.length) return r; const cols = H.body.querySelectorAll('.pcol'), col = cols[0]; if (!col) return r;
+  col.appendChild(H.mk('div', 'ptitle', 'Garage ' + garUsed() + '/' + garCap() + ' · sell property'));
+  for (const id of ids) { const rr = W.buildings[id].realty, n = propSlots(id), blocked = garUsed() > garCap() - n; H.row(col, '🏷', 'Sell ' + rr.name, money(Math.round(rr.price * .7 / 500) * 500) + (n ? ' · −' + n + ' garage' + (blocked ? ' — garage too full' : '') : ''), [H.btn('Sell', () => sellProperty(id), 'r')]); } return r; }; }
+// ---------- performance mods: side effects that were missing (weight, armor, ride height) — brake upgrades now count for normal braking too ----------
+{ const _cs = calcSt; calcSt = function (d, m) { const s = _cs(d, m); m = m || {}; const wgt = Math.min(2, m.wgt | 0), arm = m.arm | 0, hnd = m.hnd | 0;
+  s.brk *= [1, 1.06, 1.12][wgt] * (1 - .04 * arm); s.acc *= 1 - .035 * arm; s.max *= 1 - .012 * arm; s.grip *= [1, 1.02, 1.04][wgt] * (1 - .015 * arm); s.steer *= 1 - .02 * arm;
+  if (typeof s.off === 'number') s.off = clamp(s.off - .07 * hnd, 0, 1); return s; }; }

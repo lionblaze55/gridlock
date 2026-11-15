@@ -1,0 +1,4 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; G.cash=5e6; econRealty(); const r=W.realty.find(r=>r.kind==='home'); o.cap0=garCap(); buyProperty(r); o.cap1=garCap(); o.slots=propSlots(r.id);
+const L=myCars(); L.length=0; for(let i=0;i<o.cap0+1;i++) L.push({type:'compact',mods:{},legit:1}); const c0=G.cash; sellProperty(r.id); await w(200); o.blocked=!!LIFE().own[r.id]&&!G.dlgOpen; L.pop();
+Panel.open('phone',{tab:'empire'}); await w(200); o.row=[...document.querySelectorAll('#panel .prow')].map(x=>x.textContent).find(t=>t.startsWith('🏷')); Panel.close();
+sellProperty(r.id); await w(300); [...document.querySelectorAll('#dlg button')].find(b=>b.textContent.startsWith('Sell for')).click(); await w(200); o.sold=!LIFE().own[r.id]; o.got=G.cash-c0; o.cap2=garCap(); return o;})()

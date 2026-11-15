@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const out={}; giveWeapon('bolt'); giveWeapon('pistol'); G.wmods.bolt={muz:1,sight:2}; PWC={}; gpAdd('mag',1); gpAdd('ammo',1);
+const b=W.buildings.find(b=>b.name==='Your Apartment'); enterBuilding(b); await w(400); const gb=G.scene.items.find(i=>i.t==='gbench'); out.bench=!!gb; const p=G.player; p.x=(gb.x+gb.w/2)*T; p.y=(gb.y+gb.h+.5)*T; p.a=-Math.PI/2; await w(100); const o=findInteract(); out.label=o&&o.label; doInteract(o); await w(200); out.mode=Panel.mode;
+Panel.gsel='bolt'; gPull('bolt','muz'); out.afterPull={mods:G.wmods.bolt, quiet:!!pw(WI.bolt).quiet, parts:GPARTS()}; gFit('pistol','muz',1); out.pistolQuiet=!!pw(WI.pistol).quiet; Panel.gsel='bolt'; Panel.render(); await w(300); return out;})()

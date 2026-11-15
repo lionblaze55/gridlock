@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); G.cash=90000; G.heat=0; const z=W.sprays.find(z=>z.kind==='mod'); const out=[];
+for(const t of ['compact','super','sedan','muscle','pickup']){ const c=new Car(t,(z.x0+z.x1)/2,(z.y0+z.y1)/2,0); G.cars.push(c); enterCar(c); openGarage(c,z); GAR.tab='service'; renderGarage(); await w(100); const b=[...document.querySelectorAll('#garage .gopt')].find(e=>e.textContent.startsWith('Retitle')); const txt=b.textContent; const c0=G.cash; b.click(); await w(100); out.push({t, txt:txt.slice(0,90), paid:c0-G.cash, legit:c.legit, heat:+G.heat.toFixed(2)}); closeGarage(); exitCar(true); const i=G.cars.indexOf(c); G.cars.splice(i,1); }
+return out;})()

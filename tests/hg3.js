@@ -1,0 +1,1 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const b=[...document.querySelectorAll('#panel button')].find(b=>b.textContent==='Take out'); b.click(); await w(500); const g=homeGarages()[0]; G.player.x=g.x; G.player.y=g.y+60; if(pCar()) exitCar(true); await w(600); return {garage:myCars().length, inCar:!!pCar()};})()

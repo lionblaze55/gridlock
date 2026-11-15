@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; G.cash=5000; G.stash.items.eng_v8=2; G.save.lc={eng_v8:[.9,.2]}; const g=homeGarages()[0]; Panel.open('hgarage',{g}); Panel.tab='parts'; Panel.render(); await w(200);
+const b=[...document.querySelectorAll('#panel button')].filter(b=>b.textContent.startsWith('Slow fix')); o.btns=b.map(x=>x.textContent); const worn=b.find(x=>x.closest('.prow').textContent.includes('20%')); const c0=G.cash; worn.click(); await w(200); o.paid=c0-G.cash; o.bench=G.save.bench.map(j=>j.id+':'+j.c.toFixed(2)); o.left=lcList('eng_v8'); o.benchRow=[...document.querySelectorAll('#panel .prow b')].map(x=>x.textContent).slice(0,3);
+await w(5000); o.prog=+G.save.bench[0].c.toFixed(3); return o;})()

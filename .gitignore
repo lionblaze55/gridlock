@@ -1,0 +1,12 @@
+game.js
+*.apk
+*.zip
+android/signing/
+android/GridlockSanVarro/.gradle/
+android/GridlockSanVarro/build/
+android/GridlockSanVarro/app/build/
+android/GridlockSanVarro/local.properties
+*.jks
+*.keystore
+__pycache__/
+*.png.tmp

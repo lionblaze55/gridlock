@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player; const tr=[]; G.peds=[]; G.cars=[]; p.x=roadCX(8)+20; p.y=roadCY(5)+600;
+const thug=new Ped(p.x+20,p.y,{}); G.peds.push(thug); const cop=new Ped(p.x,p.y-260,{role:'cop'}); cop.state='walk'; G.peds.push(cop); thug.state='fight'; thug.target=p; thug.timer=20;
+for(let i=0;i<20;i++){ await w(400); tr.push([thug.state, Math.round(dist(cop.x,cop.y,thug.x,thug.y)), Math.round(Math.hypot(thug.mvx,thug.mvy)), Math.round(Math.hypot(cop.mvx,cop.mvy)), cop.state, thug.hp|0, thug.cuffT||0]); if(!G.peds.includes(thug)) break; } return tr;})()

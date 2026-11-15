@@ -1,0 +1,3 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); G.cash=50000; const L=myCars(); L.length=0; L.push({type:'sports',mods:{},legit:1,cond:.8,id:'gD'}); for(const k of ['tur','eng','ecu','brk','hnd','tyr','sus','trn']) if(MODOPTS[k]) { partAdd(k,1); partAdd(k,2); }
+const g=homeGarages()[0]; Panel.open('hgarage',{g}); Panel.wsel='gD'; Panel.render(); await w(100); const col=()=>document.querySelectorAll('#panel .pcol')[2]; col().scrollTop=400; const y0=col().scrollTop;
+const b=[...col().querySelectorAll('button')].filter(b=>b.textContent==='Fit').pop(); b.click(); await w(150); return {y0, after: col().scrollTop};})()
