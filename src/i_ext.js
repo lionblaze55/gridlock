@@ -14,7 +14,7 @@ function updateWorldTime(dt) {
   w.rain += clamp(w.target - w.rain, -dt / 8, dt / 8);
 }
 function newDay() {
-  const types = Object.keys(CAR_TYPES).filter(t => t !== 'swat');
+  const types = Object.keys(CAR_TYPES).filter(t => t !== 'swat' && !CAR_TYPES[t].air);
   G.chopList = []; while (G.chopList.length < 3) { const t = pick(types); if (!G.chopList.includes(t)) G.chopList.push(t); }
   const ds = Object.keys(DISTRICTS), dg = pick(DRUGS);
   G.drugEvent = { d: pick(ds), id: dg.id, f: Math.random() < .5 ? rnd(2, 3) : rnd(.3, .5) };

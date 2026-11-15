@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.74
+- San Varro Airport out on the prairie: a full runway (09/27 markings, threshold stripes, edge lights that glow at night), apron and taxiways, three hangars, a control tower with a beacon, a windsock, a helipad and a runway level crossing with flashing lights. It's on the map.
+- Varro Aviation (talk to Dee at the desk): rent a flight, buy your own aircraft, manage your fleet (GPS, ferry back to the airport, repairs) and a How to fly guide.
+- Five aircraft with drawn sprites, spinning props and rotors, nav lights and ground shadows: Skylark 172 light plane, Crop Hawk duster, Starling LX private jet, Hummingbird and Ranger Utility helicopters. Parked ones at the airport can be stolen ("Aircraft theft").
+- Planes taxi like cars, take off past their take-off speed while holding ▲ CLIMB, bank to turn, and land on the runway or any open ground; landing too fast, on a roof or in water crashes. Helicopters spin up, lift straight off, hover when you let go of the stick and set down anywhere open.
+- Flying: aircraft pass over everything, the camera zooms out with altitude, clouds drift by up high, and an altimeter and take-off hints show on the HUD. Keyboard: R/Q climb, F/E descend.
+- Bail out with EXIT: high up you get a parachute, low down you get hurt; an empty aircraft goes down.
+- Police air support: a chopper joins the chase at 3★ with a searchlight after dark and a door gunner at 4★. It can be shot down (and they won't like that).
+- Aircraft can't be stored in car garages and don't show up in chop lists, shells or car mods.
+
 ## 1.73
 - 8 new guns: .357 Revolver, Hand Cannon .50, PDW, Sawn-Off Shotgun, Combat Shotgun, Carbine, Light Machine Gun, Marksman Rifle.
 - Guns are built from components: frame, barrel, trigger & action and magazine, plus attachments. Optic (red dot, holographic, 4x and 8x scopes) and laser (red, green, laser + flashlight) are now separate slots, with new barrel, grip (foregrip, bipod) and stock slots. Old saves keep their scope/laser.

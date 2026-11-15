@@ -214,7 +214,7 @@ function enterCar0(c) {
     G.peds.push(q); Snd.play('punch', c.x, c.y);
   } else if (c.ai && c.ai.mode === 'parked' && c.type === 'cop') crime(.6, 'Stealing a police car');
   else if (!c.owned && Math.random() < .3) { Snd.play('glass', c.x, c.y, .6); }
-  if (theft) { const tl = c.d.pedal ? 'Petty theft (' + c.d.name.toLowerCase() + ')' : c.d.boat ? 'Boat theft' : c.d.two || c.d.rider ? 'Motorcycle theft' : 'Grand theft auto', sv = c.d.pedal ? .35 : c.d.two || c.d.rider ? .8 : 1.05; (c.driver && c.driver !== p ? crime : theftCrime)(sv, tl); }
+  if (theft) { const tl = c.d.air ? 'Aircraft theft' : c.d.pedal ? 'Petty theft (' + c.d.name.toLowerCase() + ')' : c.d.boat ? 'Boat theft' : c.d.two || c.d.rider ? 'Motorcycle theft' : 'Grand theft auto', sv = c.d.air ? 1.4 : c.d.pedal ? .35 : c.d.two || c.d.rider ? .8 : 1.05; (c.driver && c.driver !== p ? crime : theftCrime)(sv, tl); }
   c.driver = p; c.ai = null; c.persist = 1; c.owned = 1; p.car = c; c.throttle = c.steer = 0; c.brake = 0; c.hand = 0;
   if (c.siren >= 0) c.siren = 0;
   Snd.play('cardoor', c.x, c.y); setTimeout(() => Snd.play('start', c.x, c.y), 250); toast(c.d.name); if (G.settings.keepSt && G.settings.station !== undefined && STATIONS[G.settings.station]) c.radio = G.settings.station; G.radioName = STATIONS[c.radio].name; G.radioT = 3; Radio.set(c.radio);

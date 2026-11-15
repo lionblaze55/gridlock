@@ -295,7 +295,7 @@ PMODES.project = function (H) {
     const c = H.col('Engines & stock parts'), buy = (id, pr) => { if (!payAny(pr)) return; G.stash.items[id] = (G.stash.items[id] | 0) + 1; Snd.play('cash'); };
     for (const id of ['eng_i4', 'eng_i4t', 'eng_v6', 'eng_v8', 'eng_sc8', 'eng_ev', 'eng_bike', 'gearbox', 'wheelset', 'exhaustp', 'panels', 'wiring', 'seats']) { const it = ITEMS[id], pr = Math.round(it.v * 1.5 / 10) * 10; H.row(c, it.e, it.n, money(pr) + ' · in stock ' + partHave(id), [H.btn('Buy', () => buy(id, pr), 'y', G.cash < pr)]); }
     const c2 = H.col('Bare shells');
-    for (const t of Object.keys(CAR_TYPES)) { const d = CAR_TYPES[t]; if (d.siren || t === 'taxi') continue; const pr = Math.round(carValue({ type: t }) * .5 / 10) * 10; H.row(c2, eRow(t), d.name, money(pr) + (S[t] ? ' · you have ' + S[t] : ''), [H.btn('Buy', () => { if (garUsed() >= garCap()) return toast('Garage is full'); if (pay(pr)) { myCars().push(shellRec(t)); Snd.play('cash'); toast('Shell delivered to your garage'); } }, 'y', G.cash < pr)]); }
+    for (const t of Object.keys(CAR_TYPES)) { const d = CAR_TYPES[t]; if (d.siren || d.air || t === 'taxi') continue; const pr = Math.round(carValue({ type: t }) * .5 / 10) * 10; H.row(c2, eRow(t), d.name, money(pr) + (S[t] ? ' · you have ' + S[t] : ''), [H.btn('Buy', () => { if (garUsed() >= garCap()) return toast('Garage is full'); if (pay(pr)) { myCars().push(shellRec(t)); Snd.play('cash'); toast('Shell delivered to your garage'); } }, 'y', G.cash < pr)]); }
     H.foot.appendChild(H.mk('span', 'pnote', 'Buying new is the expensive way. Stripping stolen cars at a chop shop is free.'));
   }
 };
