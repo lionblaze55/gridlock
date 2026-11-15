@@ -484,8 +484,8 @@ function renderHUD() {
   let my = VH > VW * 1.15 && G.settings.minimap ? 46 * sc + 108 * sc + 30 * sc : 58 * sc;
   if (G.mission) { const m = G.mission; const line = m.hud ? m.hud() : m.title; const tm = m.timer !== undefined && m.timer > 0 ? '  ' + Math.ceil(m.timer) + 's' : ''; txt(line + tm, VW / 2, my, 15 * sc, '#f2c230', 'center'); my += 22 * sc; }
   for (const m of G.msgs) { const age = 4.5 - m.t, sl = (1 - Math.min(1, age * 5)) * -16; my += sl; ctx.globalAlpha = Math.min(1, m.t, age * 5); ctx.font = `600 ${14 * sc}px Rubik, sans-serif`; const w = Math.min(VW - 40, ctx.measureText(m.text).width + 20); ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(VW / 2 - w / 2, my - 11 * sc, w, 22 * sc); ctx.fillStyle = m.col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(m.text, VW / 2, my, VW - 50); my += 25 * sc; ctx.globalAlpha = 1; }
-  if (G.districtT > 0 && !G.scene) { ctx.globalAlpha = Math.min(1, G.districtT); txt(G.district, VW / 2, VH * .26, 26 * sc, '#7fdbff', 'center'); ctx.globalAlpha = 1; }
-  if (G.radioT > 0) { ctx.globalAlpha = Math.min(1, G.radioT); txt('♫ ' + G.radioName, VW / 2, VH * .33, 14 * sc, '#ff9ff3', 'center'); ctx.globalAlpha = 1; }
+  if (G.districtT > 0 && !G.scene) { ctx.globalAlpha = Math.min(1, G.districtT); txt(G.district, VW / 2, Math.max(VH * .26, my + 22 * sc), 26 * sc, '#7fdbff', 'center'); ctx.globalAlpha = 1; }
+  if (G.radioT > 0) { ctx.globalAlpha = Math.min(1, G.radioT); txt('♫ ' + G.radioName, VW / 2, Math.max(VH * .33, my + (G.districtT > 0 && !G.scene ? 50 : 18) * sc), 14 * sc, '#ff9ff3', 'center'); ctx.globalAlpha = 1; }
   if (G.toast) { ctx.globalAlpha = Math.min(1, G.toast.t * 2); txt(G.toast.text, VW / 2, VH * .72, 17 * sc, '#fff', 'center'); ctx.globalAlpha = 1; }
   if (G.big) { const b = G.big, s2 = b.small ? .6 : 1, pop = 1 + Math.max(0, (b.t - (b.small ? 1.8 : 3.4))) * 2; txt(b.text, VW / 2, VH * .42, Math.min(64, VW / 9) * s2 * pop, b.col, 'center'); if (b.sub) txt(b.sub, VW / 2, VH * .42 + 44 * sc, 16 * sc, '#fff', 'center'); }
   // mission arrow

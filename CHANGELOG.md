@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.67
+- Racing scene: Pinewood Raceway outside town (track races, cash duels, pink slips, betting on heats), street races you start by honking at flagged cars, gang-run car events, and a racing rep ladder from Rookie to King of Varro.
+- Fixed: Redline races were stuck on the countdown since 1.34 (a marketplace function had the same name and replaced the race tick).
+- Beaters: rough cars in traffic with faded paint, primer panels, rust, cracked glass, smoke and worn parts; much more common in tough districts.
+- 8 new cars: Zippa R hot hatch, Homestead wagon, Scarab, Cruzado lowrider, Dirtstorm rally car, Last Ride hearse, Stiletto GT, Old Faithful farm truck.
+- Cooking: recipe book shows what's missing and where to get it; stop-the-needle cooking mini-game (perfect = bonus portions); mastering a recipe unlocks auto-cook.
+- Yards: country homes and farms can be decorated outside (gardens, grills, pools, hot tubs, sheds, windmills and more).
+- Phone: 11 tabs merged into 7 (Home, Work, Property, Vehicles, Marketplace, Shop, Racing) with sub-tabs.
+- Fixed: a seized engine could still drive at ~85% speed.
+- District and radio banners no longer overlap messages; stale help text updated; farms show their icon in Property.
+
 ## 1.66
 - Meeting at your place: scammers often block you right away; everyone else is already there (they come inside if you're home).
 

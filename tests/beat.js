@@ -1,0 +1,5 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player, out={};
+const stat=()=>{ const by={}; for(const c of G.cars){ if(c.d.boat||c.owned) continue; const dn=districtAt(c.x,c.y).replace(/\d+$/,''); by[dn]=by[dn]||[0,0]; by[dn][0]++; if(c.beater) by[dn][1]++; } return by; };
+for (const dn of ['trailer','junkyard','downtown','suburbs','oldtown']) { let pt=null; for(let k=0;k<4000&&!pt;k++){ const sp=randStreetPoint(0,99999,TILE.ROAD); if(sp&&districtAt(sp.x,sp.y).startsWith(dn)) pt=sp; } if(!pt) continue; G.cars=G.cars.filter(c=>c.owned); p.x=pt.x; p.y=pt.y; await w(9000); out[dn]=stat()[dn]; }
+const b=G.cars.filter(c=>c.beater&&inView(c.x,c.y,0)); out.inView=b.length; const c=G.cars.find(c=>c.beater); if(c){ out.sample={hp:+(c.hp/c.st.hp).toFixed(2), pcAvg:+(c.pcAvg||0).toFixed(2), mods:c.mods, eng:c.pc&&c.pc.eng, val:mktValue(c.type,c.mods,c.hp/c.st.hp,1), fresh:mktValue(c.type,{},1,1)}; p.x=c.x+60; p.y=c.y; c.vx=c.vy=0; if(c.ai) c.ai.cruise=0; G.zoom=2; }
+return out;})()

@@ -44,7 +44,7 @@ function garageCol(H) { garAssign(); const L = myCars(), gs = homeGarages(), o =
   if (k && !k.d.boat) { const near = homeNear() || G.scene; H.row(c, '🅿', (k.driver ? 'This ' : 'Your ') + k.d.name, near ? 'Close to home — storing is free' : 'Tow it to the nearest garage with room · $150', [H.btn('Store', () => storeCarAny(k), 'y', garUsed() >= garCap() || (!near && !canPay(150)))]); }
   for (const g of gs.slice().sort((a, b) => dist2(a.x, a.y, o.x, o.y) - dist2(b.x, b.y, o.x, o.y))) { const here = dist2(g.x, g.y, o.x, o.y) < 600 * 600, mine = L.map((r, i) => [r, i]).filter(([r]) => r.gar === g.b.id);
     c.appendChild(H.mk('div', 'ptitle', '🏠 ' + garName(g.b) + ' · ' + mine.length + '/' + capIn(g)));
-    H.row(c, '📍', here ? 'You\'re here' : Math.round(dist(g.x, g.y, o.x, o.y) / T) + 'm away', 'Drive or walk onto the blue GARAGE pad', [H.btn('GPS', () => { setNav({ x: g.ax || g.x, y: g.ay || g.y, name: garName(g.b) + ' garage' }); Panel.close(); })]);
+    H.row(c, '📍', here ? 'You\'re here' : Math.round(dist(g.x, g.y, o.x, o.y) / T) + 'm away', 'Drive onto the blue GARAGE pad, or stand on it and tap USE', [H.btn('GPS', () => { setNav({ x: g.ax || g.x, y: g.ay || g.y, name: garName(g.b) + ' garage' }); Panel.close(); })]);
     if (!mine.length) H.empty(c, 'Empty');
     for (const [r, i] of mine) { const d = CAR_TYPES[r.type]; if (!d) continue; const ok = drivable(r.type, r.missing, r.noEng), listed = G.save.mkt && G.save.mkt.list.some(l => l.gid === r.id);
       const row = thumbRow(H, c, r.type, recColor(r), r.mods, d.name + (listed ? ' · for sale' : ''), (ok ? condWord(r.cond === undefined ? 1 : r.cond) : 'project — won\'t drive') + (isLegitRec(r) ? '' : ' · no title'), [

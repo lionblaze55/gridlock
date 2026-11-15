@@ -37,7 +37,7 @@ function cancelMeet(mt, why) { const M = VMK(); mt.state = 'off'; const m = M.ms
 // ---------- spawning the other party when you get close ----------
 function rtInit(mt) { if (mt._rt) return; const q0 = mt.q, c0 = mt.car; delete mt.q; delete mt.car; for (const k of ['q', 'car', '_rt']) Object.defineProperty(mt, k, { value: null, writable: true, enumerable: false, configurable: true });
   mt._rt = 1; if (q0 instanceof Ped) mt.q = q0; if (c0 instanceof Car) mt.car = c0; if (!(q0 instanceof Ped) && mt.state === 'here') mt.state = 'set'; if (!(q0 instanceof Ped) && !(c0 instanceof Car) && mt.state === 'scam') mt.state = 'done'; }
-function meetTick(dt) { if ((G.mtT = (G.mtT || 0) - dt) > 0) return; G.mtT = .4; const M = G.save && G.save.mkt; if (!M || !M.meets) return; const p = G.player; if (!p) return;
+function mktMeetTick(dt) { if ((G.mtT = (G.mtT || 0) - dt) > 0) return; G.mtT = .4; const M = G.save && G.save.mkt; if (!M || !M.meets) return; const p = G.player; if (!p) return;
   M.bounce = null;
   for (const mt of M.meets) { rtInit(mt);
     if (mt.state === 'set' && M.clock > mt.due) { cancelMeet(mt, pick(['You never showed. Waste of my time.', 'I waited 20 minutes. Forget it.', 'No-show? Seriously? Blocked.'])); mkNote(mt.who.split(' ')[0] + ' gave up waiting'); continue; }
@@ -134,7 +134,7 @@ function scamTick(mt) { const p = G.player, q = mt.q, c = mt.car;
   if (mt.state === 'scam') { const t = mt.car && mt.car.scamOf === mt.id ? mt.car : mt.q; if (t && !t.dead) o.push({ x: t.x, y: t.y, c: '#ff5252', ic: '!', r: 5, n: 'Scammer: ' + mt.who, pr: 10 }); } } return o; }; }
 function meetBtns(H, m) { const M = VMK(), mt = (M.meets || []).find(x => x.id === m.meet); if (!mt || m.done) return [];
   return [H.btn('📍 GPS', () => setNav({ x: mt.x, y: mt.y, name: 'Meet ' + mt.who.split(' ')[0] }), 'y'), H.btn('Cancel', () => cancelMeet(mt, 'You cancelled the meet.'))]; }
-{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') meetTick(dt); }; }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') mktMeetTick(dt); }; }
 // a spot near home that's well clear of the garage pad and the front door, so USE never has two targets
 function meetClear(g) { const d = g.b.door, ok = (x, y) => !solidW(x, y) && dist2(x, y, g.x, g.y) > 170 * 170 && dist2(x, y, d.x, d.y) > 150 * 150 && !homeGarages().some(h => dist2(x, y, h.x, h.y) < 170 * 170);
   for (let r = 190; r < 420; r += 30) for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, x = g.x + Math.cos(a) * r, y = g.y + Math.sin(a) * r; if (ok(x, y) && losClear(x, y, g.x, g.y)) return [x, y]; }
