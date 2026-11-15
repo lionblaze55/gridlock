@@ -1,0 +1,6 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const o={}; const miss=Object.keys(ITEMS).filter(k=>!itemDesc(k)); o.noDesc=miss; o.noWDesc=WEAPONS.filter(w=>!WEAPON_DESC[w.id]).map(w=>w.id); o.noMod=Object.keys(MODOPTS).filter(k=>!MOD_DESC[k]);
+let bad=[]; for(const k of Object.keys(ITEMS)) { try{ itemIconSrc(k);}catch(e){bad.push(k)} } for(const k of Object.keys(MODOPTS)) for(let v=0;v<MODOPTS[k].o.length;v++) try{ itemIconSrc(k+':'+v);}catch(e){bad.push(k+':'+v)} o.bad=bad;
+// contact sheet
+const ids=Object.keys(ITEMS); const cv=document.createElement('canvas'); cv.width=16*60; cv.height=Math.ceil(ids.length/16)*60; const g=cv.getContext('2d'); g.fillStyle='#161a22'; g.fillRect(0,0,cv.width,cv.height); ids.forEach((k,i)=>g.drawImage(itemIconSrc(k),(i%16)*60+2,Math.floor(i/16)*60+2,56,56)); window.__sheet=cv.toDataURL();
+const mk=[]; for(const k of Object.keys(MODOPTS)) for(let v=1;v<Math.min(3,MODOPTS[k].o.length);v++) mk.push(k+':'+v); const c2=document.createElement('canvas'); c2.width=16*60; c2.height=Math.ceil(mk.length/16)*60; const g2=c2.getContext('2d'); g2.fillStyle='#161a22'; g2.fillRect(0,0,c2.width,c2.height); mk.forEach((k,i)=>g2.drawImage(itemIconSrc(k),(i%16)*60+2,Math.floor(i/16)*60+2,56,56)); window.__sheet2=c2.toDataURL();
+return o;})()

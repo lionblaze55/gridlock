@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.69
+- Drawn icons for every item: seed packets, butcher-paper meats, plated meals, stew bowls, pies, drug baggies, pill packs, drawn engines (I4/V6/V8/blower/EV), gearboxes, wheels, exhausts, chips, seats and every car-mod part.
+- Detailed side-view weapon art; ammo shows as a badge on gun tiles, stack counts as a corner badge.
+- A proper description for every item, weapon and car part, shown when you select it.
+- Parts shelf rebuilt like the backpack: filter and sort a tile grid, then a detail card with description, condition bar, value and big Fix / Slow fix / Sell / Scrap buttons; workbench queue alongside.
+- Fixed "Potatoe/Tomatoe seeds" spelling.
+
 ## 1.68
 - Grid inventory: backpack, home stash, car trunks and farm storage show items as icon tiles with category filters and sorting. Tap a tile to move 1 / half / all, or press and drag it to the other side. Guns go in the home locker the same way.
 - Parts shelf shows loose parts as tiles with a condition bar; tap one for fix / slow fix / sell / scrap.

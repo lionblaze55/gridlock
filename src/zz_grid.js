@@ -50,7 +50,7 @@ function gGrid(H, col, side) { const g = H.mk('div', 'ggrid'); g.dataset.side = 
 function gDetail(H, col, e, name, sub, btns) { const d = H.mk('div', 'gdet'); d.appendChild(H.mk('span', 'gde', e)); const t = H.mk('div', 'gdt'); t.appendChild(H.mk('b', '', name)); if (sub) t.appendChild(H.mk('small', '', sub)); d.appendChild(t); const bb = H.mk('div', 'pbs'); (btns || []).forEach(b => b && bb.appendChild(b)); d.appendChild(bb); col.insertBefore(d, col.children[1] || null); return d; }
 const gunTiles = ammo => { const o = {}; for (const id in ammo) if (ammo[id] > 0 && WI[id] !== undefined) o['gun:' + id] = ammo[id]; return o; };
 const playerGuns = () => { const o = {}, p = G.player; for (let i = 1; i < WEAPONS.length; i++) if (p.ammo[i] > 0) o['gun:' + WEAPONS[i].id] = p.ammo[i]; return o; };
-const gunIcon = id => Panel.icon(id, WI[id]);
+let gunIcon = id => Panel.icon(id, WI[id]);
 
 // ---------------- two-sided transfer screen (bag ⇄ stash / trunk / farm) ----------------
 // A, B: { side, name, obj, cap, weight(), guns (bool), empty }
