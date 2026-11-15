@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.73
+- 8 new guns: .357 Revolver, Hand Cannon .50, PDW, Sawn-Off Shotgun, Combat Shotgun, Carbine, Light Machine Gun, Marksman Rifle.
+- Guns are built from components: frame, barrel, trigger & action and magazine, plus attachments. Optic (red dot, holographic, 4x and 8x scopes) and laser (red, green, laser + flashlight) are now separate slots, with new barrel, grip (foregrip, bipod) and stock slots. Old saves keep their scope/laser.
+- Wear: every shot wears the barrel, action, mag and frame. A worn barrel throws wide and short; a worn action or mag misfires. Optics and lasers lose their bonus as they wear.
+- Repair: gun shops have a Repair tab (fast, pricey, per component or fix everything), or clean & oil it yourself from the backpack (cheap, ~8 min, the gun can't fire meanwhile).
+- Used gun bin at gun shops and pawn shops (restocked daily, real wear and random attachments, trade-ins). Sell guns to gun dealers (55% of value) or pawn shops (40%).
+- Laser beam drawn in the world (glows at night); the flashlight lights the way after dark.
+
 ## 1.72
 - Aim lock rewritten: pressing fire locks the best target (threats first, from any direction when they're close); holding fire keeps that lock no matter what else moves into view; if the target dies you keep shooting straight until you let go. Innocent cars on your facing line no longer steal the lock.
 - Police: stealing a skateboard or bike is "Petty theft" ($120), motorcycles and boats have their own charge; repeat charges get diminishing fines (max 4×); unlabeled bumps are "Disorderly conduct" ($100); the total fine is capped at $2,500 per wanted star.

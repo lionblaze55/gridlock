@@ -1,0 +1,6 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); const p=G.player, o={}; G.cash=50000; G.tod=22; const sp=randStreetPoint(0,99999,TILE.ROAD); p.x=sp.x; p.y=sp.y; giveWeapon('carbine',300); p.weapon=WI.carbine; G.wmods.carbine={sight:3,laser:3,grip:2}; PWC={}; p.a=0; G.zoom=1.4; await w(600);
+G._skip=1; const c=gcond("carbine"); c.barrel=.5; c.action=.4; openInv(); await w(100); [...document.querySelectorAll('#panel .gtile')].find(t=>/Carbine/.test(t.textContent)).click(); await w(150);
+o.card=document.querySelectorAll('#panel .pcol')[1].innerText.slice(0,500).replace(/\n/g,' | '); const cb=[...document.querySelectorAll('#panel button')].find(b=>/Clean & oil/.test(b.textContent)); o.cleanBtn=cb&&cb.textContent; cb.click(); await w(100); o.cleaning=!!G.save.wclean;
+Panel.close(); await w(200); p.fireCD=0; const a0=p.ammo[p.weapon]; playerFire0(0); o.blockedWhileCleaning=p.ammo[p.weapon]===a0; G.save.wclean.last=G.t; await w(3000); o.barrelProgress=c.barrel.toFixed(3);
+G.save.wclean=null; Panel.open('pawn',{name:'Pawny'}); await w(100); o.pawnTabs=[...document.querySelectorAll('#panel .ptabs button')].map(b=>b.textContent).join('|'); [...document.querySelectorAll('#panel .ptabs button')].find(b=>b.textContent==='Used guns').click(); await w(100); o.pawnUsed=document.querySelectorAll('#panel .gtile').length; Panel.close(); await w(300);
+return o;})()

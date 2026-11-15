@@ -79,7 +79,7 @@ const PMODES = {
     if (pack < 30) E.push({ k: 'pack', e: '🎒', n: 'Backpack', price: 400, d: ['Canvas, lots of pockets.', 'Doubles what you can carry: 60 units instead of 30.'], buy: () => { G.save.pack = 30; } });
     else if (pack < 70) E.push({ k: 'duffel', e: '🧳', n: 'Duffel bag', price: 1200, d: ['The heist special.', 'Carry 100 units.'], buy: () => { G.save.pack = 70; } });
     for (const [id, price] of [['rod', 80], ['medkit', 70], ['bandage', 25], ['repairkit', 300], ['vest', 350]]) E.push({ k: id, e: ITEMS[id].e, n: ITEMS[id].n, price, d: itemInfo(id, 1), buy: () => { if (!invAdd(id, 1)) G.cash += price; } });
-    for (const [id, am, price] of [['pistol', 24, 150], ['uzi', 60, 450], ['shotgun', 12, 700], ['rifle', 45, 1700]]) E.push({ k: 'g' + id, gun: id, n: 'Used ' + WEAPONS[WI[id]].name, price, d: [WDESC[id], `Second-hand, comes with ${am} rounds. New price ${money(WEAPONS[WI[id]].price)}.`], buy: () => { giveWeapon(id, am); Snd.play('cock'); } });
+    // used guns moved to the Used guns tab (zz_guns2)
     if (!E.some(e => e.k === this.sel)) this.sel = E[0].k;
     const c = H.col('For sale — tap to inspect');
     for (const e of E) { const r = H.row(c, e.e || '', e.n, money(e.price), []); if (e.gun) r.querySelector('.pe').appendChild(this.icon(e.gun, 0)); if (e.k === this.sel) r.classList.add('sel'); r.onclick = () => { Snd.play('ui'); this.sel = e.k; this.render(); }; }
