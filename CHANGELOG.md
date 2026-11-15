@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.70
+- Phones held upright: selecting an item in the backpack, stash, trunk, farm storage or parts shelf opens its card as a bottom sheet over the lower half of the screen, with the grid scrolling above it. Buttons are full width; tap the handle to close it.
+- Parts detail shows condition and actions first, description after.
+
 ## 1.69
 - Drawn icons for every item: seed packets, butcher-paper meats, plated meals, stew bowls, pies, drug baggies, pill packs, drawn engines (I4/V6/V8/blower/EV), gearboxes, wheels, exhausts, chips, seats and every car-mod part.
 - Detailed side-view weapon art; ammo shows as a badge on gun tiles, stack counts as a corner badge.

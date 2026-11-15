@@ -10051,7 +10051,7 @@ PMODES.inv = function (H) { const P = this, p = G.player, bag = G.inv, guns = pl
     else { const it = ITEMS[id], n = bag[id]; const big = H.mk('div', 'pbig', it.e); big.style.cssText = 'font-size:58px;padding:4px 0;text-align:center'; c2.appendChild(big);
       const r = H.row(c2, '', it.n + ' ×' + n, itemInfo(id) + (n > 1 ? ' · ' + it.w * n + ' weight total' : ''), [(it.heal || it.armor || it.repair || DFX[id]) ? H.btn(DFX[id] ? 'Take' : 'Use', () => useInv(id), 'y') : null, H.btn('Drop 1', () => { invDel(id, 1); dropItem(id, 1); Snd.play('thud'); }), n > 1 ? H.btn('Drop all', () => { invDel(id, n); dropItem(id, Math.min(n, 30)); Snd.play('thud'); P.gsel = null; }, 'r') : null].filter(Boolean)); r.classList.add('pmsg'); r.querySelector('.pe').remove(); } }
   else { H.row(c2, '👆', 'Tap any tile', 'See what it does, use it, equip it or drop it. Filters and ⇅ sorting are at the top.'); const tot = Object.keys(bag).reduce((a, k) => a + (ITEMS[k] ? ITEMS[k].v * bag[k] : 0), 0); H.row(c2, '💰', 'Bag worth about ' + money(tot), 'Pawn shops buy loot; markets buy produce.'); }
-  c2.appendChild(H.mk('div', 'ptitle', 'Gang standing')); const gl = H.mk('div', ''); gl.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px 10px;font:600 11px Rubik,system-ui,sans-serif;color:#cfd6e4;padding:2px 4px';
+  c2.appendChild(H.mk('div', 'ptitle ggang', 'Gang standing')); const gl = H.mk('div', 'ggang'); gl.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px 10px;font:600 11px Rubik,system-ui,sans-serif;color:#cfd6e4;padding:2px 4px';
   for (const k in GANGS) { const r = G.rep[k] | 0, s = H.mk('span', '', '● ' + GANGS[k].name + ' ' + (r <= -30 ? '☠' : r >= 30 ? '♥' : '·')); s.style.color = r <= -30 ? '#ff6b6b' : r >= 30 ? '#2ecc71' : '#cfd6e4'; s.title = String(r); gl.appendChild(s); } c2.appendChild(gl); };
 // ---------------- parts shelf: the rows become tiles; tap one to get its buttons ----------------
 function tileizeRows(H, col, side) { const P = Panel, rows = [...col.children].filter(x => x.classList && x.classList.contains('prow')); if (!rows.length) return; let grid = null, idx = 0;
@@ -10171,8 +10171,9 @@ function itemIcon(id, px) { const s = itemIconSrc(id), c = document.createElemen
 // detail cards show the drawn icon and the description
 { const _gd = gDetail; gDetail = function (H, col, e, name, sub, btns) { const d = _gd(H, col, e, name, sub, btns), k = Panel.gsel && Panel.gsel.key; if (k && (ITEMS[k] || k.startsWith('gun:'))) { const sp = d.querySelector('.gde'); if (ITEMS[k]) { sp.textContent = ''; sp.appendChild(itemIcon(k, 52)); } const ds = itemDesc(k); if (ds) { const s = d.querySelector('.gdt'); s.insertBefore(H.mk('small', '', ds), s.children[1] || null); s.children[1].style.color = '#e3e8f1'; } } return d; }; }
 { const pi = PMODES.inv; PMODES.inv = function (H) { const r = pi.call(this, H), k = this.gsel && this.gsel.key; if (!k) return r; const c2 = H.body.querySelectorAll('.pcol')[1]; if (!c2) return r;
-  if (ITEMS[k]) { const big = c2.querySelector('.pbig'); if (big) { big.textContent = ''; big.appendChild(itemIcon(k, 104)); } }
-  const ds = itemDesc(k); if (ds) { const row = c2.querySelector('.prow'); const p = H.mk('div', 'pdesc', ds); c2.insertBefore(p, row || null); } return r; }; }
+  if (ITEMS[k] && matchMedia('(orientation:portrait)').matches) { const row0 = c2.querySelector('.prow'); if (row0 && !row0.querySelector('.pe')) { const pe = H.mk('span', 'pe'); pe.appendChild(itemIcon(k, 46)); row0.insertBefore(pe, row0.firstChild); } }
+  if (ITEMS[k]) { const big = c2.querySelector('.pbig'); if (big) { big.textContent = ''; big.style.padding = '0'; big.appendChild(itemIcon(k, 72)); } }
+  const ds = itemDesc(k); if (ds) { const row = c2.querySelector('.prow'); const p = H.mk('div', 'pdesc', ds); c2.insertBefore(p, row ? row.nextSibling : null); } return r; }; }
 
 // ---------------- parts shelf, rebuilt like the backpack ----------------
 const PCATS = [['all', 'All'], ['Engines', '⚙ Engines'], ['Stock parts', '🔧 Stock'], ['Performance', '🏁 Performance'], ['Wheels', '🛞 Wheels'], ['Body & style', '🎨 Body']];
@@ -10190,7 +10191,6 @@ partsTab = function (H) { const P = Panel, ids = stockIds(), all = []; let n = 0
   const c2 = H.col(sel ? 'Selected part' : 'Shelf');
   if (sel) { const id = sel.id, c = sel.c, price = loosePrice(id), each = unitValue(id, c), top = H.mk('div', ''); top.style.cssText = 'display:flex;gap:10px;align-items:center;padding:4px';
     top.appendChild(itemIcon(id, 76)); const tx = H.mk('div', ''); tx.style.cssText = 'display:flex;flex-direction:column;min-width:0'; const b = H.mk('b', '', sel.nm + (sel.n > 1 ? '  ×' + sel.n : '')); b.style.cssText = 'font:800 15px Rubik,system-ui,sans-serif;color:#fff'; tx.appendChild(b); tx.appendChild(H.mk('small', '', sel.cat + ' · new ≈ ' + money(price))).style.cssText = 'font:600 11px Rubik,system-ui,sans-serif;color:#9aa3b5'; top.appendChild(tx); c2.appendChild(top);
-    c2.appendChild(H.mk('div', 'pdesc', itemDesc(id) || 'A car part.'));
     const cb = H.mk('div', 'pcbar'), ci = H.mk('b'); ci.style.width = Math.round(c * 100) + '%'; ci.style.background = condCol(c); cb.appendChild(ci); c2.appendChild(cb);
     H.row(c2, '📊', condWord2(c) + ' · ' + pct(c), 'Worth ≈ ' + money(each) + ' each' + (sel.n > 1 ? ' · ' + money(each * sel.n) + ' for all ' + sel.n : '') + (sel.n > 1 ? ' · actions work on one at a time' : '')).classList.add('pmsg');
     const act = H.mk('div', 'pact'), AB = (l, r, fn, cls, dis) => { const x = H.btn(l, fn, cls, dis); x.textContent = ''; x.appendChild(H.mk('span', '', l)); x.appendChild(H.mk('span', '', r)); act.appendChild(x); };
@@ -10198,7 +10198,7 @@ partsTab = function (H) { const P = Panel, ids = stockIds(), all = []; let n = 0
     if (c < .95 && typeof benchAdd === 'function') { const sc = slowCost(price, c); AB('🐢 Slow fix on the workbench', money(sc) + ' · ~' + Math.ceil((95 - c * 100) / SLOW_RATE / 60) + ' min', () => benchAdd(id, c), '', !canPay(sc)); }
     AB('🏷 Sell on the marketplace', '≈ ' + money(each), () => sellPart(id, c), c >= .95 ? 'y' : '');
     AB('🗑 Scrap it', '+' + money(scrapVal(id, c)), () => { scrapLoose(id, c); }, 'r');
-    if (c >= .95) act.appendChild(H.mk('div', 'pempty', 'In great shape — fit it from the Vehicles tab (pick a car, then Add/Swap on its slot).')); c2.appendChild(act); }
+    if (c >= .95) act.appendChild(H.mk('div', 'pempty', 'In great shape — fit it from the Vehicles tab (pick a car, then Add/Swap on its slot).')); c2.appendChild(act); c2.appendChild(H.mk('div', 'pdesc', itemDesc(id) || 'A car part.')); }
   else { H.row(c2, '👆', 'Tap a part', 'See what it is, its condition and what it\'s worth — then fix, slow-fix, sell or scrap it.').classList.add('pmsg');
     const listed = (VMK().plist || []).filter(l => l.held); if (listed.length) H.row(c2, '🏷', listed.length + ' listed on the marketplace', 'Phone › Marketplace › Parts', [H.btn('Open', () => { Panel.open('phone', { tab: 'market' }); Panel.msub = 'parts'; Panel.psub = 'sell'; Panel.render(); })]);
     const worn = all.filter(a => a.c < .4); if (worn.length) H.row(c2, '⚠', worn.reduce((s, a) => s + a.n, 0) + ' badly worn', 'Fixing these costs a lot — scrapping and buying fresh is often cheaper.').classList.add('pmsg'); }
@@ -10225,6 +10225,18 @@ function drawGunArt(g, id, body) { const M = '#5d6570', D = '#363b43', L = '#869
   else if (id === 'knife') { P([[20, 46], [90, 40], [118, 44], [90, 50], [20, 50]], '#cfd8dc'); R(8, 40, 16, 16, D, 3); R(22, 38, 6, 20, L, 2); icShadow(g, 0); R(30, 44, 70, 2, 'rgba(255,255,255,.6)'); for (let i = 0; i < 3; i++) R(10 + i * 5, 42, 2, 12, 'rgba(255,255,255,.12)'); }
   else { icShadow(g, 0); icE(g, '✊', 66, 45, 56); } icShadow(g, 0); }
 gunIconBig = function (id, px) { const c = document.createElement('canvas'); c.width = 132; c.height = 90; const g = c.getContext('2d'), sk = G.wmods[id] && G.wmods[id].skin; drawGunArt(g, id, sk ? shade(SKINCOL[sk], 1.1) : null); if (px) c.style.width = px + 'px'; return c; };
+
+// ---- phones held upright: the selected item's card is a bottom sheet over the lower half, the grid scrolls above it ----
+(() => { const st = document.createElement('style'); st.textContent = `@media (orientation:portrait){#panel .pbody.gsheet{overflow:hidden}#panel .pbody.gsheet>.pcol:not(.gsheetc){flex:1 1 0;min-height:0;overflow-y:auto}
+#panel .pbody.gsheet>.pcol.gsheetc{flex:0 0 52%;min-height:0;overflow-y:auto;border-top:3px solid #4fc3f7;border-radius:14px 14px 4px 4px;box-shadow:0 -8px 18px rgba(0,0,0,.55);background:#141924}
+#panel .pbody.gsheet>.pcol.gsheetc .gdet{margin:0;flex-wrap:wrap;align-items:flex-start;border:0;background:transparent;padding:4px}#panel .gsheetc .gdet .gdt{flex:1 1 60%}#panel .gsheetc .gdet .pbs{width:100%;max-width:none;display:flex;gap:6px;margin-top:6px}#panel .gsheetc .gdet .pbs .pb{flex:1;padding:13px 6px;font-size:14px}#panel .gsheetc .gdet .gde{width:60px}#panel .gsheetc .gdet canvas{width:60px;height:60px}
+#panel .pbody.gsheet>.gtop{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px}#panel .pbody.gsheet>.gtop>.pcol{flex:none;overflow:visible}#panel .gsheetc>.ptitle:nth-child(2),#panel .gsheetc .pbig,#panel .gsheetc .ggang{display:none!important}#panel .gsheetc .prow .pbs .pb{padding:12px 14px;font-size:14px}}
+#panel .gsheetx{display:none}@media (orientation:portrait){#panel .gsheet .gsheetx{display:block;align-self:center;width:44px;height:5px;border-radius:3px;background:#3b4456;margin:-2px auto 4px;flex:none}}`; document.head.appendChild(st); })();
+{ const _r = Panel.render; Panel.render = function () { const body = pEl() && pEl().querySelector('.pbody'); if (body) body.classList.remove('gsheet'); const r = _r.apply(this, arguments); try { if (!this.mode || !this.gsel || !body) return r;
+    const cols = body.querySelectorAll(':scope > .pcol'); let sheet = null;
+    if ((this.mode === 'inv' || (this.mode === 'hgarage' && this.tab === 'parts')) && cols[1]) sheet = cols[1];
+    else { const d = body.querySelector('.gdet'); if (d) { if (matchMedia('(orientation:portrait)').matches) { const top = document.createElement('div'); top.className = 'gtop'; body.insertBefore(top, cols[0]); cols.forEach(c => top.appendChild(c)); const sel = top.querySelector('.gtile.sel'); if (sel) setTimeout(() => sel.scrollIntoView({ block: 'nearest' }), 0); } sheet = document.createElement('div'); sheet.className = 'pcol'; body.appendChild(sheet); sheet.appendChild(d); } }
+    if (sheet) { sheet.classList.add('gsheetc'); body.classList.add('gsheet'); const h = document.createElement('div'); h.className = 'gsheetx'; sheet.insertBefore(h, sheet.firstChild); h.onclick = e => { e.stopPropagation(); this.gsel = null; this.render(); }; } } catch (e) { } return r; }; }
 
 // ================= v1.67 POLISH: bug fixes, menu clean-up and UI tweaks =================
 // ---- a seized engine really is dead: no throttle until it's fixed or swapped ----

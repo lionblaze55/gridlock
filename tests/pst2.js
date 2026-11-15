@@ -1,0 +1,2 @@
+(async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms)); for(const [k,n] of [['medkit',2],['bandage',4],['burger',3],['egg',6]]) invAdd(k,n,1); const home=W.buildings.find(b=>b.name==='Your Apartment'); enterBuilding(home); await w(400); openStorage('home'); await w(150);
+[...document.querySelectorAll('#panel .gtile')].find(x=>/Eggs/.test(x.textContent)).click(); await w(150); return [...document.querySelectorAll('#panel .pbody > .pcol')].map(c=>c.className+':'+Math.round(c.getBoundingClientRect().height));})()
