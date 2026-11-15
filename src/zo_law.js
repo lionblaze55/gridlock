@@ -45,12 +45,12 @@ function respawn() {
   const B = G.bustInfo, police = G.respawnKind === 'police'; if (!police || !B) { G.bustInfo = null; G.rap = []; return respawnB(); }
   const p = G.player, ammo = p.ammo.slice(), clip = p.clip.slice(), cash0 = G.cash, bank0 = G.bank;
   respawnB(); G.cash = cash0; G.bank = bank0; // we bill it ourselves
-  let total = B.rap.reduce((s, e) => s + chargeFine(e), 0); if (!total) total = 250 * Math.max(1, B.st); total = Math.round(total * (B.sur ? .65 : 1) / 10) * 10;
+  let total = B.rap.reduce((s, e) => s + chargeFine(e), 0); if (!total) total = 250 * Math.max(1, B.st); const cap = 2500 * Math.max(1, B.st), capped = total > cap; total = Math.min(total, cap); total = Math.round(total * (B.sur ? .65 : 1) / 10) * 10;
   const fromCash = Math.min(G.cash, total), fromBank = Math.min(G.bank, total - fromCash), unpaid = total - fromCash - fromBank; G.cash -= fromCash; G.bank -= fromBank;
   const hrs = clamp(Math.round(total / 1200), 1, 12) * (B.sur ? .5 : 1); G.tod = (G.tod + hrs) % 24;
   if (B.sur) { p.ammo = ammo; p.clip = clip; } // you complied: they hand your gear back
   const lines = B.rap.length ? B.rap.map(e => '• ' + e.k + (e.n > 1 ? ' ×' + e.n : '') + ' — ' + money(chargeFine(e))).join('\n') : '• Evading police — ' + money(250 * Math.max(1, B.st));
-  say('SVPD Booking', `${B.sur ? 'You surrendered peacefully — fines cut by a third and your gear was returned.' : 'You were taken down resisting. Weapons confiscated.'}\n\nCharges:\n${lines}\n\nTotal fine: ${money(total)}${B.sur ? ' (after −35%)' : ''}${unpaid > 0 ? '\nCouldn\'t cover ' + money(unpaid) + ' — the court waived the rest. This time.' : ''}\nTime in a cell: ${hrs} hour${hrs === 1 ? '' : 's'}.`);
+  say('SVPD Booking', `${B.sur ? 'You surrendered peacefully — fines cut by a third and your gear was returned.' : 'You were taken down resisting. Weapons confiscated.'}\n\nCharges:\n${lines}\n\nTotal fine: ${money(total)}${capped ? ' (capped at ' + money(cap) + ' for a ' + Math.max(1, B.st) + '-star bust)' : ''}${B.sur ? ' (after −35%)' : ''}${unpaid > 0 ? '\nCouldn\'t cover ' + money(unpaid) + ' — the court waived the rest. This time.' : ''}\nTime in a cell: ${hrs} hour${hrs === 1 ? '' : 's'}.`);
   G.bustInfo = null; G.rap = []; doSave(true);
 }
 function callOffCops() { callOffCopsL(); G.rap = []; G.surrender = null; }

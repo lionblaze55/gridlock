@@ -34,3 +34,28 @@ setInterval(() => { if (Panel.mode !== 'phone' || Panel.tab !== 'market' || G.dl
   document.addEventListener('visibilitychange', () => document.hidden ? bgOff() : bgOn()); window.addEventListener('pagehide', bgOff); window.addEventListener('pageshow', () => { if (!document.hidden) bgOn(); }); document.addEventListener('freeze', bgOff); document.addEventListener('resume', bgOn);
   if (/Android/i.test(navigator.userAgent)) { window.addEventListener('blur', bgOff); window.addEventListener('focus', bgOn); }
   const _in = Snd.init; Snd.init = function () { if (G._bgMute && document.hidden) return; return _in.apply(this, arguments); }; }
+// ---- charges that fit the crime: petty theft for boards and bikes, repeat counts with diminishing fines ----
+FINES.unshift([/petty theft/i, 120], [/motorcycle theft|boat theft/i, 650], [/property damage/i, 400], [/disorderly/i, 100]);
+chargeFine = function (e) { const mult = Math.min(4, 1 + (e.n - 1) * .5); for (const [re, f] of FINES) if (re.test(e.k)) return Math.round(f * mult / 10) * 10; return Math.round(Math.max(100, Math.min(e.sev, 1) * 300) * Math.min(3, mult) / 50) * 50; };
+{ const _cr = crime; crime = function (sev, label) { return _cr(sev, label || (sev < .3 ? 'Disorderly conduct' : 'Property damage')); }; }
+
+// ---- aim lock: press fire → lock the best target (threats first); hold → stays on it, no matter what; it dies → shoot straight until you let go ----
+const AL = { t: null, held: 0, last: -9, gone: 0 };
+function pickFresh(a, range, mode) { const p = G.player, [ox, oy] = aimOrigin(), peds = G.scene ? G.scene.peds : G.peds; let best = null, bs = 1e9;
+  G.hostNear = peds.some(q => !q.dead && isHostileT(q) && dist2(q.x, q.y, ox, oy) < range * range * 1.3);
+  const consider = (q, kind) => { const d = dist(ox, oy, q.x, q.y); if (d > range || d < 4) return; if (!losClear(ox, oy, q.x, q.y)) return; const da = Math.abs(angDiff(a, Math.atan2(q.y - oy, q.x - ox))), hostile = kind === 'car' ? true : isHostileT(q);
+    // drag-aim: only near where you point; tap-fire / drive-by: a wide arc in front, and a threat close by counts from any direction
+    const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && d < range * .55 ? Math.PI : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
+    const pri = kind === 'car' ? .8 : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? .2 : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
+    const s = (da / Math.PI * 1.2 + d / range * .7) * pri; if (s < bs) { bs = s; best = q; } };
+  for (const q of peds) if (!q.dead && !q.talking && q !== p) consider(q, 'ped');
+  if (G.settings.pvp) for (const r of Net.remoteTargets()) if (!r.inCar) consider(r, 'ped');
+  if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || !c.driver || c.driver === p) continue; const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (hostile) consider(c, 'car'); }
+    for (const an of G.animals) if (!an.dead && an.scene === undefined && !an.pet && !(an.d && an.d.pet) && !an.stray && !an.leash && !an.remoteF && !an.coop) consider(an, 'ani'); }
+  return best; }
+aimAt = function (a, range, mode) { const fresh = G.t - AL.last > .25; AL.last = G.t; LK.lastCall = G.t; LK.fireT = G.t;
+  if (fresh) { AL.t = pickFresh(a, range, mode); AL.gone = 0; }
+  if (AL.t && !tgtAlive(AL.t)) { AL.t = null; AL.gone = 1; }
+  LK.t = AL.t; LK.hard = AL.t ? 1 : 0; LK.shot = G.t; if (!AL.t) { G.aimTarget = null; return a; }
+  const [ox, oy] = aimOrigin(); G.aimTarget = AL.t; G.aimLockT = G.t; return Math.atan2(AL.t.y - oy, AL.t.x - ox); };
+pickTarget = function (a, range, mode) { if (G.t - AL.last < .25) return AL.t && tgtAlive(AL.t) ? AL.t : null; return pickFresh(a, range, mode); };

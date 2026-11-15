@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.72
+- Aim lock rewritten: pressing fire locks the best target (threats first, from any direction when they're close); holding fire keeps that lock no matter what else moves into view; if the target dies you keep shooting straight until you let go. Innocent cars on your facing line no longer steal the lock.
+- Police: stealing a skateboard or bike is "Petty theft" ($120), motorcycles and boats have their own charge; repeat charges get diminishing fines (max 4×); unlabeled bumps are "Disorderly conduct" ($100); the total fine is capped at $2,500 per wanted star.
+
 ## 1.71
 - Fixed: choosing "Meet in person" when buying or selling a part closed the where-to-meet dialog straight away, so in-person part deals never started. Any dialog button that opens a follow-up dialog now keeps it open.
 
