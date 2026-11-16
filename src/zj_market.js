@@ -32,7 +32,7 @@ function carThumb(type, color, mods) { const k = type + color + modKey(mods || {
 function cloneCv(cv) { const c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = cv.height; c2.style.width = cv.style.width; c2.style.height = cv.style.height; c2.getContext('2d').drawImage(cv, 0, 0); return c2; }
 const thumbRow = (H, col, type, color, mods, name, sub, btns) => { const r = H.row(col, '', name, sub, btns); r.querySelector('.pe').appendChild(carThumb(type, color || CAR_TYPES[type].cols[0], mods)); return r; };
 const recColor = r => (r.mods && r.mods.p) || CAR_TYPES[r.type].cols[0];
-function homeNear() { const o = herePos(); return W.buildings.some(b => b.door && (b.name === 'Your Apartment' || owned(b)) && dist2(b.door.x, b.door.y, o.x, o.y) < 700 * 700); }
+function homeNear() { const o = herePos(); return W.buildings.some(b => b.door && (isMyApt(b) || owned(b)) && dist2(b.door.x, b.door.y, o.x, o.y) < 700 * 700); }
 function giveCar(spec, msgTxt) {
   const broken = spec.noEng || Object.keys(spec.missing || {}).some(k => spec.missing[k] > 0);
   if (!G.scene && !broken) { const s = nearRoadSpot(herePos(), 8); if (s) { const c = new Car(spec.type, s[0], s[1], s[2], spec.color); applyMods(c, Object.assign({}, spec.mods || {}, { p: spec.color })); c.hp = c.st.hp * clamp(spec.cond === undefined ? 1 : spec.cond, .05, 1); if (spec.cond < .3) c.flat = 1; c.ai = { mode: 'parked' }; c.owned = 1; c.persist = 1; c.legit = spec.legit ? 1 : 0; G.cars.push(c); msg(msgTxt || ('Your ' + c.d.name + ' is parked nearby.'), '#2ecc71'); return c; } }

@@ -6,7 +6,7 @@ function drawMiniButtons(sc) { const R = 54 * sc * MSZ(), cx = VW - R - 12, cy =
 function drawMinimap(sc) { drawMinimapV(sc); drawMiniButtons(sc); }
 // ---------- destinations ----------
 const NAVCATS = [
-  ['🏠', 'Your apartment', () => W.buildings.filter(b => b.name === 'Your Apartment' && b.door).map(b => ({ x: b.door.x, y: b.door.y, n: b.name }))],
+  ['🏠', 'Your homes', () => residences().filter(b => b.door).map(b => ({ x: b.door.x, y: b.door.y, n: b.name }))],
   ['P', 'Garage pad', () => homeGarages().map(g => ({ x: g.x, y: g.y, n: 'Garage — ' + (g.b.realty ? g.b.realty.name : g.b.name) }))],
   ['🚗', 'Your cars', () => G.cars.filter(c => c.owned && c.persist && !c.dead && c !== pCar() && !c.d.boat).map(c => ({ x: c.x, y: c.y, n: 'Your ' + c.d.name }))],
   ['⛵', 'Your boats', () => G.cars.filter(c => c.owned && c.d.boat && !c.dead).map(c => ({ x: c.x, y: c.y, n: 'Your ' + c.d.name }))],

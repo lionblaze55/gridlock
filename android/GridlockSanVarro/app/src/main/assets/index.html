@@ -2422,7 +2422,7 @@ function useItem0(it) {
     case 'fridge': Snd.play('clunk'); if (s.b.type === 'store' && clerk) { if (pay(4)) { heal(12); toast('Cold drink +12'); } } else { heal(15); toast('Cold drink +15'); } return;
     case 'stove': Snd.play('fire'); heal(20); toast('You cooked something. It\'s... edible. +20'); return;
     case 'table': if (it.used) return toast('Nothing left'); it.used = 1; heal(5); toast('Leftover fries. +5'); return;
-    case 'bed': if (s.b.type === 'safehouse') { Snd.play('snore'); p.hp = 100; G.save.spawn = s.b.id; const sl = sleepPass(); doSave(); G.fade = 2; return say('Your Apartment', 'You slept like a baby' + sl + '. Health restored, game saved, and this is now your spawn point.'); } if (s.b.type === 'home') { crime(.3, 'Trespassing'); toast('Comfy. The owner disagrees.'); return; } return;
+    case 'bed': if ((s.b.type === 'safehouse' && (s.b.name !== 'Your Apartment' || aptMine())) || isMyRes(s.b)) { Snd.play('snore'); p.hp = 100; G.save.spawn = s.b.id; const sl = sleepPass(); doSave(); G.fade = 2; return say(s.b.name, 'You slept like a baby' + sl + '. Health restored, game saved, and this is now your spawn point.'); } if (s.b.type === 'home' || s.b.type === 'safehouse') { crime(.3, 'Trespassing'); toast('Comfy. The owner disagrees.'); return; } return;
     case 'gurney': heal(5); toast('Not as comfy as it looks.'); return;
     case 'tv': if (it.stolen) return toast('A dusty outline where the TV used to be.'); if (['home', 'office', 'bar', 'diner'].includes(s.b.type) && !it.asked) { it.asked = 1; return say('TV', 'A nice flat screen. Bolted down... loosely.', [{ t: 'Watch', f: () => { useItem(it); return true; } }, { t: 'Steal it', c: 'r', f: () => { it.asked = 0; if (invAdd('tv', 1)) { it.stolen = 1; Snd.play('ratchet'); crime(.6, 'Burglary'); toast('Stole the TV'); } else toast('Too heavy for your bag (needs 8 free)'); } }, { t: 'Leave', f: () => { it.asked = 0; } }]); } it.asked = 0; return say('TV', pick(['📺 "...and in other news, a man stole a bus and drove it into the harbor. More at 11."', '📺 "Tonight on Cop Chase: Varro\'s Wildest Getaways!"', '📺 A cooking show. The chef is making hot dogs.', '📺 "Weather: sunny. Crime: also sunny."', '📺 ' + pick(HEADLINES)]));
     case 'sofa': G.sitting = { x: p.x, y: p.y }; toast('Relaxing... (move to stand)'); return;
@@ -5107,7 +5107,7 @@ PMODES.look = function (H) {
 const DECOR = [['sofa', 'Sofa', 2.6, .8, 400, '🛋'], ['tv', 'Television', 1.3, .4, 600, '📺'], ['bed', 'Bed', 1.25, 1.8, 500, '🛏'], ['table', 'Table', 1.4, 1.2, 250, '🪑'], ['chair', 'Chair', .5, .5, 60, '🪑'], ['plant', 'House plant', .8, .8, 80, '🪴'], ['rug', 'Rug', 3.4, 1.2, 300, '🟫'], ['books', 'Bookcase', .5, 2, 220, '📚'],
   ['desk', 'Desk', 1.6, .8, 260, '🗄'], ['computer', 'Computer', .8, .6, 900, '🖥'], ['fridge', 'Fridge', 1, .8, 350, '🧊'], ['wardrobe', 'Wardrobe', 1.6, .7, 300, '🚪'], ['arcade', 'Arcade cabinet', 1, 1, 1500, '🕹'], ['jukebox', 'Jukebox', 1, .8, 1200, '🎵'], ['pool', 'Pool table', 2.2, 1.3, 2200, '🎱'], ['piano', 'Piano', 1.6, 1, 3000, '🎹'], ['vend', 'Vending machine', 1, .8, 800, '🥤'], ['cooler', 'Water cooler', .7, .7, 150, '💧'], ['bar', 'Home bar', 3, .8, 2500, '🍸'], ['dance', 'Dance floor', 2, 2, 1800, '🪩'], ['planter', 'Planter box', 1.4, .6, 120, '🌱']];
 const FLOORN = { wood: 'Hardwood', carpet: 'Carpet', tile: 'Tile', marble: 'Marble', dark: 'Dark club floor' };
-const canDecorate = () => { const s = G.scene; if (!s) return false; const b = s.b; return b.name === 'Your Apartment' || (b.type === 'safehouse' && !b.realty) || owned(b); };
+const canDecorate = () => { const s = G.scene; if (!s) return false; const b = s.b; return isMyApt(b) || (b.type === 'safehouse' && !b.realty && b.name !== 'Your Apartment') || owned(b); };
 const decorOf = b => LIFE().decor[b.id] || (LIFE().decor[b.id] = { items: [] });
 function applyDecor0(s) { if (s.decorOn) return; s.decorOn = 1; const D = LIFE().decor[s.b.id]; if (!D) return; if (D.floor) s.floor = D.floor;  for (const it of D.items) s.items.push(it.ref = Object.assign({ used: 0, deco: 1, rec: it }, { t: it.t, x: it.x, y: it.y, w: it.w, h: it.h })); }
 function placeTap(sx, sy) {
@@ -5135,7 +5135,7 @@ const KINDN = { home: 'Home', biz: 'Business', club: 'Nightclub', lab: 'Drug lab
 function buyProperty(r) { if (LIFE().own[r.id]) return false; { const ro = remoteOwner(r); if (ro) { toast(ro + ' already owns this farm'); return false; } } if (!payAny(r.price)) return false; LIFE().own[r.id] = { safe: 0, pop: 40, stock: 60, up: {}, sup: 50, prod: 0, lvl: 1, price: r.price, name: r.name }; const b = W.buildings[r.id]; G.big = { text: 'PROPERTY ACQUIRED', col: '#2ecc71', t: 3, sub: b.name, small: 1 }; Snd.play('mission'); msg('You now own ' + b.name + '. Manage it from your phone.', '#2ecc71'); doSave(true); return true; }
 function enterBuildingQ0(b) {
   if (b.type === 'mil') return toast('Locked. Military personnel only.');
-  if (b.locked && !owned(b) && b.realty) { const r = b.realty; return say(b.name, `For sale — ${KINDN[r.kind]} — ${money(r.price)}.\n${r.kind === 'home' ? 'A place of your own: bed, stash, and you can decorate it.' : r.kind === 'farm' ? 'Fields to plant, a coop and pasture for animals, a roadside stand, and a farmhouse with a kitchen.' : r.kind === 'lab' ? 'Produces ' + DRUGS.find(d => d.id === r.drug).n + ' around the clock once it has supplies.' : 'Earns while you are out doing other things.'}`, [{ t: 'Buy it for ' + money(r.price), c: 'y', d: !canPay(r.price), f: () => { if (buyProperty(r)) enterBuilding(b); } }, { t: 'Not now' }]); }
+  if (b.locked && !owned(b) && b.realty) { const r = b.realty; return say(b.name, `For sale — ${KINDN[r.kind]} — ${money(r.price)}.\n${r.kind === 'home' ? 'A place of your own: bed, stash, and you can decorate it.' : r.kind === 'farm' ? 'Fields to plant, a coop and pasture for animals, a roadside stand, and a farmhouse with a kitchen.' : r.kind === 'bunker' ? 'A hardened hideout out in the woods: bunks, a stash, an ammo locker, a gun bench, a police scanner and a 10-vehicle garage. Cops lose your trail once you\'re inside.' : r.kind === 'lab' ? 'Produces ' + DRUGS.find(d => d.id === r.drug).n + ' around the clock once it has supplies.' : 'Earns while you are out doing other things.'}`, [{ t: 'Buy it for ' + money(r.price), c: 'y', d: !canPay(r.price), f: () => { if (buyProperty(r)) enterBuilding(b); } }, { t: 'Not now' }]); }
   enterBuilding0(b); const s = G.scene; if (!s || s.b !== b) return;
   if (owned(b) && (b.realty.kind === 'home' || b.realty.kind === 'farm') && !s.homeSet) { s.homeSet = 1; s.peds = (s.peds || []).filter(q => q.role !== 'resident'); if (!s.items.some(it => it.t === 'stash')) s.items.push({ t: 'stash', x: 4.05, y: 2.95, w: .74, h: .59, used: 0, small: 1 }); }
   applyDecor(s);
@@ -5214,7 +5214,7 @@ PMODES.phone = function (H) {
     const c = H.col('You'); const own = Object.keys(L.own).length; H.row(c, '💵', 'Cash ' + money(G.cash), 'Lost in part when you are wasted or busted'); H.row(c, '🏦', 'Bank ' + money(G.bank), 'Safe. Earns a little interest each day'); { const nx = RANKS.find(([n]) => L.earned < n); H.row(c, '👑', 'Rank: ' + rankName(), 'Empire earnings ' + money(L.earned) + (nx ? ' · ' + nx[1] + ' at ' + money(nx[0]) : ' · top rank')); } H.row(c, '🏠', own + (own === 1 ? ' property' : ' properties'), own ? 'Manage them under Property' : 'Nothing yet — see Property › For sale', [H.btn(own ? 'Open' : 'Browse', () => { this.tab = own ? 'empire' : 'realty'; })]);
     const c2 = H.col('Right now'); H.row(c2, '🕑', `Day ${G.day + 1}, ${String(Math.floor(G.tod)).padStart(2, '0')}:${String(Math.floor(G.tod % 1 * 60)).padStart(2, '0')}`, DISTRICTS[districtAt(herePos().x, herePos().y)].name); if (G.mission) H.row(c2, '📋', G.mission.title, G.mission.hud ? G.mission.hud() : '', [H.btn('Quit job', () => failMission('You quit.'), 'r')]); else H.row(c2, '📋', 'No job on', 'Classifieds are under Jobs', [H.btn('Jobs', () => { this.tab = 'jobs'; })]);
     const waiting = Object.keys(L.own).reduce((s, id) => s + (L.own[id].safe || 0), 0); if (own) H.row(c2, '💰', money(waiting) + ' waiting in your safes', 'Visit each place to collect', [H.btn('Empire', () => { this.tab = 'empire'; })]);
-    const home = W.buildings.find(b => b.name === 'Your Apartment'); if (home) H.row(c2, '🧭', 'Your Apartment', 'Bed, stash, kitchen and garage', [gps(home)]);
+    const home = homeB(); if (home) H.row(c2, '🧭', home === aptB() ? 'Your Apartment' : home.name, 'Home — bed, stash' + (homeGarages().some(g => g.b === home) ? ', kitchen and garage' : ' and kitchen'), [gps(home)]);
   } else if (tab === 'bank') {
     const c = H.col('Deposit'), c2 = H.col('Withdraw'), mv = n => { n = Math.floor(n); if (n > 0) { G.cash -= n; G.bank += n; } else { G.bank += n; G.cash -= n; } Snd.play('cash'); };
     for (const a of [100, 1000, 10000]) H.row(c, '⬆', money(a), '', [H.btn('Deposit', () => mv(a), 'y', G.cash < a)]); H.row(c, '⬆', 'Everything (' + money(G.cash) + ')', '', [H.btn('Deposit all', () => mv(G.cash), 'y', G.cash < 1)]);
@@ -5225,12 +5225,12 @@ PMODES.phone = function (H) {
     const c2 = H.col('Other work'); if (G.mission) H.row(c2, '📋', 'On the clock: ' + G.mission.title, G.mission.hud ? G.mission.hud() : '', [H.btn('Quit', () => failMission('You quit.'), 'r')]); H.row(c2, '☎', 'Ringing payphones', 'Less honest jobs. Blue dots on the map.'); H.row(c2, '🌿', 'Run your own operation', 'Buy a lab under Property, then sell shipments from My empire.'); H.row(c2, '📈', 'Every third shift of a job earns a raise', 'Up to +60% pay.');
   } else if (tab === 'realty') {
     const here = herePos(), list = W.realty.filter(r => !L.own[r.id]).sort((a, b) => a.price - b.price), half = Math.ceil(list.length / 2); if (!list.length) H.empty(H.col('For sale'), 'You own everything on the market.');
-    [list.slice(0, half), list.slice(half)].forEach((ls, i) => { if (!ls.length) return; const c = H.col(i ? 'More listings' : 'For sale'); for (const r of ls) { const b = W.buildings[r.id]; H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜' }[r.kind], b.name, `${KINDN[r.kind]} · ${DISTRICTS[b.d].name} · ${(dist(here.x, here.y, b.door.x, b.door.y) / T * .012).toFixed(1)} mi · ${money(r.price)}` + (r.kind === 'biz' ? ' · earns ~' + money(r.price * .18) + '/day' : '') + (r.kind === 'farm' ? ' · fields, pasture, farmhouse' : ''), [gps(b), H.btn('Buy', () => buyProperty(r), 'y', !canPay(r.price))]); } });
+    [list.slice(0, half), list.slice(half)].forEach((ls, i) => { if (!ls.length) return; const c = H.col(i ? 'More listings' : 'For sale'); for (const r of ls) { const b = W.buildings[r.id]; H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡' }[r.kind], b.name, `${KINDN[r.kind]} · ${DISTRICTS[b.d].name} · ${(dist(here.x, here.y, b.door.x, b.door.y) / T * .012).toFixed(1)} mi · ${money(r.price)}` + (r.kind === 'biz' ? ' · earns ~' + money(r.price * .18) + '/day' : '') + (r.kind === 'farm' ? ' · fields, pasture, farmhouse' : ''), [gps(b), H.btn('Buy', () => buyProperty(r), 'y', !canPay(r.price))]); } });
     H.foot.appendChild(H.mk('span', 'pnote', 'Homes give you a bed, a stash and rooms to decorate — country homes and farms add a yard. Businesses fill a safe you empty in person.'));
   } else if (tab === 'empire') {
     const ids = Object.keys(L.own).filter(id => W.buildings[id] && W.buildings[id].realty), c = H.col('Your properties'); if (!ids.length) { H.empty(c, 'You do not own anything yet. Homes, shops, bars, two nightclubs and four drug labs are for sale under Property.'); return; }
     if (!ids.includes(String(this.sel))) this.sel = ids[0];
-    for (const id of ids) { const b = W.buildings[id], r = b.realty, O = L.own[id]; const row = H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜' }[r.kind], b.name, r.kind === 'home' ? 'Home' : r.kind === 'farm' ? 'Farm · ' + (farmData(farmOf(b)) ? farmData(farmOf(b)).animals.length + ' animals' : '') : r.kind === 'lab' ? `${Math.floor(O.prod)} units · supplies ${Math.round(O.sup)}%` : 'Safe: ' + money(O.safe), [H.btn(String(this.sel) === id ? 'Open' : 'Manage', () => { this.sel = id; }, String(this.sel) === id ? 'on' : '')]); if (String(this.sel) === id) row.classList.add('sel'); }
+    for (const id of ids) { const b = W.buildings[id], r = b.realty, O = L.own[id]; const row = H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡' }[r.kind], b.name, r.kind === 'home' ? 'Home' : r.kind === 'bunker' ? 'Bunker · hideout' : r.kind === 'farm' ? 'Farm · ' + (farmData(farmOf(b)) ? farmData(farmOf(b)).animals.length + ' animals' : '') : r.kind === 'lab' ? `${Math.floor(O.prod)} units · supplies ${Math.round(O.sup)}%` : 'Safe: ' + money(O.safe), [H.btn(String(this.sel) === id ? 'Open' : 'Manage', () => { this.sel = id; }, String(this.sel) === id ? 'on' : '')]); if (String(this.sel) === id) row.classList.add('sel'); }
     const b = W.buildings[this.sel], r = b.realty, O = L.own[this.sel], c2 = H.col(b.name), at = atProperty(b), collect = () => H.row(c2, '💰', 'Safe: ' + money(O.safe), at ? 'You are here' : 'Collect in person', [at ? H.btn('Collect', () => { const n = Math.floor(O.safe); O.safe -= n; addCash(n); L.earned += n; }, 'y', O.safe < 1) : gps(b)]);
     const upg = (key, n, d, pr) => H.row(c2, O.up[key] ? '✓' : '⬆', n, O.up[key] ? 'Installed' : d + ' · ' + money(pr), [H.btn(O.up[key] ? 'Owned' : 'Buy', () => { if (payAny(pr)) O.up[key] = 1; }, O.up[key] ? 'on' : 'y', !!O.up[key] || !canPay(pr))]);
     if (r.kind === 'home') { H.row(c2, '🛏', 'Your place', 'Sleep to save, use the stash, and decorate from the stash screen.', [gps(b)]); }
@@ -5247,7 +5247,7 @@ PMODES.phone = function (H) {
       H.row(c2, '🌾', 'Order feed (+50)', 'Delivered to the farm · $120', [H.btn('Order', () => { if (payAny(120)) Fd.feed += 50; }, 'y', !canPay(120))]);
       H.row(c2, '💰', 'Stand takings ' + money(Fd.till), at ? 'You are here' : 'Collect at the farm', [at ? H.btn('Collect', () => { addCash(Math.floor(Fd.till)); Fd.till = 0; }, 'y', Fd.till < 1) : gps(b)]);
       if (at) H.row(c2, '📋', 'Manage farm', 'Storage, stand, upgrades', [H.btn('Open', () => Panel.open('farm', { farm: f }), 'y')]);
-    } else {
+    } else if (r.kind === 'lab') {
       labPanel(H, c2, b, r, O, at, gps, upg, collect);
     }
   } else if (tab === 'cars') {
@@ -5258,7 +5258,7 @@ PMODES.phone = function (H) {
   } else {
     const c = H.col('Courier shop — straight to your bag'), ids = Object.keys(ITEMS).filter(k => ['med', 'food', 'gear'].includes(ITEMS[k].k) && ITEMS[k].v >= 5 && k !== 'fish'); for (const id of ids) { const it = ITEMS[id], pr = Math.ceil(it.v * 1.3); H.row(c, it.e, it.n, money(pr) + (it.heal ? ' · heals ' + it.heal : '') + ' · you have ' + (G.inv[id] | 0), [H.btn('Buy', () => { if (invWeight() + it.w > invCap()) return toast('Your bag is full'); if (payAny(pr)) invAdd(id, 1, 1); }, 'y', !canPay(pr))]); }
     { const cc = H.col('Car parts'); H.row(cc, '🔩', 'Car parts, engines & shells', 'One catalogue — delivered to your garage shelf', [H.btn('Open catalogue', () => Panel.open('project', { tab: 'order' }), 'y')]); } gunPartsCol(H, 'Gun parts — delivered to your home bench', 1.1);
-    const c2 = H.col('Services'); H.row(c2, '🚕', 'Call a cab home', 'Skip the walk · $60', [H.btn('Ride', () => { const home = W.buildings.find(b => b.name === 'Your Apartment'); if (!home || G.scene || pCar() || stars() > 0) return toast(stars() > 0 ? 'No cab will stop while you are wanted' : 'Go outside on foot first'); if (!payAny(60)) return; G.player.x = home.door.x; G.player.y = home.door.y + 6; G.doorCD = G.t + 2; G.tod = (G.tod + .5) % 24; Panel.close(); toast('Dropped at your apartment'); }, 'y', !canPay(60))]);
+    const c2 = H.col('Services'); H.row(c2, '🚕', 'Call a cab home', 'Skip the walk · $60', [H.btn('Ride', () => { const home = homeB(); if (!home || G.scene || pCar() || stars() > 0) return toast(stars() > 0 ? 'No cab will stop while you are wanted' : 'Go outside on foot first'); if (!payAny(60)) return; G.player.x = home.door.x; G.player.y = home.door.y + 6; G.doorCD = G.t + 2; G.tod = (G.tod + .5) % 24; Panel.close(); toast('Dropped at your apartment'); }, 'y', !canPay(60))]);
     H.row(c2, '🔧', 'Roadside repair', 'Fixes the vehicle you are in · $350', [H.btn('Call', () => { const k = pCar(); if (!k) return toast('Sit in the vehicle first'); if (payAny(350)) { k.hp = k.st.hp; k.fireT = 0; k.flat = 0; toast('Good as new'); } }, 'y', !pCar() || !canPay(350))]);
   }
 };
@@ -7297,7 +7297,7 @@ function carThumb(type, color, mods) { const k = type + color + modKey(mods || {
 function cloneCv(cv) { const c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = cv.height; c2.style.width = cv.style.width; c2.style.height = cv.style.height; c2.getContext('2d').drawImage(cv, 0, 0); return c2; }
 const thumbRow = (H, col, type, color, mods, name, sub, btns) => { const r = H.row(col, '', name, sub, btns); r.querySelector('.pe').appendChild(carThumb(type, color || CAR_TYPES[type].cols[0], mods)); return r; };
 const recColor = r => (r.mods && r.mods.p) || CAR_TYPES[r.type].cols[0];
-function homeNear() { const o = herePos(); return W.buildings.some(b => b.door && (b.name === 'Your Apartment' || owned(b)) && dist2(b.door.x, b.door.y, o.x, o.y) < 700 * 700); }
+function homeNear() { const o = herePos(); return W.buildings.some(b => b.door && (isMyApt(b) || owned(b)) && dist2(b.door.x, b.door.y, o.x, o.y) < 700 * 700); }
 function giveCar(spec, msgTxt) {
   const broken = spec.noEng || Object.keys(spec.missing || {}).some(k => spec.missing[k] > 0);
   if (!G.scene && !broken) { const s = nearRoadSpot(herePos(), 8); if (s) { const c = new Car(spec.type, s[0], s[1], s[2], spec.color); applyMods(c, Object.assign({}, spec.mods || {}, { p: spec.color })); c.hp = c.st.hp * clamp(spec.cond === undefined ? 1 : spec.cond, .05, 1); if (spec.cond < .3) c.flat = 1; c.ai = { mode: 'parked' }; c.owned = 1; c.persist = 1; c.legit = spec.legit ? 1 : 0; G.cars.push(c); msg(msgTxt || ('Your ' + c.d.name + ' is parked nearby.'), '#2ecc71'); return c; } }
@@ -8240,7 +8240,7 @@ function drawMiniButtons(sc) { const R = 54 * sc * MSZ(), cx = VW - R - 12, cy =
 function drawMinimap(sc) { drawMinimapV(sc); drawMiniButtons(sc); }
 // ---------- destinations ----------
 const NAVCATS = [
-  ['🏠', 'Your apartment', () => W.buildings.filter(b => b.name === 'Your Apartment' && b.door).map(b => ({ x: b.door.x, y: b.door.y, n: b.name }))],
+  ['🏠', 'Your homes', () => residences().filter(b => b.door).map(b => ({ x: b.door.x, y: b.door.y, n: b.name }))],
   ['P', 'Garage pad', () => homeGarages().map(g => ({ x: g.x, y: g.y, n: 'Garage — ' + (g.b.realty ? g.b.realty.name : g.b.name) }))],
   ['🚗', 'Your cars', () => G.cars.filter(c => c.owned && c.persist && !c.dead && c !== pCar() && !c.d.boat).map(c => ({ x: c.x, y: c.y, n: 'Your ' + c.d.name }))],
   ['⛵', 'Your boats', () => G.cars.filter(c => c.owned && c.d.boat && !c.dead).map(c => ({ x: c.x, y: c.y, n: 'Your ' + c.d.name }))],
@@ -9153,13 +9153,7 @@ function openGarageAny() { const gs = homeGarages(); if (!gs.length) return toas
 // ---------- property: buying adds garage space (and says so); selling is blocked while the cars wouldn't fit ----------
 const propSlots = id => { const b = W.buildings[id], r = b && b.realty; if (!r) return 0; const e = garSlots().find(s => s[0] === (r.name || b.name)); return e ? e[1] : 0; };
 { const _bp = buyProperty; buyProperty = function (r) { const c0 = garCap(), ok = _bp(r); if (ok && garCap() > c0) msg('🅿 Garage space: ' + c0 + ' → ' + garCap() + ' (+' + (garCap() - c0) + ' from ' + r.name + '). It has its own GARAGE pad outside.', '#4fc3f7'); return ok; }; }
-function sellProperty(id) { const L = LIFE(), O = L.own[id], b = W.buildings[id], r = b && b.realty; if (!O || !r) return; const lose = propSlots(id), after = garCap() - lose;
-  if (garUsed() > after) return toast('Can\'t sell — you have ' + garUsed() + ' vehicles and would only have room for ' + after + '. Sell or scrap ' + (garUsed() - after) + ' first.');
-  const val = Math.round(r.price * .7 / 500) * 500 + Math.round(O.safe || 0); say('Sell ' + r.name + '?', 'You get ' + money(val) + ' (70% of its value' + (O.safe ? ' plus what\'s in the safe' : '') + ').' + (lose ? ' Garage space drops ' + garCap() + ' → ' + after + '.' : '') + ' Anything left inside is gone.', [
-    { t: 'Sell for ' + money(val), c: 'r', f: () => { closeDialog(); delete L.own[id]; G.hgT = 0; addCash(val); Snd.play('cash'); msg('Sold ' + r.name + ' for ' + money(val) + '.', '#2ecc71'); doSave(true); Panel.render && Panel.mode && Panel.render(); } }, { t: 'Keep it' }]); }
-{ const ph = PMODES.phone; PMODES.phone = function (H) { const r = ph.call(this, H); if (this.tab !== 'empire') return r; const ids = Object.keys(LIFE().own || {}).filter(id => W.buildings[id] && W.buildings[id].realty); if (!ids.length) return r; const cols = H.body.querySelectorAll('.pcol'), col = cols[0]; if (!col) return r;
-  col.appendChild(H.mk('div', 'ptitle', 'Garage ' + garUsed() + '/' + garCap() + ' · sell property'));
-  for (const id of ids) { const rr = W.buildings[id].realty, n = propSlots(id), blocked = garUsed() > garCap() - n; H.row(col, '🏷', 'Sell ' + rr.name, money(Math.round(rr.price * .7 / 500) * 500) + (n ? ' · −' + n + ' garage' + (blocked ? ' — garage too full' : '') : ''), [H.btn('Sell', () => sellProperty(id), 'r')]); } return r; }; }
+// selling property lives in zz_estate.js
 // ---------- performance mods: side effects that were missing (weight, armor, ride height) — brake upgrades now count for normal braking too ----------
 { const _cs = calcSt; calcSt = function (d, m) { const s = _cs(d, m); m = m || {}; const wgt = Math.min(2, m.wgt | 0), arm = m.arm | 0, hnd = m.hnd | 0;
   s.brk *= [1, 1.06, 1.12][wgt] * (1 - .04 * arm); s.acc *= 1 - .035 * arm; s.max *= 1 - .012 * arm; s.grip *= [1, 1.02, 1.04][wgt] * (1 - .015 * arm); s.steer *= 1 - .02 * arm;
@@ -9540,7 +9534,7 @@ function ejectTick(s, dt) { if (!s || !s.peds) return; const door = s.door;
 // no shooting while you're picking a lock or hotwiring
 { const _pf = playerFire; playerFire = function (aimA, charge) { if (G.bi) return; return _pf(aimA, charge); }; }
 // ---------- you can't steal from your own place ----------
-const ownPlace = () => { const s = G.scene; if (!s || !s.b) return false; if (s.garage || canDecorate()) return true; const L = typeof LIFE === 'function' ? LIFE() : null; return !!(L && L.own && L.own[s.b.id]) || s.b.type === 'safehouse'; };
+const ownPlace = () => { const s = G.scene; if (!s || !s.b) return false; if (s.garage || canDecorate()) return true; const L = typeof LIFE === 'function' ? LIFE() : null; return !!(L && L.own && L.own[s.b.id]) || (s.b.type === 'safehouse' && (s.b.name !== 'Your Apartment' || aptMine())); };
 { const _cr = crime; crime = function (sev, label) { if (ownPlace() && /theft|steal|shoplift|burglar/i.test(label || '')) return; return _cr(sev, label); }; }
 
 // ================= PARTS ONLINE: ship instead of meeting. Scammers still lurk — and they look shady if you read closely =================
@@ -10627,6 +10621,114 @@ function copHeliTick(dt) { const st = stars(), H = G.cars.find(c => c.copHeli &&
     if (hit) { if (pCar()) pCar().damage(14, H); else if (G.player.hurt) G.player.hurt(5, H, 'gun'); } else spawnFx('dust', hx, hy); } }
 { const _db2 = drawBirds; drawBirds = function (air) { if (air) for (const c of G.cars) if (c.copHeli && c.beam && !c.dead) { const P = pCar() || G.player, g = ctx; g.save(); g.globalCompositeOperation = 'lighter'; const gr = g.createLinearGradient(c.x, c.y, P.x, P.y); gr.addColorStop(0, 'rgba(255,255,240,.25)'); gr.addColorStop(1, 'rgba(255,255,240,.06)'); g.fillStyle = gr; const a = Math.atan2(P.y - c.y, P.x - c.x), px = -Math.sin(a), py = Math.cos(a); g.beginPath(); g.moveTo(c.x + px * 4, c.y + py * 4); g.lineTo(P.x + px * 70, P.y + py * 70); g.lineTo(P.x - px * 70, P.y - py * 70); g.lineTo(c.x - px * 4, c.y - py * 4); g.fill(); g.fillStyle = 'rgba(255,255,230,.14)'; g.beginPath(); g.arc(P.x, P.y, 72, 0, TAU); g.fill(); g.restore(); } _db2(air); }; }
 
+// ================= REAL ESTATE: sell anything you own (two-step confirm), the starter apartment included — but never your last home; the Ironwood Bunker =================
+KINDN.bunker = 'Bunker'; IT.armory = { s: 1, act: 'Ammo locker' }; IT.radio = { s: 1, act: 'Police scanner' }; IT.genset = { s: 1, act: 'Generator' };
+const APT_VAL = 80000, RESK = new Set(['home', 'farm', 'bunker']);
+const aptB = () => W.buildings.find(b => b.name === 'Your Apartment' && b.door);
+const aptMine = () => !(G.save && G.save.life && G.save.life.aptSold);
+const isMyApt = b => !!b && b.name === 'Your Apartment' && aptMine();
+const isMyRes = b => !!b && (isMyApt(b) || !!(b.realty && !b.realty.apt && owned(b) && RESK.has(b.realty.kind)));
+function residences() { const out = [], a = aptB(); if (a && aptMine()) out.push(a); const L = LIFE(); for (const id in L.own) { const b = W.buildings[id]; if (b && b.realty && RESK.has(b.realty.kind)) out.push(b); } return out; }
+function homeB() { const R = residences(), sp = G.save && G.save.spawn !== undefined ? W.buildings[G.save.spawn] : null; return sp && R.includes(sp) ? sp : R[0] || null; }
+
+// ---------- once sold, the apartment is just another listing (buy it back at full price) ----------
+function aptSync() { const b = aptB(); if (!b || !G.save) return; const sold = !aptMine();
+  if (sold && !(b.realty && b.realty.apt)) { b.realty = { id: b.id, name: 'Your Apartment', kind: 'home', price: APT_VAL, apt: 1 }; b.locked = 1; if (!W.realty.includes(b.realty)) W.realty.push(b.realty); }
+  if (sold && b.realty) b.realty.price = APT_VAL;
+  if (!sold && b.realty && b.realty.apt) { W.realty = W.realty.filter(r => r !== b.realty); delete b.realty; b.locked = 0; } }
+{ const _bp = buyProperty; buyProperty = function (r) { if (r && r.apt) { if (!payAny(r.price)) return false; LIFE().aptSold = 0; aptSync(); G.hgT = 0; Snd.play('cash'); msg('🏠 Your Apartment is yours again — bed, stash and its 6-car garage.', '#2ecc71'); doSave(true); return true; } const ok = _bp(r); G.hgT = 0; return ok; }; }
+
+// ---------- ownership checks ----------
+homeGarages = function () { if (G.hgT && G.t - G.hgT < 2 && G.hgL) return G.hgL; G.hgT = G.t; return G.hgL = W.buildings.filter(b => b.door && (isMyApt(b) || (b.realty && !b.realty.apt && owned(b) && ['home', 'farm', 'biz', 'club', 'bunker'].includes(b.realty.kind)))).map(garagePad).filter(Boolean); };
+{ const _gs = garSlots; garSlots = function () { const o = _gs(); if (!aptMine()) { const i = o.findIndex(s => s[0] === 'Your Apartment'); if (i >= 0) o.splice(i, 1); } return o; }; }
+spawnPoint = function () { const sp = G.save && G.save.spawn !== undefined ? W.buildings[G.save.spawn] : null, okSafe = b => b && b.door && b.type === 'safehouse' && !b.realty && (b.name !== 'Your Apartment' || aptMine());
+  const sb = (sp && sp.door && (isMyRes(sp) || okSafe(sp)) ? sp : null) || homeB() || W.buildings.find(okSafe);
+  if (sb) return { x: sb.door.x + FACEV[sb.door.f][0] * 22, y: sb.door.y + FACEV[sb.door.f][1] * 22 }; return { x: roadCX(8), y: roadCY(4) }; };
+
+// ---------- selling ----------
+function placeInfo(b) { const apt = b === aptB(), r = apt ? { name: 'Your Apartment', kind: 'home', price: APT_VAL } : b.realty, O = apt ? {} : LIFE().own[b.id] || {};
+  const slots = apt ? 6 : propSlots(b.id), val = Math.round(r.price * .7 / 500) * 500, safe = Math.floor(O.safe || 0), res = apt || RESK.has(r.kind), last = res && residences().length <= 1 && residences().includes(b);
+  return { apt, r, O, slots, val, safe, res, last, name: apt ? 'Your Apartment' : b.name, full: garUsed() > garCap() - slots }; }
+function sellPlace(b) { if (!b) return; const I = placeInfo(b), L = LIFE(); if (!I.apt && !L.own[b.id]) return;
+  if (I.last) return say('Can\'t sell ' + I.name, 'This is your only place to live. You always need somewhere to sleep, keep your stash and respawn — buy another home, farm or the bunker first, then sell this one.', [{ t: 'OK' }]);
+  if (I.full) return say('Can\'t sell ' + I.name + ' yet', 'You have ' + garUsed() + ' vehicles stored and selling would leave room for ' + (garCap() - I.slots) + '. Sell, scrap or move ' + (garUsed() - (garCap() - I.slots)) + ' first.', [{ t: 'OK' }]);
+  const here = myCars().filter(r => r.gar === b.id).length, lines = ['You get ' + money(I.val + I.safe) + ' — 70% of its ' + money(I.r.price) + ' value' + (I.safe ? ', plus ' + money(I.safe) + ' from the safe' : '') + '.'];
+  if (I.slots) lines.push('Garage space drops ' + garCap() + ' → ' + (garCap() - I.slots) + (here ? '; the ' + here + ' vehicle' + (here > 1 ? 's' : '') + ' stored here move to your other garages' : '') + '.');
+  if (I.r.kind === 'lab' && I.O.prod >= 1) lines.push('The ' + Math.floor(I.O.prod) + ' units still in the lab are lost.');
+  if (I.r.kind === 'farm') lines.push('Crops, animals and anything in farm storage stay with the farm.');
+  if (I.r.kind === 'club') lines.push('Upgrades and popularity go with the club.');
+  if (I.res) lines.push('Furniture you placed here is left behind. Your stash is safe — it comes with you.');
+  lines.push('Buying it back later costs the full ' + money(I.r.price) + '.');
+  say('Sell ' + I.name + '?', lines.join('\n'), [{ t: 'Continue to sale…', c: 'y', f: () => {
+    say('Final confirmation', 'Sell ' + I.name + ' for ' + money(I.val + I.safe) + '?\nThis is final — the deed changes hands right away.', [{ t: '✔ Yes, sell ' + I.name, c: 'r', f: () => { closeDialog(); doSell(b); } }, { t: 'Cancel — keep it' }]); return true; } }, { t: 'Keep it' }]); }
+function doSell(b) { const I = placeInfo(b), L = LIFE(); if (I.last || I.full) return; if (!I.apt && !L.own[b.id]) return;
+  if (I.apt) { L.aptSold = 1; aptSync(); } else delete L.own[b.id]; if (L.decor) delete L.decor[b.id];
+  if (G.save.spawn === b.id) { const h = homeB(); G.save.spawn = h ? h.id : undefined; }
+  G.hgT = 0; garAssign(); addCash(I.val + I.safe); Snd.play('cash'); msg('🏷 Sold ' + I.name + ' for ' + money(I.val + I.safe) + '.', '#2ecc71');
+  if (G.scene && (G.scene.b === b || (G.scene.garage && G.scene.garage.b === b))) exitBuilding(); doSave(true); if (Panel.mode) Panel.render(); }
+function sellProperty(id) { return sellPlace(W.buildings[id]); }
+function sellRow(H, col, b) { const I = placeInfo(b), sub = money(I.val + I.safe) + (I.slots ? ' · −' + I.slots + ' garage' : '') + (I.last ? ' · your only home — can\'t sell' : I.full ? ' · garage too full' : '');
+  return H.row(col, '🏷', 'Sell ' + I.name, sub, [H.btn('Sell…', () => sellPlace(b), 'r', I.last)]); }
+const myPlaces = () => { const out = [], a = aptB(); if (a && aptMine()) out.push(a); for (const id of Object.keys(LIFE().own)) { const b = W.buildings[id]; if (b && b.realty && !b.realty.apt) out.push(b); } return out; };
+{ const ph = PMODES.phone; PMODES.phone = function (H) { aptSync(); const r = ph.call(this, H); const P = myPlaces(); if (!P.length) return r;
+  if (this.tab === 'empire') { const cols = H.body.querySelectorAll('.pcol'), c0 = cols[0], c2 = cols[1];
+    // the selected property's own column gets the bunker details and a sell button
+    const b = W.buildings[this.sel]; if (c2 && b && b.realty && LIFE().own[this.sel]) { if (b.realty.kind === 'bunker') bunkerRows(H, c2, b); c2.appendChild(H.mk('div', 'ptitle', 'Sell')); sellRow(H, c2, b); }
+    if (c0) { if (!Object.keys(LIFE().own).length) c0.innerHTML = ''; c0.appendChild(H.mk('div', 'ptitle', 'Sell property · garage ' + garUsed() + '/' + garCap())); for (const p of P) sellRow(H, c0, p);
+      c0.appendChild(H.mk('div', 'pempty', 'You always keep at least one home (apartment, house, farm or bunker). Every sale asks twice before it goes through.')); } }
+  if (this.tab === 'realty') { const c = H.col('Yours — sell'); for (const p of P) sellRow(H, c, p); }
+  return r; }; }
+
+// ---------- the Ironwood Bunker: a hardened hideout in the woods ----------
+const CABINS = /^(Hunting Cabin|Trapper's Cabin|Ranger Cabin|Old Cabin)$/;
+function bunkerGen() { const C = W.buildings.filter(b => b.door && b.type === 'home' && !b.realty && CABINS.test(b.name)); if (!C.length) return; const cx = NR * RSP * T * .35, cy = NR * RSP * T * .35;
+  C.sort((a, b) => dist2(a.door.x, a.door.y, cx, cy) - dist2(b.door.x, b.door.y, cx, cy)); const b = C[Math.floor(C.length * .5)];
+  b.name = 'Ironwood Bunker'; b.bunker = 1; b.locked = 1; b.realty = { id: b.id, name: b.name, kind: 'bunker', price: 450000 }; W.realty.push(b.realty); W.bunker = b;
+  killProps(p => p.x > b.x * T - 80 && p.x < (b.x + b.w) * T + 80 && p.y > b.y * T - 80 && p.y < (b.y + b.h) * T + 80 && !TALLP[p.t] && p.t !== 'tree'); }
+{ const _sg = storeGen; storeGen = function () { _sg(); try { bunkerGen(); } catch (e) { console.error(e); } }; }
+{ const _er = econRealty; econRealty = function () { _er(); if (W.bunker && W.bunker.realty) W.bunker.realty.price = 450000; }; }
+const bunkOwned = () => !!(W.bunker && owned(W.bunker));
+// outside: an earth-covered concrete bunker with camo netting, a blast door, vents and an antenna
+function drawBunkerTop() { const b = W.bunker; if (!b || G.scene) return; const x = b.x * T, y = b.y * T, w = b.w * T, h = b.h * T; if (!inView(x + w / 2, y + h / 2, w + 200)) return; const g = ctx, r = mulberry32(b.id * 77 + 5);
+  g.save(); g.fillStyle = 'rgba(0,0,0,.28)'; rr(g, x - 26, y - 18, w + 60, h + 48, 40); g.fill(); g.fillStyle = '#4e5b31'; rr(g, x - 34, y - 26, w + 68, h + 52, 44); g.fill(); g.fillStyle = '#5f6e3b'; rr(g, x - 18, y - 12, w + 36, h + 24, 30); g.fill();
+  g.fillStyle = '#7d7f78'; rr(g, x + 6, y + 6, w - 12, h - 12, 10); g.fill(); g.strokeStyle = '#5c5e58'; g.lineWidth = 3; for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(x + 6 + (w - 12) * i / 4, y + 6); g.lineTo(x + 6 + (w - 12) * i / 4, y + h - 6); g.stroke(); }
+  for (let i = 0; i < 26; i++) { g.fillStyle = ['rgba(52,70,32,.75)', 'rgba(88,104,52,.7)', 'rgba(40,48,28,.7)'][i % 3]; g.beginPath(); g.ellipse(x + r() * w, y + r() * h, 14 + r() * 26, 9 + r() * 16, r() * 3, 0, TAU); g.fill(); }
+  const hx = x + w * .72, hy = y + h * .35; g.fillStyle = '#3c3f3a'; g.beginPath(); g.arc(hx, hy, 20, 0, TAU); g.fill(); g.fillStyle = '#62665e'; g.beginPath(); g.arc(hx, hy, 15, 0, TAU); g.fill(); g.strokeStyle = '#2b2d29'; g.lineWidth = 3; g.beginPath(); g.moveTo(hx - 10, hy); g.lineTo(hx + 10, hy); g.moveTo(hx, hy - 10); g.lineTo(hx, hy + 10); g.stroke();
+  for (const [vx, vy] of [[x + w * .2, y + h * .3], [x + w * .32, y + h * .3]]) { g.fillStyle = '#2f312d'; g.beginPath(); g.arc(vx, vy, 9, 0, TAU); g.fill(); g.fillStyle = '#9a9c95'; g.beginPath(); g.arc(vx, vy, 6, 0, TAU); g.fill(); g.fillStyle = '#2f312d'; g.fillRect(vx - 6, vy - 1.5, 12, 3); }
+  const ax = x + w * .15, ay = y + h * .75; g.strokeStyle = '#9e9e9e'; g.lineWidth = 2; g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax + 26, ay - 30); g.stroke(); g.fillStyle = Math.floor(G.t * 1.3) % 2 ? '#ff1744' : '#5a0010'; g.beginPath(); g.arc(ax + 26, ay - 30, 4, 0, TAU); g.fill();
+  const d = b.door, [fx, fy] = FACEV[d.f]; g.translate(d.x - fx * 18, d.y - fy * 18); g.rotate(Math.atan2(fy, fx)); g.fillStyle = '#2b2d29'; g.fillRect(-8, -30, 22, 60); g.fillStyle = '#4b4f47'; g.fillRect(-4, -26, 14, 52); g.fillStyle = '#f2c230'; for (let i = 0; i < 4; i++) g.fillRect(-4, -26 + i * 14, 14, 5); g.restore();
+  if (darkness() > .4) pushLight('pt', d.x, d.y, 70, 'rgba(255,220,150,1)', .6); }
+{ const _db = drawBirds; drawBirds = function (air) { if (air) drawBunkerTop(); return _db(air); }; }
+{ const _mp = mapPOIs; mapPOIs = function () { const o = _mp(); if (W.bunker) o.push({ x: W.bunker.door.x, y: W.bunker.door.y, c: bunkOwned() ? '#9ccc65' : '#78909c', ic: 'B', r: 6, n: 'Ironwood Bunker' + (bunkOwned() ? '' : ' (for sale)'), pr: 5 }); return o; }; }
+// inside: bunks, stash, ammo locker, gun bench, police scanner, generator, kitchen and supplies
+function bunkerFit(s) { if (s.bunkSet) return; s.bunkSet = 1; const W2 = s.w, H2 = s.h, A = (t, x, y, w, h, ex) => s.items.push(Object.assign({ t, x, y, w, h, used: 0, small: 1 }, ex || {}));
+  s.items = s.items.filter(it => it.deco); s.peds = (s.peds || []).filter(q => q === G.player); s.floor = 'concrete'; s.npcDefs = [];
+  A('bed', .5, .5, .95, 1.35); A('bed', 1.6, .5, .95, 1.35); A('nstand', 2.7, .6, .42, .42); A('lamp', 2.74, .64, .34, .34);
+  A('stash', 3.4, .5, .74, .59); A('armory', 4.35, .4, 1.4, .55); A('radio', 6.1, .45, 1.2, .55); A('chair', 6.5, 1.15, .38, .38);
+  A('genset', W2 - 2.1, .4, 1.5, .9); A('barrel2', W2 - .9, 1.6, .5, .5); A('barrel2', W2 - .9, 2.2, .5, .5);
+  A('kcounter', .5, H2 - 1.4, 1.75, .5); A('sink', .65, H2 - 1.37, .55, .42); A('stove', 2.3, H2 - 1.45, .74, .55); A('fridge', 3.1, H2 - 1.5, .74, .62);
+  A('table', 4.2, H2 * .48, 1.05, .9); A('chair', 3.8, H2 * .48 + .25, .38, .38); A('chair', 5.3, H2 * .48 + .25, .38, .38);
+  A('boxes', W2 - 1.6, H2 - 1.5, .9, .6); A('boxes', W2 - 2.7, H2 - 1.5, .9, .6); A('box', W2 - 1.2, H2 * .5, .5, .5); A('books', .45, 2.4, .37, 1.48, { v: 1 });
+  addGunBench(s); applyDecor(s); }
+{ const _eq = enterBuildingQ; enterBuildingQ = function (b) { _eq(b); const s = G.scene; if (s && s.b === b && b.bunker && owned(b)) { bunkerFit(s); if (stars() > 0) msg('🛡 Blast door sealed. The cops lose your trail down here.', '#9ccc65'); } }; }
+{ const _cf = chasersFor; chasersFor = function (b) { return b && b.bunker && owned(b) ? [] : _cf(b); }; }
+function drawBunkerItem(it) { const g = ctx, x = it.x * T, y = it.y * T, w = it.w * T, h = it.h * T; g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x + 4, y + 5, w, h);
+  if (it.t === 'armory') { g.fillStyle = '#37474f'; g.fillRect(x, y, w, h); g.fillStyle = '#263238'; for (let i = 0; i < 3; i++) g.fillRect(x + 4 + i * (w - 8) / 3, y + 4, (w - 8) / 3 - 4, h - 8); g.fillStyle = '#c0a060'; for (let i = 0; i < 6; i++) g.fillRect(x + 8 + i * (w - 16) / 6, y + h * .3, 4, h * .45); g.fillStyle = '#f2c230'; g.fillRect(x, y + h - 4, w, 4); }
+  else if (it.t === 'radio') { g.fillStyle = '#3e4a3d'; g.fillRect(x, y, w, h); g.fillStyle = '#111'; g.fillRect(x + 5, y + 4, w * .45, h - 10); g.fillStyle = stars() > 0 ? (Math.floor(G.t * 4) % 2 ? '#ff5252' : '#4fc3f7') : '#26a69a'; g.fillRect(x + 8, y + 7, w * .45 - 6, h - 16); g.fillStyle = '#9e9e9e'; for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(x + w * .62 + i * 9, y + h / 2, 3, 0, TAU); g.fill(); } g.strokeStyle = '#bdbdbd'; g.lineWidth = 2; g.beginPath(); g.moveTo(x + w - 6, y + 4); g.lineTo(x + w + 4, y - 18); g.stroke(); }
+  else if (it.t === 'genset') { g.fillStyle = '#556b2f'; g.fillRect(x, y, w, h); g.fillStyle = '#3b4a20'; for (let i = 0; i < 5; i++) g.fillRect(x + 6, y + 6 + i * (h - 12) / 5, w * .5, 3); g.fillStyle = '#212121'; g.beginPath(); g.arc(x + w * .78, y + h * .5, h * .28, 0, TAU); g.fill(); g.save(); g.translate(x + w * .78, y + h * .5); g.rotate(G.t * 14); g.fillStyle = '#757575'; g.fillRect(-h * .24, -2, h * .48, 4); g.restore(); g.fillStyle = '#76ff03'; g.beginPath(); g.arc(x + 8, y + h - 8, 3, 0, TAU); g.fill(); } }
+{ const _di = drawItem; drawItem = function (it, s) { if (it.t === 'armory' || it.t === 'radio' || it.t === 'genset') return drawBunkerItem(it); return _di(it, s); }; }
+function ammoTopUp() { const p = G.player, list = []; let cost = 0; for (let i = 1; i < WEAPONS.length; i++) { const w = WEAPONS[i]; if (!(p.ammo[i] > 0) || !w.mag || w.melee) continue; const add = w.mag * 3; list.push([i, add]); cost += Math.round((w.ammoPrice || 60) * .7); } return { list, cost: Math.round(cost / 10) * 10 }; }
+{ const _ui = useItem; useItem = function (it) { const s = G.scene;
+  if (it.t === 'armory') { const A = ammoTopUp(); if (!A.list.length) return toast('No guns that take ammo — buy one at a gun shop'); return say('Ammo locker', 'Bulk crates at a discount: three mags for each of your ' + A.list.length + ' gun' + (A.list.length > 1 ? 's' : '') + '.', [{ t: 'Restock for ' + money(A.cost), c: 'y', d: !canPay(A.cost), f: () => { if (!payAny(A.cost)) return; for (const [i, n] of A.list) G.player.ammo[i] += n; Snd.play('cock'); toast('Restocked'); } }, { t: 'Close' }]); }
+  if (it.t === 'radio') { const st = stars(); return say('Police scanner', st ? '"…all units, suspect last seen near ' + (DISTRICTS[districtAt(G.outPos ? G.outPos.x : G.player.x, G.outPos ? G.outPos.y : G.player.y)] || {}).name + '… no visual…"\nYou\'re ' + st + '★ wanted. Down here they can\'t find you — it dies down fast.' : 'Quiet night on the band. Nobody is looking for you.', [{ t: 'OK' }]); }
+  if (it.t === 'genset') { Snd.play('clunk'); return toast('Diesel generator — off-grid power, humming along'); }
+  return _ui(it); }; }
+// lying low: wanted level drains quickly inside your bunker
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play') return; if (G.scene && G.scene.b && G.scene.b.bunker && owned(G.scene.b) && G.heat > 0) { G.heat = Math.max(0, G.heat - dt * .12); if (G.heat <= 0) msg('🛡 The heat is off. Nobody is looking for you.', '#9ccc65'); }
+  if ((G.estT = (G.estT || 0) - dt) <= 0) { G.estT = 3; aptSync(); } }; }
+function bunkerRows(H, c2, b) { H.row(c2, '🛡', 'Hideout', 'Cops can\'t follow you inside, and your wanted level drains fast while you\'re down there.', [H.btn('GPS', () => { setNav({ x: b.door.x, y: b.door.y, name: b.name }); Panel.close(); })]);
+  H.row(c2, '🛏', 'Bunks & stash', 'Sleep to save and set your spawn; your stash is here too.'); H.row(c2, '🔫', 'Ammo locker & gun bench', 'Bulk ammo at a discount and a bench for your guns.'); H.row(c2, '🅿', '10-vehicle garage', 'Its own GARAGE pad outside the blast door.'); }
+
 // ================= v1.67 POLISH: bug fixes, menu clean-up and UI tweaks =================
 // ---- a seized engine really is dead: no throttle until it's fixed or swapped ----
 { const _vt = vehTick; vehTick = function (c, d, dt, r) { if (c.pc && c.pc.eng !== undefined && c.pc.eng <= .02 && !c.d.pedal && !c.d.boat && !c.noEng) { c.throttle = 0; c.nosT = 0; c.burnout = 0; } return _vt(c, d, dt, r); }; }
@@ -10643,7 +10745,7 @@ const PHONE_GROUPS = [
   ['race', 'Racing', [['redline', 'Racing']]]];
 const phoneGroup = leaf => PHONE_GROUPS.find(g => g[2].some(l => l[0] === leaf)) || PHONE_GROUPS[0];
 { const _r = Panel.render; Panel.render = function () { const el = pEl(), o = el && el.querySelector('.psub'); if (o) o.remove(); return _r.apply(this, arguments); }; }
-{ const ph = PMODES.phone; PMODES.phone = function (H) { const P = this; if (!P.tab) P.tab = 'home'; if (P.tab === 'empire' && !Object.keys(LIFE().own).length) P.tab = 'realty';
+{ const ph = PMODES.phone; PMODES.phone = function (H) { const P = this; if (!P.tab) P.tab = 'home'; if (P.tab === 'empire' && !Object.keys(LIFE().own).length && !aptMine()) P.tab = 'realty';
   const gr = phoneGroup(P.tab); P.lastSub = P.lastSub || {}; P.lastSub[gr[0]] = P.tab;
   const r = ph.call(this, Object.assign({}, H, { tabBtn() { } }));
   const tabs = H.el.querySelector('.ptabs'); tabs.innerHTML = ''; const un = mktUnread();

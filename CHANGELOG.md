@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.76
+- Sell anything you own: homes, farms, businesses, nightclubs, drug labs, the bunker and your first apartment. Sell buttons are in Phone › Property › Mine (a full list, plus one on each property's own page) and in Property › For sale under "Yours — sell".
+- Every sale asks twice: a first screen spells out what you get (70% of value plus whatever is in the safe), the garage space you lose, where stored cars go and what stays behind; then a final "Yes, sell it" confirmation.
+- You always keep at least one home: the last of your apartment, houses, farms and bunker can't be sold. Selling is also blocked if your cars wouldn't fit in the garages you'd have left.
+- Sold your apartment? It goes on the market at $80,000 and you can buy it back. Your spawn point, the "cab home" and GPS home move to one of your other homes.
+- New: the Ironwood Bunker ($450,000) in Elk Ridge Forest — an earth-covered concrete bunker with camo netting, a blast door and an antenna. Inside: bunks (sleep to save and spawn), your stash, an ammo locker (three mags per gun at a discount), a gun bench, a police scanner and a generator, plus a 10-vehicle garage. Cops can't follow you in, and your wanted level drains fast while you're down there.
+- Fixed: sleeping in a house or farmhouse you bought charged you with trespassing instead of letting you sleep. Beds in any home you own now save the game and set your spawn.
+
 ## 1.75
 - Garage › Vehicles: the "Loose parts in stock" column is now an icon tile grid (drawn icons, condition bar, count, a green ✓ FITS badge for the selected car) with filter chips (All, Fits this car, Engines, Stock, Performance, Wheels, Body).
 - Tapping a loose part opens a card with every action: Fit / Swap onto the selected car, Fix now, Slow fix on the workbench, Sell on the marketplace and Scrap. On phones held upright it's a bottom sheet, like the backpack.

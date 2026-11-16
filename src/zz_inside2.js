@@ -32,5 +32,5 @@ function ejectTick(s, dt) { if (!s || !s.peds) return; const door = s.door;
 // no shooting while you're picking a lock or hotwiring
 { const _pf = playerFire; playerFire = function (aimA, charge) { if (G.bi) return; return _pf(aimA, charge); }; }
 // ---------- you can't steal from your own place ----------
-const ownPlace = () => { const s = G.scene; if (!s || !s.b) return false; if (s.garage || canDecorate()) return true; const L = typeof LIFE === 'function' ? LIFE() : null; return !!(L && L.own && L.own[s.b.id]) || s.b.type === 'safehouse'; };
+const ownPlace = () => { const s = G.scene; if (!s || !s.b) return false; if (s.garage || canDecorate()) return true; const L = typeof LIFE === 'function' ? LIFE() : null; return !!(L && L.own && L.own[s.b.id]) || (s.b.type === 'safehouse' && (s.b.name !== 'Your Apartment' || aptMine())); };
 { const _cr = crime; crime = function (sev, label) { if (ownPlace() && /theft|steal|shoplift|burglar/i.test(label || '')) return; return _cr(sev, label); }; }

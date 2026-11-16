@@ -14,7 +14,7 @@ const PHONE_GROUPS = [
   ['race', 'Racing', [['redline', 'Racing']]]];
 const phoneGroup = leaf => PHONE_GROUPS.find(g => g[2].some(l => l[0] === leaf)) || PHONE_GROUPS[0];
 { const _r = Panel.render; Panel.render = function () { const el = pEl(), o = el && el.querySelector('.psub'); if (o) o.remove(); return _r.apply(this, arguments); }; }
-{ const ph = PMODES.phone; PMODES.phone = function (H) { const P = this; if (!P.tab) P.tab = 'home'; if (P.tab === 'empire' && !Object.keys(LIFE().own).length) P.tab = 'realty';
+{ const ph = PMODES.phone; PMODES.phone = function (H) { const P = this; if (!P.tab) P.tab = 'home'; if (P.tab === 'empire' && !Object.keys(LIFE().own).length && !aptMine()) P.tab = 'realty';
   const gr = phoneGroup(P.tab); P.lastSub = P.lastSub || {}; P.lastSub[gr[0]] = P.tab;
   const r = ph.call(this, Object.assign({}, H, { tabBtn() { } }));
   const tabs = H.el.querySelector('.ptabs'); tabs.innerHTML = ''; const un = mktUnread();
