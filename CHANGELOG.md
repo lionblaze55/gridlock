@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.75
+- Garage › Vehicles: the "Loose parts in stock" column is now an icon tile grid (drawn icons, condition bar, count, a green ✓ FITS badge for the selected car) with filter chips (All, Fits this car, Engines, Stock, Performance, Wheels, Body).
+- Tapping a loose part opens a card with every action: Fit / Swap onto the selected car, Fix now, Slow fix on the workbench, Sell on the marketplace and Scrap. On phones held upright it's a bottom sheet, like the backpack.
+- Fitted parts, the Add/Swap picker and the marketplace's "On your shelf" list show the drawn part icons too.
+- Fixed: the first loose part of a kind (for example a worn part that came off a car) landed on the shelf at 100% condition instead of its real condition.
+
 ## 1.74
 - San Varro Airport out on the prairie: a full runway (09/27 markings, threshold stripes, edge lights that glow at night), apron and taxiways, three hangars, a control tower with a beacon, a windsock, a helipad and a runway level crossing with flashing lights. It's on the map.
 - Varro Aviation (talk to Dee at the desk): rent a flight, buy your own aircraft, manage your fleet (GPS, ferry back to the airport, repairs) and a How to fly guide.

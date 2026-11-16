@@ -153,7 +153,7 @@ const unitName = id => id.includes(':') ? pkName(id) : 'Part — ' + (ITEMS[id] 
 const unitBase = id => id.includes(':') ? pkValue(id) : r50((ITEMS[id] ? ITEMS[id].v : 100) * .55);
 const unitValue = (id, c) => Math.max(10, r50(unitBase(id) * (.12 + .88 * Math.pow(clamp(c, 0, 1), 1.3))));
 function unitTake(id, c) { const a = lcList(id); if (!a.length) return null; a.sort((x, y) => y - x); const i = pickIdx(a, c), got = a.splice(i, 1)[0]; if (id.includes(':')) { const [k, v] = id.split(':'); partUse(k, +v); } else partTake(id, 1); if (!a.length) delete PLC()[id]; return got; }
-function unitGive(id, c) { const L = PLC(), a = L[id] || (L[id] = []); lcList(id); a.push(c); if (id.includes(':')) { const [k, v] = id.split(':'); const P = PARTS(); P[id] = (P[id] | 0) + 1; } else G.stash.items[id] = (G.stash.items[id] | 0) + 1; }
+function unitGive(id, c) { const L = PLC(); lcList(id); const a = L[id] || (L[id] = []); a.push(c); if (id.includes(':')) { const [k, v] = id.split(':'); const P = PARTS(); P[id] = (P[id] | 0) + 1; } else G.stash.items[id] = (G.stash.items[id] | 0) + 1; }
 function sellableIds() { const out = []; const P = PARTS(); for (const id in P) if (P[id] > 0 && MODOPTS[id.split(':')[0]]) out.push(id); for (const id of MECH.concat(['eng_i4', 'eng_i4t', 'eng_v6', 'eng_v8', 'eng_sc8', 'eng_ev', 'eng_bike'])) if (ITEMS[id] && partHave(id) > 0) out.push(id); return out; }
 function partsSellView(H, P, top, M) { M.plist = M.plist || [];
   for (const l of M.plist.slice()) if (!l.held) { const c = unitTake(l.pk, 1); if (c === null) { M.plist.splice(M.plist.indexOf(l), 1); continue; } l.held = 1; l.cond = c; l.v = unitValue(l.pk, c); }
