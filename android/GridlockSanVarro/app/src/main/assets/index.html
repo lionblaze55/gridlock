@@ -251,7 +251,7 @@ function carSprite(type, color, wreck, m, full) {
     g.fillStyle = glassA; g.fillRect(L * .9, 2.2, 2.6, Wd - 4.4); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(L * .91, 2.6, .8, Wd - 5.2);
     g.fillStyle = lt; g.fillRect(L * .74, 2.2, L * .14, Wd - 4.4); g.fillStyle = '#555'; g.fillRect(L * .72, 1, 1.2, 1.2); g.fillRect(L * .72, Wd - 2.2, 1.2, 1.2);
   } else {
-    const rf = isBox ? 2.2 : (type === 'sports' || d.low) ? 6 : 4.5, rr = isBox ? 1.6 : 3.2;
+    const rf = d.rf !== undefined ? d.rf : isBox ? 2.2 : (type === 'sports' || d.low) ? 6 : 4.5, rr = d.rr !== undefined ? d.rr : isBox ? 1.6 : 3.2;
     carBodyPath(g, -.4, -.4 - wide * .5, L + .8, Wd + .8 + wide, rf + .3, rr + .3); g.fillStyle = 'rgba(0,0,0,.55)'; g.fill();
     carBodyPath(g, 0, 0, L, Wd, rf, rr); g.fillStyle = bodyGrad(0, Wd); g.fill();
     // liveries (clipped to body)
@@ -284,7 +284,7 @@ function carSprite(type, color, wreck, m, full) {
       g.fillStyle = glassA; g.fillRect(L * .47, 2, 1.8, Wd - 4); g.fillRect(L * .7, 1.6, 3.4, Wd - 3.2); g.fillStyle = glassB; g.fillRect(L * .71, 2.2, .9, Wd - 4.4);
       g.fillStyle = lt; g.fillRect(L * .52, 2, L * .17, Wd - 4);
     } else {
-      const lowc = type === 'sports' || d.low, ws = lowc ? .55 : .6, rs = lowc ? .22 : .2;
+      const lowc = type === 'sports' || d.low, ws = d.ws || (lowc ? .55 : .6), rs = d.rs || (lowc ? .22 : .2);
       // rear glass
       g.fillStyle = glassA; g.beginPath(); g.moveTo(L * rs, 1.6); g.lineTo(L * (rs + .1), 2.3); g.lineTo(L * (rs + .1), Wd - 2.3); g.lineTo(L * rs, Wd - 1.6); g.fill();
       // windshield
@@ -312,7 +312,8 @@ function carSprite(type, color, wreck, m, full) {
       if (!wreck && m.sp === 2) { g.fillStyle = dk; g.beginPath(); g.moveTo(0, 1.4); g.quadraticCurveTo(-1.6, Wd / 2, 0, Wd - 1.4); g.lineTo(1, Wd - 1.4); g.lineTo(1, 1.4); g.fill(); }
     }
   }
-  if (!wreck && d.deco) d.deco(g, L, Wd);
+  if (!wreck && d.deco) d.deco(g, L, Wd, color);
+  if (!wreck && typeof carLights === 'function' && !d.custom) carLights(g, d, L, Wd, isTruck);
   if (!wreck) {
     const hc = HLCOL[m.hl || 0];
     g.fillStyle = hc; g.beginPath(); g.ellipse(L - .9, 2.6, .9, 1.4, 0, 0, TAU); g.ellipse(L - .9, Wd - 2.6, .9, 1.4, 0, 0, TAU); g.fill();
@@ -3590,7 +3591,7 @@ function renderGarage() {
   const section = n => { const d = document.createElement('div'); d.className = 'gsec'; d.textContent = n; o.appendChild(d); };
   const mkOpt = (label, sub, cls, fn, dis) => { const b = document.createElement('button'); b.className = 'gopt ' + (cls || ''); const a = document.createElement('span'); a.textContent = label; const p = document.createElement('small'); p.textContent = sub; b.append(a, p); if (dis) b.disabled = true; b.onclick = fn; o.appendChild(b); };
   const swatches = (key, price) => { const d = document.createElement('div'); d.className = 'gsw'; for (const col of PAINTS) { const s = document.createElement('i'); s.style.background = col; const cur = (key === 'p' ? c.color : m.s) === col; if (cur) s.className = 'on'; else if (pv && pv.k === key && pv.v === col) s.className = 'pv'; s.onclick = () => { Snd.play('ui'); GAR.pv = cur ? null : { k: key, v: col, price, label: key === 'p' ? 'Primary paint' : 'Secondary paint', paint: 1 }; renderGarage(); }; d.appendChild(s); } o.appendChild(d); };
-  const buyOpt = k => modOpts(k, c).forEach(([n, pr], i) => { const on = (m[k] || 0) === i, sel = pv && pv.k === k && pv.v === i; mkOpt((on ? '✓ ' : sel ? '👁 ' : '') + n, on ? 'Installed' : pr ? money(shopFit(pr)) + ' fitted' : 'Free', (on ? 'on' : '') + (sel ? ' pv' : ''), () => { Snd.play('ui'); GAR.pv = on ? null : { k, v: i, price: shopFit(pr), part: pr, label: n }; renderGarage(); }); });
+  const buyOpt = k => modOpts(k, c).forEach(([n, pr], i) => { if (k === 'exh' && i === 2) return; const on = (m[k] || 0) === i, sel = pv && pv.k === k && pv.v === i; mkOpt((on ? '✓ ' : sel ? '👁 ' : '') + n, on ? 'Installed' : pr ? money(shopFit(pr)) + ' fitted' : 'Free', (on ? 'on' : '') + (sel ? ' pv' : ''), () => { Snd.play('ui'); GAR.pv = on ? null : { k, v: i, price: shopFit(pr), part: pr, label: n }; renderGarage(); }); });
   if (GAR.tab === 'moto') { for (const k of MOTOK) { section(MODOPTS[k].n); buyOpt(k); } } else switch (GAR.tab) {
     case 'paint': section('Primary color · $150'); swatches('p', 150); section('Secondary color · $100'); swatches('s', 100); break;
     case 'style': section('Livery'); buyOpt('liv'); section('Rims'); buyOpt('rim'); break;
@@ -6363,7 +6364,7 @@ const updS0 = Snd.update;
 Snd.update = function (dt) { updS0.call(this, dt); if (!this.ctx) return; this.carLoops(); const c = this.ctx, t = c.currentTime, L = this.L, set = (p, v, k) => p.setTargetAtTime(v, t, k || .06);
   const car = G.mode === 'play' ? pCar() : null, E = L.exh, TU = L.turbo;
   if (car && !car.dead && !car.d.pedal && !car.st.ev && !car.d.boat) {
-    const m = car.mods || {}, ex = m.exh | 0, tur = m.tur | 0, e = L.engine, rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0;
+    const m = car.mods || {}, ex = exhTier(car), tur = m.tur | 0, e = L.engine, rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0;
     const base = car.st.eb || car.d.eb || 36, fire = (base + rpm * base * 2.4) * (car.d.two ? 1 : .5);
     set(E.lfo.frequency, Math.max(8, fire), .04); set(E.lp.frequency, 180 + rpm * 260 + ex * 70, .08);
     set(E.g.gain, (.03 + ex * .035 + (car.type === 'muscle' ? .04 : 0)) * (.45 + rpm * .55 + thr * .4), .07);
@@ -6377,7 +6378,7 @@ Snd.update = function (dt) { updS0.call(this, dt); if (!this.ctx) return; this.c
     if (e.gear > (car.sndGear || 1) && thr > .5 && ex >= 2 && Math.random() < .6) this.pop(car.x, car.y, false, .7); car.sndGear = e.gear; car.sndThr = car.throttle;
   } else { set(E.g.gain, 0, .1); set(TU.g.gain, 0, .05); set(TU.g2.gain, 0, .05); if (TU) TU.boost = 0; }
   // tuned AI cars nearby (race rivals, meet cars) crackle on the overrun too
-  if (G.mode === 'play' && !G.scene) for (const k of G.cars) { if (k === car || !k.driver || k.dead || !k.mods || (k.mods.exh | 0) + (k.mods.tur | 0) < 1 || dist2(k.x, k.y, this.listener.x, this.listener.y) > 900 * 900) continue; if ((k.sndThr || 0) > .5 && k.throttle <= 0 && k.spd > 150) { if (k.mods.tur && Math.random() < .5) this.blowoff(k.x, k.y, Math.random() < .4); for (let i = 0; i < 3; i++) setTimeout(() => this.pop(k.x, k.y, false, .6), 80 + Math.random() * 500); } k.sndThr = k.throttle; }
+  if (G.mode === 'play' && !G.scene) for (const k of G.cars) { if (k === car || !k.driver || k.dead || !k.mods || exhTier(k) + (k.mods.tur | 0) < 1 || dist2(k.x, k.y, this.listener.x, this.listener.y) > 900 * 900) continue; if ((k.sndThr || 0) > .5 && k.throttle <= 0 && k.spd > 150) { if (k.mods.tur && Math.random() < .5) this.blowoff(k.x, k.y, Math.random() < .4); for (let i = 0; i < 3; i++) setTimeout(() => this.pop(k.x, k.y, false, .6), 80 + Math.random() * 500); } k.sndThr = k.throttle; }
 };
 // ---------- voices driven by the words being said ----------
 const VF = { a: [730, 1090, 2440], e: [530, 1840, 2480], i: [300, 2200, 2950], o: [520, 920, 2400], u: [330, 1000, 2350], y: [400, 2000, 2600], '@': [500, 1450, 2450] };
@@ -7984,7 +7985,7 @@ const hgPark = PMODES.hgarage;
 PMODES.hgarage = function (H) { const tab = this.tab || (this.tab = 'park'); H.tabBtn('park', 'Store / take out'); H.tabBtn('work', '🔧 Workshop'); if (tab === 'work') { H.title.textContent = '🔧 Workshop'; return workshopTab(H, this.opt.g); } return hgPark.call(this, H); };
 // online parts shop (phone › Shop): parts are delivered to your garage shelf
 function partsShopCol(H) { const c = H.col('Upgrades & styling');
-  for (const k in MODOPTS) { if (PART_EXCL.has(k)) continue; MODOPTS[k].o.forEach((o, v) => { if (!v || !o[1]) return; const pr = Math.round(o[1] * 1.1 / 10) * 10, have = PARTS()[pkey(k, v)] | 0; H.row(c, '🔩', MODOPTS[k].n + ' — ' + o[0], money(pr) + (have ? ' · on shelf ' + have : ''), [H.btn('Buy', () => { if (payAny(pr)) { partAdd(k, v); toast('Delivered to your garage'); } }, 'y', !canPay(pr))]); }); } }
+  for (const k in MODOPTS) { if (PART_EXCL.has(k)) continue; MODOPTS[k].o.forEach((o, v) => { if (!v || !o[1] || (k === 'exh' && v === 2)) return; const pr = Math.round(o[1] * 1.1 / 10) * 10, have = PARTS()[pkey(k, v)] | 0; H.row(c, '🔩', MODOPTS[k].n + ' — ' + o[0], money(pr) + (have ? ' · on shelf ' + have : ''), [H.btn('Buy', () => { if (payAny(pr)) { partAdd(k, v); toast('Delivered to your garage'); } }, 'y', !canPay(pr))]); }); } }
 // ================= MODULAR WORKSHOP II: work on ANY car in your garage (or on the pad) without parting it out =================
 // a "target" wraps either a live car on the pad or a stored garage record
 function wsTarget(sel, g) { if (sel === 'pad') { const c = padCar(g); return c ? { kind: 'car', c, type: c.type, d: c.d, get mods() { return c.mods || {}; }, set(m) { c.mods = m; applyMods(c); if (c.isRide) G.save.ride = { type: c.type, mods: c.mods, legit: c.legit ? 1 : 0 }; }, get noEng() { return !!c.noEng; }, setNoEng(v) { c.noEng = v ? 1 : 0; }, color: c.color, name: c.d.name + ' (on the pad)' } : null; }
@@ -8463,9 +8464,9 @@ function streetMods(c, district) {
   const r = Math.random(), tier = r < (sporty ? .3 : .45) ? 0 : r < (sporty ? .62 : .78) ? 1 : r < (sporty ? .9 : .95) ? 2 : 3; if (!tier) return;
   const m = {}, set = (k, v) => { if (MODOPTS[k] && MODOPTS[k].o[v]) m[k] = v; }, keys = new Set(carKeys(c));
   const may = k => keys.has(k);
-  if (d.two) { const pk = ['mbr', 'mpp', 'mtk', 'mlt', 'mfr', 'mst', 'mbg']; for (let i = 0; i < tier + 1; i++) { const k = pick(pk); if (may(k)) set(k, rint(1, MODOPTS[k].o.length - 1)); } if (tier >= 2) set('exh', rint(1, 2)); if (tier >= 2) set('eng', rint(1, 2)); applyMods(c, m); return; }
+  if (d.two) { const pk = ['mbr', 'mpp', 'mtk', 'mlt', 'mfr', 'mst', 'mbg']; for (let i = 0; i < tier + 1; i++) { const k = pick(pk); if (may(k)) set(k, rint(1, MODOPTS[k].o.length - 1)); } if (tier >= 2) set('exh', 1); if (tier >= 2) set('eng', rint(1, 2)); applyMods(c, m); return; }
   if (may('rim')) set('rim', rint(1, MODOPTS.rim.o.length - 1)); if (may('tint') && Math.random() < .6) set('tint', rint(1, 2));
-  if (tier >= 2) { if (may('sp') && !rich) set('sp', rint(1, 3)); if (may('liv') && Math.random() < .55 && !rich) set('liv', rint(1, MODOPTS.liv.o.length - 1)); if (may('neon') && Math.random() < .45) set('neon', rint(1, MODOPTS.neon.o.length - 1)); if (may('hd') && Math.random() < .4) set('hd', rint(1, 3)); set('eng', rint(1, 2)); if (may('exh')) set('exh', rint(1, 2)); if (may('tyr') && Math.random() < .4) set('tyr', rint(1, 2)); }
+  if (tier >= 2) { if (may('sp') && !rich) set('sp', rint(1, 3)); if (may('liv') && Math.random() < .55 && !rich) set('liv', rint(1, MODOPTS.liv.o.length - 1)); if (may('neon') && Math.random() < .45) set('neon', rint(1, MODOPTS.neon.o.length - 1)); if (may('hd') && Math.random() < .4) set('hd', rint(1, 3)); set('eng', rint(1, 2)); if (may('exh')) set('exh', 1); if (may('tyr') && Math.random() < .4) set('tyr', rint(1, 2)); }
   if (tier >= 3) { if (may('sk')) set('sk', 1); if (may('sp')) set('sp', 3); set('eng', 3); set('tur', 1); if (may('nos') && Math.random() < .5) set('nos', 1); if (may('hnd')) set('hnd', rint(1, 2)); if (may('exh')) set('exh', 3); if (Math.random() < .5) m.s = pick(['#111111', '#f4f4f4', '#ffd600', '#00e5ff', '#ff1744', '#76ff03']); }
   if (district && DISTRICTS[district] && DISTRICTS[district].gang && Math.random() < .3 && may('neon')) set('neon', rint(1, MODOPTS.neon.o.length - 1));
   m.p = c.color; applyMods(c, m);
@@ -8480,7 +8481,7 @@ Object.assign(MODDESC, { eng: (MODDESC.eng || '') + ' Built race motors and hand
 const pkName = pk => { const [k, v] = pk.split(':'); return MODOPTS[k] ? MODOPTS[k].n + ' — ' + MODOPTS[k].o[+v][0] : pk; };
 const pkShop = pk => { const [k, v] = pk.split(':'); return MODOPTS[k] && MODOPTS[k].o[+v] ? MODOPTS[k].o[+v][1] : 0; };
 const pkValue = pk => r50(pkShop(pk) * (RARE.has(pk) ? .7 : .5));
-const PART_POOL = () => { const out = []; for (const k in MODOPTS) { if (PART_EXCL.has(k) || MOTOK.includes(k) || k === 'swp') continue; MODOPTS[k].o.forEach((o, v) => { if (v && o[1] >= 300) out.push(k + ':' + v); }); } return out; };
+const PART_POOL = () => { const out = []; for (const k in MODOPTS) { if (PART_EXCL.has(k) || MOTOK.includes(k) || k === 'swp') continue; MODOPTS[k].o.forEach((o, v) => { if (v && o[1] >= 300 && !(k === 'exh' && v === 2)) out.push(k + ':' + v); }); } return out; };
 function genPartListing(M) {
   const rare = Math.random() < .5, pool = PART_POOL(), pk = rare ? pick([...RARE]) : pick(pool.filter(p => !RARE.has(p))), v = pkValue(pk), r = Math.random(), scam = Math.random() < .12;
   const arch = scam ? 'scam' : r < .1 ? 'steal' : r < .3 ? 'deal' : r < .75 ? 'fair' : 'greedy', mult = { steal: .45 + Math.random() * .15, deal: .65 + Math.random() * .2, fair: .9 + Math.random() * .2, greedy: 1.15 + Math.random() * .25, scam: .45 + Math.random() * .2 }[arch];
@@ -9097,7 +9098,7 @@ Snd.exhLoops = function () { const c = this.ctx, L = this.L; if (L.rasp) return;
 { const upd = Snd.update; Snd.update = function (dt) { upd.call(this, dt); if (!this.ctx || !this.L.engine) return; this.exhLoops(); const c = this.ctx, t = c.currentTime, L = this.L, R = L.rasp, E = L.exh, e = L.engine, set = (p, v, k) => p.setTargetAtTime(v, t, k || .05);
   const car = G.mode === 'play' ? pCar() : null;
   if (!car || car.dead || car.d.pedal || car.st.ev || car.d.boat || G.scene && !car) { set(R.g.gain, 0, .08); set(R.lg.gain, 0); return; }
-  const m = car.mods || {}, ex = clamp(m.exh | 0, 0, 3), P = EXHP[ex], rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0, ty = car.type;
+  const m = car.mods || {}, ex = exhTier(car), P = EXHP[ex], rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0, ty = car.type;
   const base = car.st.eb || car.d.eb || (ty === 'truck' || ty === 'swat' ? 24 : ty === 'van' || ty === 'pickup' ? 30 : ty === 'sports' ? 44 : ty === 'muscle' ? 30 : 36), f = base + rpm * base * 2.4;
   // muffler: re-voice the main engine tone
   set(e.f.frequency, (260 + rpm * 1000 + (thr ? 400 : 0) + (ty === 'sports' ? 500 : 0)) * P.muf, .06);
@@ -9115,7 +9116,7 @@ Snd.exhLoops = function () { const c = this.ctx, L = this.L; if (L.rasp) return;
   if (top && P.spit && Math.random() < dt * P.spit) this.pop(car.x, car.y, Math.random() < P.big * .5, .55);
   if (ex >= 2 && thr > .9 && rpm > .97 && Math.random() < dt * 6) this.pop(car.x, car.y, false, .45); }; }
 // pops get their own character too: straight pipe = sharp crack, race = deep bang
-{ const pop0 = Snd.pop; Snd.pop = function (x, y, big, v) { pop0.call(this, x, y, big, v); if (!this.ctx) return; const car = pCar(), ex = car && dist2(car.x, car.y, x, y) < 40 * 40 ? (car.mods || {}).exh | 0 : 0; if (ex < 2) return; const a = this.att(x, y) * (v || 1); if (a < .02) return; const t = this.ctx.currentTime, o = this.out(x, y);
+{ const pop0 = Snd.pop; Snd.pop = function (x, y, big, v) { pop0.call(this, x, y, big, v); if (!this.ctx) return; const car = pCar(), ex = car && dist2(car.x, car.y, x, y) < 40 * 40 ? exhTier(car) : 0; if (ex < 2) return; const a = this.att(x, y) * (v || 1); if (a < .02) return; const t = this.ctx.currentTime, o = this.out(x, y);
   if (ex === 2) this.nz(.025, rnd(2400, 4200), 'highpass', .35 * a, t, 0, o); else if (big) this.tone('sine', 70, 30, .22, .45 * a, t, o); }; }
 
 // ================= ECONOMY REBALANCE: cars, parts, property and pay on one sensible scale =================
@@ -10733,12 +10734,12 @@ function bunkerRows(H, c2, b) { H.row(c2, '🛡', 'Hideout', 'Cops can\'t follow
 
 // ================= THE FAR SHORE: the map grows east and south across a channel (generated last, so existing land, property IDs and saves never change) =================
 for (const [k, as, name] of [['prairie4', 'farmland', 'Seabreeze Plains'], ['estate4', 'farmland', 'Windward Farms'], ['woods4', 'woods', 'Cedar Hollow'], ['lake4', 'lake', 'Mirror Lake'], ['orchard4', 'orchard', 'Cider Hills'],
-  ['quarry4', 'quarry', 'Granite Bluff'], ['town6', 'town', 'Port Calloway'], ['coast4', 'coast', 'Driftwood Beach'], ['narrows', 'coast', 'The Narrows'], ['downs', 'farmland', 'Varro Downs'], ['links', 'farmland', 'Varro Links']]) DISTRICTS[k] = Object.assign({}, DISTRICTS[as], { name, as });
+  ['quarry4', 'quarry', 'Granite Bluff'], ['town6', 'town', 'Port Calloway'], ['suburbs3', 'suburbs', 'Maple Grove'], ['coast4', 'coast', 'Driftwood Beach'], ['narrows', 'coast', 'The Narrows'], ['downs', 'farmland', 'Varro Downs'], ['links', 'farmland', 'Varro Links']]) DISTRICTS[k] = Object.assign({}, DISTRICTS[as], { name, as });
 for (const k of ['prairie4', 'estate4', 'woods4', 'lake4', 'orchard4', 'quarry4', 'coast4', 'narrows', 'downs', 'links']) RURALSET.add(k);
 const FARCODE = { P: 'prairie4', E: 'estate4', W: 'woods4', L: 'lake4', O: 'orchard4', Q: 'quarry4', K: 'town6', D: 'coast4', X: 'narrows', H: 'downs', G: 'links' };
 // east strip: columns 27–28 for rows 0–25; south strip: rows 27–28 for columns 0–28; column/row 26 is the channel, 29 the beach
 const FAR_E = ['WW', 'WW', 'PP', 'KK', 'KK', 'PP', 'EE', 'EE', 'LL', 'LL', 'OO', 'OO', 'PP', 'WW', 'WW', 'PP', 'EE', 'EE', 'PP', 'QQ', 'PP', 'WW', 'LL', 'LL', 'PP', 'PP'];
-const FAR_S = ['PPWWHHHPPEEKKGGGWLLPPEEPPOOPP', 'PPWWHHHPPEEKKGGGWLLPPEEPPOOPP'];
+const FAR_S = ['PPWWEEPPPEEKKGGGWLLPPEEPPOOPP', 'PPWWEEPPPEEKKGGGWLLPPEEPPOOPP'];
 const BR_ROWS = [3, 9, 15, 21], BR_COLS = [3, 9, 15, 21];
 function farCh(bi, bj) { if (bi >= 29 || bj >= 29) return 'D'; if ((bi === 26 && bj <= 26) || (bj === 26 && bi <= 26)) return 'X'; if (bj >= 27) return FAR_S[bj - 27][bi] || 'P'; if (bi >= 27) return bj <= 25 ? FAR_E[bj][bi - 27] : 'P'; return 'P'; }
 const inChan = (x, y) => (x >= NOLD && x < NOLD + 12 && y < NOLD + 12) || (y >= NOLD && y < NOLD + 12 && x < NOLD + 12);
@@ -10771,7 +10772,32 @@ function farGen() { const B = W._bc; if (!B) return; W.nOld = W.buildings.length
     W.labels.push({ n, x: bi * RSP + 10, y: bj * RSP + 10, big: n === n.toUpperCase() ? 1 : 0 });
   const cand = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((x >= NOLD || y >= NOLD) && (W.tile[idx(x, y)] === TILE.DIRT || W.tile[idx(x, y)] === TILE.PATH) && !W.solid[idx(x, y)]) cand.push([x, y]);
   for (let i = 0; i < 10 && cand.length; i++) { const [x, y] = cand.splice(Math.floor(rng() * cand.length), 1)[0]; W.pickupSpots.push({ x: (x + .5) * T, y: (y + .5) * T, t: ['health', 'cash', 'armor', 'pistol'][i % 4], next: 0, alive: true }); } }
-{ const _sg = storeGen; storeGen = function () { _sg(); try { farGen(); } catch (e) { console.error('farGen', e); } }; }
+// ---------- Maple Grove: farm blocks just south of the city become a suburb (old buildings are retired, never renumbered) ----------
+const SUBSET = new Set(['8,12', '9,12', '10,12', '11,12', '13,12', '14,12', '15,12', '11,13', '12,13', '13,13']);
+{ const _df = districtFor; districtFor = function (bi, bj) { if (W.subOn && SUBSET.has(bi + ',' + bj)) return GENALIAS ? 'suburbs' : 'suburbs3'; return _df(bi, bj); }; }
+// a suburban block: sidewalk ring, four family homes with driveways, back yards with fences, trees and the odd pool — or a little park
+function suburbBlock(bi, bj, rng, park) { const B = W._bc, x0 = bi * RSP + 4, y0 = bj * RSP + 4, walls = [8, 9, 12, 13, 3, 7], pk = a => a[Math.floor(rng() * a.length)];
+  for (let y = y0; y < y0 + 12; y++) for (let x = x0; x < x0 + 12; x++) B.setT(x, y, x === x0 || x === x0 + 11 || y === y0 || y === y0 + 11 ? TILE.WALK : TILE.GRASS);
+  W.blocks.push({ bi, bj, bx: x0, by: y0, d: 'suburbs3', li: bi });
+  if (park) { B.pond(x0 + 6, y0 + 6, 2.2, 1.6); for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; B.P(i % 3 ? 'tree' : 'bush', x0 + 6 + Math.cos(a) * 4.2, y0 + 6 + Math.sin(a) * 4.2); } W.labels.push({ n: 'Maple Grove Park', x: x0 + 6, y: y0 + 10.3 }); return; }
+  for (const [hx, hy, face] of [[x0 + 1, y0 + 2, 0], [x0 + 6, y0 + 2, 0], [x0 + 1, y0 + 7, 2], [x0 + 6, y0 + 7, 2]]) {
+    const b = B.mkB(hx, hy, 4, 3, pk(walls), 1, 'home', '', 'suburbs3', face); if (!b) continue; b.d = 'suburbs3'; b.sub2 = 1;
+    const dx = hx + 4, ys = face ? [hy + 1, hy + 2, hy + 3] : [y0 + 1, y0 + 2, y0 + 3, y0 + 4]; for (const y of ys) B.setT(dx, y, TILE.LOT);
+    if (rng() < .7) W.parkSpots.push({ x: (dx + .5) * T, y: (face ? hy + 2.6 : y0 + 2.4) * T, a: face ? Math.PI / 2 : -Math.PI / 2, type: pk(['sedan', 'hatch', 'pickup', 'van', 'suv', 'sedan']) });
+    if (rng() < .4) W.pools.push({ x: (hx + .4) * T, y: (y0 + 5.15) * T, w: 2.6 * T, h: 1.5 * T }); else B.P(pk(['tree', 'bush', 'tree']), hx + 1.5 + rng(), y0 + 5.8);
+    B.P('bush', hx + .4, face ? hy + 3.5 : hy - .5); }
+  for (let x = x0 + 1; x < x0 + 11; x++) B.P('fence', x + .5, y0 + 6.5); }
+function suburbsGen() { const B = W._bc; if (!B) return; const n0 = W.buildings.length, rng = mulberry32(2718), rr = (a, b) => a + Math.floor(rng() * (b - a + 1)), cells = [...SUBSET].map(k => k.split(',').map(Number));
+  for (const [bi, bj] of cells) { const x0 = bi * RSP + 4, y0 = bj * RSP + 4, X0 = x0 * T, Y0 = y0 * T, X1 = (x0 + 12) * T, Y1 = (y0 + 12) * T, inB = (x, y) => x >= X0 && x < X1 && y >= Y0 && y < Y1;
+    if (W.buildings.some(b => !b.gone && b.realty && b.x >= x0 - 1 && b.x < x0 + 13 && b.y >= y0 - 1 && b.y < y0 + 13)) continue;
+    for (const b of W.buildings) { if (b.gone || b.x < x0 - 1 || b.x >= x0 + 13 || b.y < y0 - 1 || b.y >= y0 + 13) continue; b.gone = 1; b.door = null; for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) W.bmap[idx(x, y)] = -1; }
+    killProps(p => inB(p.x, p.y)); for (const k of ['parkSpots', 'lifeSpots', 'ruralSpots', 'pickupSpots', 'dealerSpots']) if (W[k]) W[k] = W[k].filter(s => !inB(s.x, s.y));
+    W.blocks = W.blocks.filter(k => !(k.bi === bi && k.bj === bj)); for (let y = y0; y < y0 + 12; y++) for (let x = x0; x < x0 + 12; x++) B.setT(x, y, TILE.GRASS); }
+  W.subOn = 1; W.pools = W.pools || []; let parks = 0; for (const [bi, bj] of cells) suburbBlock(bi, bj, rng, parks++ === 4);
+  assignDoors(rng, n0);
+  for (const [bi, bj] of cells) for (let y = bj * RSP; y < bj * RSP + 20; y++) for (let x = bi * RSP; x < bi * RSP + 20; x++) { if (!inMap(x, y)) continue; const k = idx(x, y); if (W.tile[k] === TILE.ROAD) W.rur[k] = 0; markTile(x, y); }
+  W.labels.push({ n: 'Maple Grove', x: 11.5 * RSP + 6, y: 12.6 * RSP + 6, big: 1 }); }
+{ const _sg = storeGen; storeGen = function () { _sg(); try { farGen(); } catch (e) { console.error('farGen', e); } try { suburbsGen(); } catch (e) { console.error('suburbsGen', e); } }; }
 
 // ================= VARRO DOWNS: a real horse racetrack =================
 const HNAMES = ['Dust Devil', 'Velvet Thunder', 'Neon Gambler', 'Copper Kettle', 'Lucky Strike', 'Midnight Ledger', 'Silk Road', 'Second Mortgage', 'Paper Tiger', 'Sundown Kid', 'Golden Parachute', 'Big Sky Betty', 'Iron Mule', 'Hot Tip', 'Wildcat Stock', 'Offshore Account', 'Blue Chip', 'Long Odds', 'Sugar Daddy', 'Rusty Spur', 'Pocket Aces', 'Mister Tuesday', 'Quiet Money', 'Last Call'];
@@ -10843,7 +10869,7 @@ function drawHorse(x, y, a, h, v) { const g = ctx, gal = v > 30, ph = G.t * (gal
   g.fillStyle = shade(h.coat, .5); g.fillRect(14, -1.5, 9, 3); g.strokeStyle = shade(h.coat, .45); g.lineWidth = 3.5; g.beginPath(); g.moveTo(-17, 0); g.quadraticCurveTo(-25, gal ? Math.sin(ph) * 4 : 2, -29, gal ? Math.sin(ph * .8) * 5 : 4); g.stroke();
   g.fillStyle = '#fff'; g.fillRect(-6, -8, 10, 16); g.fillStyle = h.silk; g.fillRect(-5, -7, 8, 14); g.fillStyle = h.silk === '#f5f5f5' ? '#111' : '#fff'; g.font = 'bold 8px Rubik, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(h.num, -1, 0);
   g.fillStyle = h.silk; g.beginPath(); g.ellipse(3, 0, 5, 4.5, 0, 0, TAU); g.fill(); g.fillStyle = '#222'; g.beginPath(); g.arc(7, 0, 3, 0, TAU); g.fill(); g.restore(); }
-{ const _dg = drawGaragePads; drawGaragePads = function () { _dg(); drawDowns(); }; }
+{ const _dg = drawGaragePads; drawGaragePads = function () { _dg(); drawDowns(); if (G.scene || !W.pools) return; const g = ctx; for (const p of W.pools) { if (!inView(p.x + p.w / 2, p.y + p.h / 2, 200)) continue; g.fillStyle = '#e0e0e0'; rr(g, p.x - 6, p.y - 6, p.w + 12, p.h + 12, 10); g.fill(); g.fillStyle = '#29b6f6'; rr(g, p.x, p.y, p.w, p.h, 8); g.fill(); g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 2; const o = Math.sin(G.t * 1.5) * 6; g.beginPath(); g.moveTo(p.x + 14 + o, p.y + 16); g.lineTo(p.x + 40 + o, p.y + 12); g.moveTo(p.x + p.w - 50 - o, p.y + p.h - 18); g.lineTo(p.x + p.w - 22 - o, p.y + p.h - 22); g.stroke(); } }; }
 // ---------- betting at the tote window (outside) or inside the clubhouse ----------
 const STAKES = [100, 250, 500, 1000, 2500];
 PMODES.downs = function (H) { const P = this, R = hrRace(); H.title.textContent = '🏇 Varro Downs — Tote'; if (!R) return H.empty(H.col('Closed'), 'No races today.');
@@ -10921,7 +10947,7 @@ function golfAutoClub() { const gf = G.golf, h = W.links.holes[gf.cur - 1], b = 
   let k = 5; for (let i = 5; i >= 0; i--) if (CLUBS[i].c * (lie === 'rough' ? .82 : lie === 'sand' ? .6 : 1) >= d * .92) { k = i; break; } else k = 0; if (k === 0 && lie !== 'tee') k = 1; if (lie === 'sand') k = Math.max(k, 4); gf.club = k; }
 function golfShoot(p) { const gf = G.golf, cl = CLUBS[gf.club], b = gf.ball, lie = lieAt(b.x, b.y), bac = G.bac || 0; gf.strokes++; gf.last = { x: b.x, y: b.y }; gf.state = 'fly'; Snd.play(cl.putt ? 'clack' : 'thud', b.x, b.y, .5);
   const err = (Math.random() + Math.random() + Math.random() - 1.5) * (cl.acc * (lie === 'rough' ? 1.6 : lie === 'sand' ? 2.2 : 1) * (p > .97 ? 2 : 1) + bac * 1.2), a = gf.aim + err;
-  if (cl.putt) { const d = 430 * p, v0 = Math.sqrt(2 * GFRIC.green * d); b.vx = Math.cos(a) * v0; b.vy = Math.sin(a) * v0; b.z = 0; b.vz = 0; gf.state = 'roll'; return; }
+  if (cl.putt) { const d = puttMax() * p, v0 = Math.sqrt(2 * GFRIC.green * d); b.vx = Math.cos(a) * v0; b.vy = Math.sin(a) * v0; b.z = 0; b.vz = 0; gf.state = 'roll'; return; }
   const lf = lie === 'rough' ? (gf.club === 5 ? .9 : .82) : lie === 'sand' ? (gf.club >= 4 ? .85 : .55) : 1, carry = cl.c * p * lf * (1 + (Math.random() - .5) * .06), tf = cl.t * (.75 + .25 * p), v = carry / tf;
   b.vx = Math.cos(a) * v; b.vy = Math.sin(a) * v; b.vz = 300 * tf / 2; b.z = .1; }
 function golfPenalty(why) { const gf = G.golf, b = gf.ball; gf.strokes++; msg('⛳ ' + why + ' — penalty stroke.', '#ffb74d'); b.x = gf.last.x; b.y = gf.last.y; b.z = b.vx = b.vy = b.vz = 0; golfStop(); }
@@ -10937,10 +10963,14 @@ function golfEnd(quit) { const gf = G.golf; if (!gf) return; G.golf = null; cons
     else line += '\n' + W2.name + ' shot ' + theirs + ' and pockets your ' + money(W2.stake) + '.'; }
   say('Scorecard — Varro Links', gf.cards.map((s, i) => (i + 1) + ': ' + s).join('   ') + '\n' + line, [{ t: 'OK' }]); }
 // ---------- the swing, the flight, the roll ----------
+function puttMax() { const gf = G.golf, h = W.links.holes[gf.cur - 1]; return clamp(Math.hypot(h.pin.x - gf.ball.x, h.pin.y - gf.ball.y) * 1.6, 110, 430); }
+function golfReach(p) { const gf = G.golf, cl = CLUBS[gf.club], lie = lieAt(gf.ball.x, gf.ball.y); return cl.putt ? puttMax() * p : cl.c * p * (lie === 'rough' ? (gf.club === 5 ? .9 : .82) : lie === 'sand' ? (gf.club >= 4 ? .85 : .55) : 1); }
+function golfNeed() { const gf = G.golf, h = W.links.holes[gf.cur - 1], d = Math.hypot(h.pin.x - gf.ball.x, h.pin.y - gf.ball.y), full = golfReach(1); return clamp(d / full, 0, 1.2); }
 function golfTick(dt) { const gf = G.golf; if (!gf) return; if (G.scene || G.player.dead || pCar()) return golfEnd(1); const b = gf.ball, h = W.links.holes[gf.cur - 1], K = Input.keys || {}, H = Input.held || {};
-  if (gf.state === 'aim') { const mx = gf.mx, my = gf.my, m = Math.hypot(mx, my); if (m > .35 && !Input.kbd) gf.aim += angDiff(gf.aim, Math.atan2(my, mx)) * Math.min(1, dt * 6); if (K.arrowleft || K.a) gf.aim -= dt * .9; if (K.arrowright || K.d) gf.aim += dt * .9;
+  if (gf.state === 'aim') { const mx = gf.mx || 0; if (Math.abs(mx) > .12) gf.aim += Math.sign(mx) * Math.pow(Math.abs(mx), 1.6) * 1.4 * dt; if (K.arrowleft || K.a || H.gL) gf.aim -= dt * (H.gL ? .35 : .9); if (K.arrowright || K.d || H.gR) gf.aim += dt * (H.gR ? .35 : .9);
     if ((Input.edge.club || (K.c && !gf.cK)) && !gf.charging) { gf.club = (gf.club + 1) % CLUBS.length; Snd.play('ui'); } gf.cK = K.c;
-    const down = !!(H.swing || K[' '] || K.enter); if (down && !gf.charging) { gf.charging = 1; gf.ct = 0; } if (gf.charging) { gf.ct += dt; gf.pw = (1 - Math.cos(gf.ct * 2.3)) / 2; if (!down) { gf.charging = 0; golfShoot(Math.max(.04, gf.pw)); } } golfPlace(); return; }
+    const down = !!(H.swing || K[' '] || K.enter); if (down && !gf.charging) { gf.charging = 1; gf.ct = 0; Snd.play('ui'); }
+    if (gf.charging) { gf.ct += dt; const up = 1.35, hold = .35; gf.pw = gf.ct < up ? Math.pow(gf.ct / up, .9) : gf.ct < up + hold ? 1 : Math.max(.02, 1 - (gf.ct - up - hold) / 1.1); if (!down) { gf.charging = 0; golfShoot(Math.max(.03, gf.pw)); } } golfPlace(); return; }
   if (gf.state === 'done') { if (G.t - gf.doneT > 2.4) { if (gf.cur >= 9) return golfEnd(0); golfHole(gf.cur + 1); } return; }
   if (gf.state === 'fly') { const s = 1 - Math.exp(-dt * 0); b.x += (b.vx + gf.wind.x * .55) * dt; b.y += (b.vy + gf.wind.y * .55) * dt; b.z += b.vz * dt; b.vz -= 300 * dt;
     if (b.z < 70 && b.z > 4 && propsNear(b.x, b.y, 30).some(p => (p.t === 'tree' || p.t === 'pine') && dist(p.x, p.y, b.x, b.y) < 24)) { b.vx *= .1; b.vy *= .1; b.vz = Math.min(b.vz, 0); toast('Clipped a tree!'); }
@@ -10951,15 +10981,15 @@ function golfTick(dt) { const gf = G.golf; if (!gf) return; if (G.scene || G.pla
 // input: while golfing the stick aims, SWING hits; nothing else moves the player
 { const _u = update; update = function (dt) { const gf = G.golf; if (gf && G.mode === 'play') { gf.mx = Input.mx; gf.my = Input.my; Input.mx = Input.my = 0; Input.fire = false; if (Input.mouse) Input.mouse.down = false; } _u(dt); if (G.mode === 'play') golfTick(dt); }; }
 { const _lo = Input.layout; Input.layout = function () { const L = _lo.call(this); if (!G.golf) return L; const s = L.s, fire = L.btns.find(b => b.id === 'fire') || L.btns[0];
-  L.btns = [{ id: 'swing', x: fire.x, y: fire.y, r: fire.r * 1.1, label: 'SWING', col: '#2e7d32', show: true }, { id: 'club', x: fire.x - 112 * s, y: fire.y + 10 * s, r: 30 * s, label: 'CLUB', col: '#37474f', show: true }, { id: 'gquit', x: fire.x - 4 * s, y: fire.y - 150 * s, r: 24 * s, label: 'QUIT', col: '#5b1010', show: true }]; this._L = L; return L; }; }
+  L.btns = [{ id: 'swing', x: fire.x, y: fire.y, r: fire.r * 1.1, label: 'SWING', col: '#2e7d32', show: true }, { id: 'club', x: fire.x - 112 * s, y: fire.y + 10 * s, r: 30 * s, label: 'CLUB', col: '#37474f', show: true }, { id: 'gquit', x: fire.x - 4 * s, y: fire.y - 150 * s, r: 24 * s, label: 'QUIT', col: '#5b1010', show: true }, { id: 'gL', x: fire.x - 172 * s, y: fire.y - 74 * s, r: 24 * s, label: '◀', col: '#37474f', show: true }, { id: 'gR', x: fire.x - 112 * s, y: fire.y - 74 * s, r: 24 * s, label: '▶', col: '#37474f', show: true }]; this._L = L; return L; }; }
 { const _ui = Input.clearEdges; Input.clearEdges = function () { if (G.golf && Input.edge && Input.edge.gquit) { const gf = G.golf; say('Leave the course?', gf.wager ? 'You\'ll forfeit your ' + money(gf.wager.stake) + ' wager.' : 'Your round ends here.', [{ t: 'Walk off', c: 'r', f: () => { closeDialog(); golfEnd(1); } }, { t: 'Keep playing' }]); } return _ui.apply(this, arguments); }; }
 { const _ucm = updateCamera; updateCamera = function (dt) { const gf = G.golf; if (!gf || G.scene) return _ucm(dt); const cam = G.cam, b = gf.ball, h = W.links.holes[gf.cur - 1], k = 1 - Math.exp(-dt * 3);
-  let tx = b.x, ty = b.y, z = Math.min(VW, VH) / (7.6 * T) * (G.settings.zoom || 1) * .55; if (gf.state === 'aim') { const cl = CLUBS[gf.club], rch = cl.putt ? 220 : cl.c * .55; tx = b.x + Math.cos(gf.aim) * rch * .5; ty = b.y + Math.sin(gf.aim) * rch * .5; if (cl.putt) z *= 1.7; }
+  let tx = b.x, ty = b.y, z = Math.min(VW, VH) / (7.6 * T) * (G.settings.zoom || 1) * .55; if (gf.state === 'aim') { const rch = golfReach(Math.min(1, Math.max(.35, golfNeed()))); tx = b.x + Math.cos(gf.aim) * rch * .5; ty = b.y + Math.sin(gf.aim) * rch * .5; z = clamp(Math.min(VW, VH) * .62 / Math.max(160, rch), z * .7, z * 2.2); }
   cam.x = lerp(cam.x, tx, k); cam.y = lerp(cam.y, ty, k); cam.z = lerp(cam.z, z, 1 - Math.exp(-dt * 2)); }; }
 // aim line, landing ring, ball and its shadow — drawn above everything on the ground
 function drawGolfBall() { const gf = G.golf; drawFlags(); if (!gf || G.scene) return; const g = ctx, b = gf.ball, cl = CLUBS[gf.club];
-  if (gf.state === 'aim') { const rch = cl.putt ? 430 * (gf.charging ? gf.pw : .5) : cl.c * (gf.charging ? gf.pw : 1) * (lieAt(b.x, b.y) === 'rough' ? .82 : lieAt(b.x, b.y) === 'sand' ? .6 : 1), ex = b.x + Math.cos(gf.aim) * rch, ey = b.y + Math.sin(gf.aim) * rch;
-    g.save(); g.setLineDash([10, 9]); g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 3; g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(ex, ey); g.stroke(); g.setLineDash([]); g.strokeStyle = gf.charging ? '#ffeb3b' : '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(ex, ey, cl.putt ? 8 : 22, 0, TAU); g.stroke(); g.restore(); }
+  if (gf.state === 'aim') { const rch = golfReach(gf.charging ? gf.pw : Math.min(1, golfNeed())), ex = b.x + Math.cos(gf.aim) * rch, ey = b.y + Math.sin(gf.aim) * rch;
+    g.save(); g.setLineDash([10, 9]); g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 3; g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(ex, ey); g.stroke(); g.setLineDash([]); g.strokeStyle = gf.charging ? '#ffeb3b' : '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(ex, ey, cl.putt ? 8 : 22, 0, TAU); g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 13px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText(Math.round(rch * YD) + ' yd', ex, ey - (cl.putt ? 14 : 28)); g.restore(); }
   g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(b.x + b.z * .35, b.y + b.z * .5, 3.6, 0, TAU); g.fill(); const r = 4 + b.z * .02; g.fillStyle = '#fff'; g.beginPath(); g.arc(b.x, b.y - b.z * .15, r, 0, TAU); g.fill(); g.strokeStyle = '#bbb'; g.lineWidth = 1; g.stroke(); }
 { const _db = drawBirds; drawBirds = function (air) { if (air) drawGolfBall(); return _db(air); }; }
 { const _rh = renderHUD; renderHUD = function () { _rh(); const gf = G.golf; if (!gf || G.mode !== 'play') return; const sc = hudSc(), h = W.links.holes[gf.cur - 1], b = gf.ball, d = Math.round(Math.hypot(h.pin.x - b.x, h.pin.y - b.y) * YD), cl = CLUBS[gf.club], lie = lieAt(b.x, b.y);
@@ -10967,12 +10997,18 @@ function drawGolfBall() { const gf = G.golf; drawFlags(); if (!gf || G.scene) re
   ctx.fillStyle = 'rgba(10,30,14,.82)'; ctx.fillRect(VW / 2 - w / 2, y - 16 * sc, w, 46 * sc); txt('⛳ Hole ' + h.n + ' · Par ' + h.par + ' · ' + Math.round(h.len * YD) + ' yd · Stroke ' + (gf.strokes + 1) + '   |   Card ' + (gf.cards.length ? (rel === 0 ? 'E' : (rel > 0 ? '+' : '') + rel) : '—'), VW / 2, y, 12 * sc, '#c8e6c9', 'center');
   txt(cl.n + ' (' + (cl.putt ? 'rolls' : Math.round(cl.c * YD) + ' yd') + ') · ' + d + ' yd to pin · lie: ' + lie + ' · wind ' + gf.wind.mph + ' mph ' + '↑↗→↘↓↙←↖'[Math.round(((Math.atan2(gf.wind.y, gf.wind.x) + Math.PI / 2) / TAU * 8 + 8)) % 8], VW / 2, y + 20 * sc, 11 * sc, '#fff', 'center');
   if (gf.wager) { const thru = gf.cards.length, theirs = gf.wager.scores.slice(0, thru).reduce((a, c) => a + c, 0), tp = W.links.holes.slice(0, thru).reduce((s, k) => s + k.par, 0); txt(gf.wager.name + ': ' + (thru ? ((theirs - tp) === 0 ? 'E' : (theirs - tp > 0 ? '+' : '') + (theirs - tp)) + ' thru ' + thru : 'on the tee') + ' · ' + money(gf.wager.stake) + ' on it', VW / 2, y + 40 * sc, 11 * sc, '#ffcc80', 'center'); }
-  if (gf.charging) { const L = Input._L || Input.layout(), sw = L.btns.find(b => b.id === 'swing'), bx = sw ? sw.x - sw.r - 40 * sc : VW - 120 * sc, by = sw ? sw.y - sw.r : VH / 2, bh = 140 * sc; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by - bh * .2, 18 * sc, bh); ctx.fillStyle = gf.pw > .97 ? '#ff5252' : '#ffeb3b'; ctx.fillRect(bx + 2 * sc, by - bh * .2 + bh * (1 - gf.pw), 14 * sc, bh * gf.pw); }
-  if (gf.state === 'aim' && !gf.charging && gf.strokes === 0 && gf.cur === 1) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(VW / 2 - w / 2, VH * .72, w, 22 * sc); txt('Stick: aim · CLUB: change club · hold SWING, release at the power you want (red = mishit risk)', VW / 2, VH * .72 + 15 * sc, 11 * sc, '#fff', 'center'); } }; }
+  if (gf.charging) { const L = Input._L || Input.layout(), sw = L.btns.find(b => b.id === 'swing'), bx = sw ? sw.x - sw.r - 40 * sc : VW - 120 * sc, by = sw ? sw.y - sw.r : VH / 2, bh = 140 * sc; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(bx, by - bh * .2, 18 * sc, bh); ctx.fillStyle = gf.pw > .97 ? '#ff5252' : '#ffeb3b'; ctx.fillRect(bx + 2 * sc, by - bh * .2 + bh * (1 - gf.pw), 14 * sc, bh * gf.pw); const nd = Math.min(1, golfNeed()); ctx.fillStyle = '#4fc3f7'; ctx.fillRect(bx - 4 * sc, by - bh * .2 + bh * (1 - nd) - 1.5 * sc, 26 * sc, 3 * sc); txt(Math.round(gf.pw * 100) + '%', bx + 9 * sc, by - bh * .2 - 6 * sc, 11 * sc, '#fff', 'center'); }
+  if (gf.state === 'aim' && !gf.charging && gf.strokes === 0 && gf.cur <= 2) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(VW / 2 - w / 2, VH * .72, w, 22 * sc); txt('Tap the course (or stick / ◀ ▶) to aim · CLUB changes club · hold SWING, let go at the blue mark to reach the pin', VW / 2, VH * .72 + 15 * sc, 11 * sc, '#fff', 'center'); } }; }
 // the starter at the first tee
 { const _m2 = makeSpotPed2; makeSpotPed2 = function (s) { if (s.gstart) { const q = new Ped(s.x, s.y, { role: 'civ', name: s.name }); q.state = 'idle'; q.still = 1; q.home = [s.x, s.y]; q.a = 0; q.gstart = 1; return q; } return _m2(s); }; }
 { const _tt = talkTo; talkTo = function (q) { if (q.gstart) { if (G.golf) return toast('You\'re mid-round'); return say(q.name, '"Nine holes, par ' + W.links.holes.reduce((s, h) => s + h.par, 0) + '. Green fee is ' + money(GOLF_FEE) + '. Members can arrange a friendly wager — ask around the clubhouse."', [{ t: 'Play 9 holes — ' + money(GOLF_FEE), c: 'y', d: !canPay(GOLF_FEE), f: () => golfStart() }, { t: 'Not today' }]); } return _tt(q); }; }
 { const _mp = mapPOIs; mapPOIs = function () { const o = _mp(); if (W.links) o.push({ x: W.links.tee1.x, y: W.links.tee1.y, c: '#a5d6a7', ic: '⛳', r: 6, n: 'Varro Links', pr: 6 }); return o; }; }
+
+// tap or drag on the course to aim at that spot
+(() => { const at = e => { const gf = G.golf; if (!gf || gf.state !== 'aim' || G.dlgOpen || Panel.mode || G.mode !== 'play') return false; const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, sc = hudSc(); if (sy < 92 * sc) return false;
+    const L = Input._L || Input.layout(); if (L.btns.some(b => Math.hypot(sx - b.x, sy - b.y) < b.r * 1.15)) return false; if (!Input.kbd && sx < VW * .36 && sy > VH * .42) return false;
+    const c = G.cam, wx = (sx - VW / 2) / c.z + c.x, wy = (sy - VH / 2) / c.z + c.y; gf.aim = Math.atan2(wy - gf.ball.y, wx - gf.ball.x); return true; };
+  cv.addEventListener('pointerdown', e => { if (at(e)) G.golf.drag = 1; }); window.addEventListener('pointermove', e => { if (G.golf && G.golf.drag) at(e); }); window.addEventListener('pointerup', () => { if (G.golf) G.golf.drag = 0; }); })();
 
 // ================= CLUB MEMBERS: slimy business deals at Varro Downs and Varro Links =================
 // Balance: regular jobs pay ~$250–500 a minute. Deals average ~$700–1,300 a minute but every one can lose money or bring heat,
@@ -11010,7 +11046,7 @@ function dealKinds() { if (G.t < (G.memberCold || 0)) return []; const K = ['cou
   if (!D$().flips.length) K.push('flip'); if (!G.dealSq && G.t > (G.sqNext || 0)) K.push('squeeze'); if (W.links && G.t > (G.wagerNext || 0) && !G.golf && (G.scene ? G.scene.b.links : dist2(G.player.x, G.player.y, W.links.tee1.x, W.links.tee1.y) < 3000 * 3000)) K.push('wager', 'wager'); if (G.dealCourier) K.splice(K.indexOf('courier'), 1); return K; }
 function dealDone(q) { q.offer = null; q.gig = 0; G.dealNext = G.t + rnd(90, 150); }
 { const _tt = talkTo; talkTo = function (q) { if (!q.member) return _tt(q); if (!q.offer) return say(q.name, '"' + pick(['Members only, friend.', 'Lovely day for it.', 'Do I know you?', 'Talk to me when you\'ve got real money.', 'Not now — I\'m closing something.']) + '"', [{ t: 'OK' }]); return offerDeal(q); }; }
-function offerDeal(q) { const k = q.offer, nm = q.name.replace('Member — ', ''), no = { t: 'Not interested', f: () => { dealDone(q); } };
+function offerDeal(q) { const k = q.offer, nm = q.name.replace(/^(Member|High roller) — /, ''), no = { t: 'Not interested', f: () => { dealDone(q); } };
   if (k === 'tip') { const R = G.hr; if (!R || R.phase !== 'bet') { dealDone(q); return say(nm, '"Too late for this one. Another time."', [{ t: 'OK' }]); } const pickH = R.hs.filter(h => h.odds >= 3 && h.odds <= 8); const h = pick(pickH.length ? pickH : R.hs), cost = 2000;
     return say(nm, '"Race ' + R.id + '. The jockeys have been… spoken to. ' + money(cost) + ' and I tell you which horse. No refunds — horses are animals."', [{ t: 'Pay ' + money(cost) + ' for the name', c: 'y', d: !canPay(cost), f: () => { if (!payAny(cost)) return; dealDone(q); G.tipNext = G.t + 300; G.dealTip = { race: R.id, h: h.num }; R.fix = { h: h.num }; Snd.play('cash'); return say(nm, '"#' + h.num + ', ' + h.n + '. At ' + h.odds.toFixed(1) + ' to one. You didn\'t hear it from me."', [{ t: 'Got it' }]); } }, no]); }
   if (k === 'flip') { const what = pick(['strip mall on Route 9', 'marina lots', 'old cannery', 'parking structure downtown', 'Seabreeze subdivision']), go = (st, gr) => { const fee = gr ? Math.round(st * .1) : 0; if (!payAny(st + fee)) return; dealDone(q); D$().flips.push({ stake: st, greased: gr, at: Date.now() + 300000, who: nm, what }); Snd.play('cash'); doSave(true); msg('📄 You\'re in on the ' + what + ' for ' + money(st) + (gr ? ' (inspector greased)' : '') + '. It closes in about 5 minutes.', '#4fc3f7'); };
@@ -11031,6 +11067,37 @@ function squeezeAsk(b, S) { const r = b.realty, price = Math.round(r.price * (1 
 { const ph = PMODES.phone; PMODES.phone = function (H) { const r = ph.call(this, H); if (this.tab !== 'home') return r; const F = D$().flips, rows = []; for (const f of F) rows.push(['📄', 'Land flip: ' + f.what, money(f.stake) + (f.greased ? ' · inspector greased' : '') + ' · closes in ' + Math.max(0, Math.ceil((f.at - Date.now()) / 60000)) + ' min']);
   if (G.dealCourier) rows.push(['💼', 'Briefcase → ' + G.dealCourier.name, money(G.dealCourier.pay) + ' · ' + Math.max(0, Math.ceil(G.dealCourier.until - G.t)) + 's left']); if (G.dealSq) rows.push(['🏪', 'Lean on ' + W.buildings[G.dealSq.id].name, Math.max(0, Math.ceil((G.dealSq.until - G.t) / 60)) + ' min left']);
   if (!rows.length) return r; const c = H.col('Side deals'); for (const [e, n, s] of rows) H.row(c, e, n, s); return r; }; }
+
+// ================= CASINO RACE BOOK: watch the Varro Downs race on the big screen; high rollers sell "tips" =================
+// The race itself is the casino's shared race (same winner for everyone in a room); this draws it running.
+const RCSILK = ['#e53935', '#1e88e5', '#fdd835', '#43a047', '#8e24aa', '#fb8c00'], RCCOAT = ['#6d4c41', '#3e2723', '#a1887f', '#8d5524', '#bdbdbd', '#4e342e'];
+function rcPlan(id) { const R = rcInfo(id), r = mulberry32(h32('plan:' + id)), others = HORSES.map((_, i) => i).filter(i => i !== R.win).sort((a, b) => (R.odds[a] + r() * 3) - (R.odds[b] + r() * 3)), order = [R.win].concat(others);
+  return { R, order, T: HORSES.map((_, i) => 6.6 + order.indexOf(i) * (.22 + r() * .12)), wob: HORSES.map(() => [r() * 6, r() * 6, .03 + r() * .03]) }; }
+function drawRaceScreen(cvs) { const g = cvs.getContext('2d'), Wd = cvs.width, Ht = cvs.height, now = Date.now(), id = rcId(now), left = (RC_LEN - now % RC_LEN) / 1000, run = left <= 8, t = run ? 8 - left : 0, P = rcPlan(id);
+  g.fillStyle = '#1b3d1b'; g.fillRect(0, 0, Wd, Ht); const cx = Wd / 2, cy = Ht / 2 + 6, rx = Wd * .42, ry = Ht * .36, tw = Ht * .16;
+  g.fillStyle = '#9b7653'; g.beginPath(); g.ellipse(cx, cy, rx + tw / 2, ry + tw / 2, 0, 0, TAU); g.ellipse(cx, cy, rx - tw / 2, ry - tw / 2, 0, TAU, 0, true); g.fill('evenodd');
+  g.strokeStyle = '#fafafa'; g.lineWidth = 2; for (const k of [-1, 1]) { g.beginPath(); g.ellipse(cx, cy, rx + k * tw / 2, ry + k * tw / 2, 0, 0, TAU); g.stroke(); }
+  for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#111' : '#fff'; g.fillRect(cx - 2, cy - ry - tw / 2 + i * tw / 6, 4, tw / 6); }
+  const old = ctx; ctx = g; try { HORSES.forEach((n, i) => { const T2 = P.T[i], [a, b, amp] = P.wob[i]; let p = run ? Math.min(1, t / T2) : 0; if (run && p < 1) p = Math.max(0, p + amp * Math.sin(p * Math.PI) * Math.sin(t * 1.3 + a) * Math.sin(p * 5 + b)); const lane = (i - 2.5) * tw / 7, th = -Math.PI / 2 - p * TAU - .05, x = cx + Math.cos(th) * (rx + lane), y = cy + Math.sin(th) * (ry + lane), ang = Math.atan2(-Math.cos(th) * (ry + lane), Math.sin(th) * (rx + lane));
+      g.save(); g.translate(x, y); g.scale(.8, .8); drawHorse(0, 0, ang, { num: i + 1, silk: RCSILK[i], coat: RCCOAT[i] }, run && p < 1 ? 420 : 0); g.restore(); }); } finally { ctx = old; }
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 0, Wd, 22); g.fillStyle = '#ffeb3b'; g.font = 'bold 13px "Courier New", monospace'; g.textAlign = 'left'; g.textBaseline = 'middle';
+  const fin = run && t > P.T[P.order[0]]; g.fillText('RACE ' + id % 1000 + '  ' + (run ? (fin ? 'WINNER: #' + (P.R.win + 1) + ' ' + HORSES[P.R.win].toUpperCase() : 'AND THEY\'RE OFF!') : 'POST IN ' + Math.ceil(left - 8) + 's'), 8, 11); }
+function raceScreenLoop(cvs) { if (!cvs.isConnected) return; drawRaceScreen(cvs); requestAnimationFrame(() => raceScreenLoop(cvs)); }
+{ const pc = PMODES.casino; PMODES.casino = function (H) { const r = pc.call(this, H); if (this.opt.game !== 'race') return r; const col = H.body.querySelector('.pcol'); if (!col) return r; const cvs = document.createElement('canvas'); cvs.width = 560; cvs.height = 250; cvs.style.cssText = 'width:100%;height:auto;border-radius:10px;border:2px solid #f2c230;margin:4px 0 8px;flex:none';
+  col.insertBefore(cvs, col.children[1] || null); raceScreenLoop(cvs); const tp = G.dealTip; if (tp && tp.rc === rcId()) { const n = H.mk('div', 'pempty', '🤫 Your tip: #' + (tp.h + 1) + ' ' + HORSES[tp.h] + ' — no guarantees.'); n.style.color = '#ffcc80'; col.insertBefore(n, cvs.nextSibling); } return r; }; }
+// casino races never pause; re-render the race book at the start and end of each race so the buttons stay right
+setInterval(() => { if (Panel.mode !== 'casino' || !Panel.opt || Panel.opt.game !== 'race') return; const left = Math.ceil((RC_LEN - Date.now() % RC_LEN) / 1000); if (left === 8 || left === RC_LEN / 1000) Panel.render(); }, 1000);
+// ---------- high rollers in the casino offer the same back-room deals, plus race tips ----------
+{ const _eq = enterBuildingQ; enterBuildingQ = function (b) { _eq(b); const s = G.scene; if (!s || s.b !== b || b.type !== 'casino' || s.hrSet) return; s.hrSet = 1; const r = mulberry32(b.id * 29 + (G.day | 0));
+  for (const [fx, fy, a] of [[.18, .3, 0], [.24, .3, Math.PI]]) { const q = dressMember(new Ped(s.w * T * fx, s.h * T * fy, { role: 'civ', name: 'High roller — ' + memberName(r) }), Math.floor(r() * 9)); q.a = a; q.home = [q.x, q.y]; s.peds.push(q); } }; }
+const TIP_COST = 4000;
+function casinoTip(q, nm) { const id = rcId(), left = Math.ceil((RC_LEN - Date.now() % RC_LEN) / 1000); if (left < 22) { dealDone(q); return say(nm, '"Too close to post. Catch me next race."', [{ t: 'OK' }]); }
+  const R = rcInfo(id), r = mulberry32(h32('tip:' + id + ':' + q.uid)), right = r() < .6, h = right ? R.win : (R.win + 1 + Math.floor(r() * (HORSES.length - 1))) % HORSES.length;
+  return say(nm, '"The race book\'s next race. I know a guy in the jockeys\' room. ' + money(TIP_COST) + ' and I give you a name. It\'s a horse race — no guarantees."', [{ t: 'Pay ' + money(TIP_COST), c: 'y', d: !canPay(TIP_COST), f: () => { if (!payAny(TIP_COST)) return; dealDone(q); G.tipNext = G.t + 360; G.dealTip = { rc: id, h }; Snd.play('cash');
+    return say(nm, '"#' + (h + 1) + ', ' + HORSES[h] + '. Paying ' + R.odds[h].toFixed(1) + ' to one. Bet it at the race book — and you never met me."', [{ t: 'Got it' }]); } }, { t: 'Not interested', f: () => dealDone(q) }]); }
+{ const _dk = dealKinds; dealKinds = function () { const K = _dk().filter(k => k !== 'tip'); if (G.t < (G.memberCold || 0)) return K; const s = G.scene, left = Math.ceil((RC_LEN - Date.now() % RC_LEN) / 1000);
+  if (s && s.b.type === 'casino' && left > 22 && G.t > (G.tipNext || 0) && !(G.dealTip && G.dealTip.rc === rcId())) K.push('tip', 'tip'); return K; }; }
+{ const _od = offerDeal; offerDeal = function (q) { if (q.offer === 'tip') return casinoTip(q, q.name.replace(/^(Member|High roller) — /, '')); return _od(q); }; }
 
 // ================= ALCOHOL: a real drinks menu at every bar, and a blood-alcohol level that actually does things to you =================
 Object.assign(ITEMS, { wine: { n: 'Bottle of wine', v: 30, w: 2, k: 'food', e: '🍷', heal: 4, drunk: 11 }, vodka: { n: 'Vodka', v: 35, w: 1, k: 'food', e: '🍸', heal: 3, drunk: 16 } });
@@ -11094,6 +11161,113 @@ function ownMiniSync() { if (!MINI) return; const own = W.buildings.filter(b => 
   for (const id of own) { const b = W.buildings[id]; if (!b || b.w <= 0) continue; G.ownSaved.push([id, g.getImageData(b.x, b.y, b.w, b.h)]); g.fillStyle = '#2ecc71'; g.fillRect(b.x, b.y, b.w, b.h); g.fillStyle = '#1b8a4a'; g.fillRect(b.x, b.y + b.h - 1, b.w, 1); } }
 { const _u = update; update = function (dt) { _u(dt); if ((G.ownT = (G.ownT || 0) - dt) <= 0) { G.ownT = 1; try { ownMiniSync(); } catch (e) { } } }; }
 
+// ================= CARS THAT LOOK LIKE THEMSELVES: body shapes, lights and trim per model, six new cars and five vans =================
+// headlights at the front, tail lights at the back, in a style per model, on every road vehicle
+function carLights(g, d, L, Wd, truck) { const st = d.lt || 'std', y1 = 1.5, y2 = Wd - 1.5;
+  const head = (x, y) => { if (st === 'round') { g.fillStyle = '#fffde7'; g.beginPath(); g.arc(x, y, 1.05, 0, TAU); g.fill(); g.strokeStyle = '#9e9e9e'; g.lineWidth = .25; g.stroke(); }
+    else if (st === 'slit') { g.fillStyle = '#e3f2fd'; g.fillRect(x - .35, y - (y < Wd / 2 ? 0 : 2.4), .7, 2.4); }
+    else if (st === 'bar') { g.fillStyle = '#e3f2fd'; g.fillRect(x - .3, 1.4, .6, Wd - 2.8); }
+    else { g.fillStyle = '#fff8e1'; g.fillRect(x - .7, y - (y < Wd / 2 ? 0 : 1.6), 1.2, 1.6); g.fillStyle = 'rgba(255,193,7,.8)'; g.fillRect(x - 1.2, y - (y < Wd / 2 ? 0 : 1.6), .5, 1.6); } };
+  const fx = L - .5; if (st === 'bar') head(fx, 0); else { head(fx, y1); head(fx, y2); }
+  const ts = d.tl || (st === 'round' ? 'round' : st === 'bar' ? 'bar' : 'std'), rx = truck ? .4 : .4;
+  if (ts === 'round') { g.fillStyle = '#d50000'; g.beginPath(); g.arc(rx + .6, y1 + .6, .8, 0, TAU); g.arc(rx + .6, y2 - .6, .8, 0, TAU); g.fill(); }
+  else if (ts === 'bar') { g.fillStyle = '#d50000'; g.fillRect(rx - .2, 1.6, .5, Wd - 3.2); }
+  else if (ts === 'fin') { g.fillStyle = '#d50000'; g.fillRect(rx - .3, .2, 1.8, .9); g.fillRect(rx - .3, Wd - 1.1, 1.8, .9); }
+  else { g.fillStyle = '#c62828'; g.fillRect(rx - .2, y1 - .1, .7, 2); g.fillRect(rx - .2, y2 - 1.9, .7, 2); g.fillStyle = '#ff8a80'; g.fillRect(rx - .1, y1 + .3, .3, .8); g.fillRect(rx - .1, y2 - 1.1, .3, .8); } }
+const roofOf = d => ({ x0: (d.rs || .2) + .1, x1: d.ws || .6 });
+function twoTone(g, d, L, Wd, c) { const r = roofOf(d); g.fillStyle = c; rr(g, L * r.x0, 2.3, L * (r.x1 - r.x0), Wd - 4.6, 1.4); g.fill(); }
+function chromeLine(g, L, Wd, a, b) { g.fillStyle = '#e0e0e0'; g.fillRect(L * a, .5, L * (b - a), .35); g.fillRect(L * a, Wd - .85, L * (b - a), .35); }
+// ---------- the existing everyday models get their own silhouettes and trim ----------
+const SHAPES = { compact: { rs: .15, ws: .6, rf: 5.6, rr: 4.4, lt: 'round' }, sedan: { rs: .25, ws: .6, rf: 4.2, rr: 3 }, sports: { rs: .3, ws: .56, rf: 6.8, rr: 4, lt: 'slit' }, muscle: { rs: .23, ws: .53, rf: 3.4, rr: 2.6, lt: 'round', tl: 'bar' },
+  taxi: { rs: .25, ws: .6 }, cop: { rs: .24, ws: .6, lt: 'slit' }, suv: { rs: .09, ws: .64, rf: 2.8, rr: 2.4 }, hatch: { rs: .1, ws: .6, rf: 4.6, rr: 3.8 }, wagon: { rs: .07, ws: .6, rf: 3.6, rr: 2.4 }, scarab: { lt: 'round', tl: 'round', rf: 7, rr: 6.5 },
+  luxsedan: { rs: .26, ws: .62, lt: 'slit', tl: 'bar' }, luxsuv: { rs: .09, ws: .64, rf: 3, rr: 2.6, lt: 'slit' }, coupe: { rs: .3, ws: .58 }, super: { rs: .34, ws: .54, lt: 'slit', tl: 'bar' }, hyper: { rs: .36, ws: .52, lt: 'slit', tl: 'bar' }, roadster: { rs: .3, ws: .55, lt: 'round' },
+  gt: { rs: .32, ws: .55, lt: 'slit' }, lowrider: { rs: .24, ws: .56, lt: 'round', tl: 'fin' }, hearse: { rs: .06, ws: .6, tl: 'bar' }, rally: { lt: 'round' }, limo: { lt: 'slit' } };
+for (const t in SHAPES) if (CAR_TYPES[t]) Object.assign(CAR_TYPES[t], SHAPES[t]);
+const addDeco = (t, f) => { const d = CAR_TYPES[t]; if (!d) return; const old = d.deco; d.deco = function (g, L, Wd, c) { if (old) old.call(this, g, L, Wd, c); f(g, L, Wd, c, d); }; };
+addDeco('compact', (g, L, Wd, c, d) => { twoTone(g, d, L, Wd, '#f5f5f5'); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(L * .26, Wd / 2 - .2, L * .3, .4); });
+addDeco('sedan', (g, L, Wd, c) => { chromeLine(g, L, Wd, .2, .78); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = .3; g.beginPath(); g.moveTo(L * .19, 1.6); g.lineTo(L * .19, Wd - 1.6); g.stroke(); g.fillStyle = '#bdbdbd'; g.fillRect(L * .96, Wd / 2 - 1.6, .5, 3.2); });
+addDeco('sports', (g, L, Wd) => { g.fillStyle = 'rgba(0,0,0,.55)'; for (let i = 0; i < 3; i++) { g.fillRect(L * (.68 + i * .05), 2.2, L * .025, 2); g.fillRect(L * (.68 + i * .05), Wd - 4.2, L * .025, 2); } g.fillRect(L * .26, .3, L * .07, 1); g.fillRect(L * .26, Wd - 1.3, L * .07, 1); g.fillStyle = '#111'; g.fillRect(-.4, 1.6, 1.1, Wd - 3.2); });
+addDeco('muscle', (g, L, Wd, c) => { const dark = parseInt(c.slice(1, 3), 16) + parseInt(c.slice(3, 5), 16) + parseInt(c.slice(5, 7), 16) < 300; g.fillStyle = dark ? '#f5f5f5' : '#111'; g.fillRect(0, Wd / 2 - 1.9, L, 1.1); g.fillRect(0, Wd / 2 + .8, L, 1.1); chromeLine(g, L, Wd, .05, .2); });
+addDeco('suv', (g, L, Wd) => { g.fillStyle = '#212121'; g.fillRect(L * .14, 1.6, L * .5, .5); g.fillRect(L * .14, Wd - 2.1, L * .5, .5); for (let x = L * .2; x < L * .6; x += L * .1) g.fillRect(x, 1.6, .4, Wd - 3.2); g.fillStyle = '#424242'; g.fillRect(-.9, Wd / 2 - 1.8, 1.2, 3.6); });
+addDeco('luxsedan', (g, L, Wd) => { chromeLine(g, L, Wd, .1, .9); g.fillStyle = '#e0e0e0'; g.fillRect(L * .97, 2.2, .6, Wd - 4.4); g.fillStyle = '#9e9e9e'; g.beginPath(); g.arc(L * .9, Wd / 2, .55, 0, TAU); g.fill(); });
+// ---------- six new cars ----------
+Object.assign(CAR_TYPES, {
+  kei: { name: 'Pocket', L: 24, W: 14, max: 430, acc: 380, steer: 3.4, grip: 8.6, hp: 70, mass: .55, eb: 50, rs: .08, ws: .68, rf: 2.6, rr: 2.4, lt: 'round', tl: 'round', cols: ['#fff59d', '#80cbc4', '#f48fb1', '#e0e0e0', '#90caf9', '#ffcc80'],
+    deco(g, L, Wd) { const d = CAR_TYPES.kei; twoTone(g, d, L, Wd, '#fafafa'); g.fillStyle = '#212121'; g.fillRect(L * .2, 1.7, L * .48, .4); g.fillRect(L * .2, Wd - 2.1, L * .48, .4); } },
+  classic: { name: 'Bel Aire 57', L: 44, W: 19, max: 560, acc: 330, steer: 2.2, grip: 7.6, hp: 140, mass: 1.45, eb: 26, rs: .3, ws: .58, rf: 3, rr: 2, lt: 'round', tl: 'fin', cols: ['#4dd0e1', '#ef5350', '#ffd54f', '#a5d6a7', '#ce93d8', '#212121'],
+    deco(g, L, Wd) { const d = CAR_TYPES.classic; twoTone(g, d, L, Wd, '#fafafa'); chromeLine(g, L, Wd, .04, .96); g.fillStyle = '#fafafa'; for (const s of [0, 1]) { const y = s ? Wd - 1.6 : .2; g.beginPath(); g.moveTo(L * .02, y + (s ? 1.4 : 0)); g.lineTo(L * .2, y + (s ? 1.4 : 0)); g.lineTo(L * .02, y + (s ? 0 : 1.4)); g.fill(); } g.fillStyle = '#e0e0e0'; g.fillRect(L * .965, 1.4, .8, Wd - 2.8); g.fillRect(-.5, 1.4, .8, Wd - 2.8); } },
+  electric: { name: 'Volta', L: 36, W: 17.5, max: 760, acc: 820, steer: 3, grip: 9.8, hp: 115, mass: 1.2, eb: 0, ev: 1, rs: .14, ws: .64, rf: 6, rr: 4.4, lt: 'bar', tl: 'bar', cols: ['#fafafa', '#cfd8dc', '#263238', '#0d47a1', '#b71c1c', '#455a64'],
+    deco(g, L, Wd) { const d = CAR_TYPES.electric, r = roofOf(d); const gr = g.createLinearGradient(0, 2.3, 0, Wd - 2.3); gr.addColorStop(0, '#0d1b2a'); gr.addColorStop(.5, '#37506b'); gr.addColorStop(1, '#0d1b2a'); g.fillStyle = gr; rr(g, L * r.x0, 2.3, L * (r.x1 - r.x0), Wd - 4.6, 1.4); g.fill(); g.fillStyle = 'rgba(255,255,255,.2)'; g.fillRect(L * (r.x0 + .05), 3, L * .2, .5); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(L * .9, 2.5, L * .06, Wd - 5); } },
+  convertible: { name: 'Breeze', low: 1, L: 35, W: 17, max: 720, acc: 600, steer: 3.1, grip: 9.6, hp: 100, mass: 1, eb: 38, rs: .26, ws: .56, lt: 'round', cols: ['#d32f2f', '#f5f5f5', '#1565c0', '#ffd600', '#00897b', '#212121'],
+    deco(g, L, Wd) { const d = CAR_TYPES.convertible, r = roofOf(d); g.fillStyle = '#3e2723'; rr(g, L * (r.x0 - .06), 2, L * (r.x1 - r.x0 + .04), Wd - 4, 1.2); g.fill(); g.fillStyle = '#8d6e63'; for (const y of [3, Wd - 6.2]) { rr(g, L * (r.x1 - .14), y, L * .1, 3.2, .6); g.fill(); rr(g, L * (r.x0 - .02), y, L * .1, 3.2, .6); g.fill(); } g.strokeStyle = '#111'; g.lineWidth = .5; g.beginPath(); g.arc(L * (r.x1 - .05), 4.6, 1.1, 0, TAU); g.stroke(); } },
+  bruiser: { name: 'Bruiser 70', L: 38, W: 18.5, max: 730, acc: 600, steer: 2.5, grip: 8.6, hp: 135, mass: 1.35, eb: 26, rs: .22, ws: .5, rf: 2.8, rr: 2.2, lt: 'round', tl: 'bar', cols: ['#e65100', '#2e7d32', '#fdd835', '#4e342e', '#1a237e', '#880e4f'],
+    deco(g, L, Wd) { const d = CAR_TYPES.bruiser; twoTone(g, d, L, Wd, '#111111'); g.fillStyle = 'rgba(255,255,255,.07)'; for (let x = L * .32; x < L * .5; x += 1.2) g.fillRect(x, 2.4, .5, Wd - 4.8); g.fillStyle = '#111'; for (let i = 0; i < 6; i++) g.fillRect(L * .1 + i * 1.2, 2.4, .5, Wd - 4.8); g.fillStyle = '#1a1a1a'; rr(g, L * .72, Wd / 2 - 2.2, L * .14, 4.4, 1); g.fill(); } },
+  commuter: { name: 'Civita', L: 33, W: 16.5, max: 540, acc: 420, steer: 2.9, grip: 8.8, hp: 95, mass: 1, eb: 40, rs: .22, ws: .61, rf: 5, rr: 3.6, cols: ['#b0bec5', '#eceff1', '#90a4ae', '#5d4037', '#283593', '#7b1fa2'],
+    deco(g, L, Wd) { g.fillStyle = '#212121'; g.fillRect(L * .965, Wd / 2 - 2, .6, 4); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(L * .1, .4, L * .8, .3); g.fillRect(L * .1, Wd - .7, L * .8, .3); } } });
+// ---------- five vans ----------
+Object.assign(CAR_TYPES, {
+  minivan: { name: 'Voyager', L: 38, W: 18.5, max: 520, acc: 380, steer: 2.6, grip: 8.4, hp: 130, mass: 1.35, eb: 30, rs: .05, ws: .7, rf: 6, rr: 3.4, lt: 'slit', cols: ['#9e9e9e', '#1e3a5f', '#6d4c41', '#eeeeee', '#2e7d32', '#7b1fa2'],
+    deco(g, L, Wd) { g.fillStyle = '#212121'; g.fillRect(L * .12, 1.9, L * .54, .45); g.fillRect(L * .12, Wd - 2.35, L * .54, .45); g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = .35; g.beginPath(); g.moveTo(L * .3, .3); g.lineTo(L * .56, .3); g.moveTo(L * .3, Wd - .3); g.lineTo(L * .56, Wd - .3); g.stroke(); } },
+  camper: { name: 'Wanderer', box: 1, L: 38, W: 18, max: 430, acc: 280, steer: 2.4, grip: 8, hp: 135, mass: 1.4, off: .2, eb: 32, lt: 'round', tl: 'round', cols: ['#ff7043', '#26a69a', '#ffca28', '#5c6bc0', '#8d6e63', '#ec407a'],
+    deco(g, L, Wd, c) { g.fillStyle = '#fafafa'; g.fillRect(1.6, 2, L * .74, Wd - 4); g.fillStyle = c; g.fillRect(1.6, 2, L * .74, 1.2); g.fillRect(1.6, Wd - 3.2, L * .74, 1.2); g.fillStyle = '#cfd8dc'; rr(g, L * .2, 4, L * .38, Wd - 8, 1); g.fill(); g.fillStyle = 'rgba(0,0,0,.2)'; for (let x = L * .24; x < L * .56; x += 1.6) g.fillRect(x, 4.4, .4, Wd - 8.8);
+      g.fillStyle = '#212121'; g.beginPath(); g.arc(-.6, Wd / 2, 2.3, 0, TAU); g.fill(); g.fillStyle = '#9e9e9e'; g.beginPath(); g.arc(-.6, Wd / 2, 1, 0, TAU); g.fill(); g.fillStyle = '#fafafa'; g.beginPath(); g.moveTo(L, Wd / 2 - 3); g.lineTo(L - 3, Wd / 2); g.lineTo(L, Wd / 2 + 3); g.fill(); } },
+  panelvan: { name: 'Tradesman', box: 1, L: 40, W: 18.5, max: 470, acc: 300, steer: 2.3, grip: 8, hp: 150, mass: 1.55, eb: 30, lt: 'std', cols: ['#fafafa', '#1565c0', '#c62828', '#fbc02d', '#455a64', '#2e7d32'],
+    deco(g, L, Wd) { g.fillStyle = '#9e9e9e'; g.fillRect(2.4, 2.6, L * .66, .6); g.fillRect(2.4, Wd - 3.2, L * .66, .6); for (let x = 3.4; x < L * .7; x += 2.4) g.fillRect(x, 2.6, .5, Wd - 5.2); g.fillStyle = '#ffca28'; rr(g, L * .2, Wd / 2 - 1.6, L * .34, 3.2, .8); g.fill(); g.fillStyle = '#111'; g.font = 'bold 2.2px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('VARRO PLUMBING', L * .37, Wd / 2 + .1); } },
+  icecream: { name: 'Mr. Frosty', box: 1, L: 40, W: 19, max: 380, acc: 240, steer: 2.3, grip: 7.8, hp: 140, mass: 1.5, eb: 30, lt: 'round', tl: 'round', cols: ['#f8bbd0', '#b3e5fc', '#fff9c4'],
+    deco(g, L, Wd, c) { g.fillStyle = '#fafafa'; g.fillRect(1.6, 2, L * .74, Wd - 4); g.fillStyle = c; for (let x = 1.6; x < L * .76; x += 3) g.fillRect(x, 2, 1.5, Wd - 4); g.fillStyle = '#d7a86e'; g.beginPath(); g.moveTo(L * .36, Wd / 2); g.lineTo(L * .48, Wd / 2 - 2.6); g.lineTo(L * .48, Wd / 2 + 2.6); g.fill(); g.fillStyle = '#fce4ec'; g.beginPath(); g.arc(L * .5, Wd / 2, 2.8, 0, TAU); g.fill(); g.fillStyle = '#e91e63'; g.beginPath(); g.arc(L * .54, Wd / 2 - .8, 1, 0, TAU); g.fill(); } },
+  shuttle: { name: 'Varro Shuttle', box: 1, L: 50, W: 19, max: 470, acc: 260, steer: 2, grip: 7.8, hp: 170, mass: 1.8, eb: 26, lt: 'slit', tl: 'bar', cols: ['#fafafa', '#eceff1'],
+    deco(g, L, Wd) { g.fillStyle = '#1565c0'; g.fillRect(1.6, Wd / 2 - .8, L * .74, 1.6); g.fillStyle = '#0d1b2a'; for (let x = 3; x < L * .72; x += 3.6) { g.fillRect(x, .6, 2.6, 1); g.fillRect(x, Wd - 1.6, 2.6, 1); } g.fillStyle = '#9e9e9e'; g.fillRect(L * .3, Wd / 2 - 3.5, 4, 2.2); g.fillRect(L * .52, Wd / 2 + 1.4, 4, 2.2); } } });
+// economy, traffic and dealers
+Object.assign(TRUNKCAP, { kei: 14, classic: 70, electric: 40, convertible: 18, bruiser: 40, commuter: 40, minivan: 110, camper: 140, panelvan: 220, icecream: 90, shuttle: 160 });
+Object.assign(STOCKENG, { kei: 'eng_i4', classic: 'eng_v8', electric: 'eng_ev', convertible: 'eng_i4t', bruiser: 'eng_v8', commuter: 'eng_i4', minivan: 'eng_v6', camper: 'eng_i4', panelvan: 'eng_v6', icecream: 'eng_i4', shuttle: 'eng_v6' });
+{ const rel = { kei: ['compact', .7], classic: ['muscle', 1.1], electric: ['sports', .9], convertible: ['sports', .8], bruiser: ['muscle', 1.05], commuter: ['sedan', .85], minivan: ['sedan', 1.05], camper: ['van', 1.3], panelvan: ['van', 1.05], icecream: ['van', .9], shuttle: ['van', 1.4] };
+  for (const t in rel) CARVAL[t] = Math.max(50, Math.round((CARVAL[rel[t][0]] || 3000) * rel[t][1])); }
+TRAFFIC_MIX.push('kei', 'kei', 'classic', 'electric', 'electric', 'convertible', 'bruiser', 'commuter', 'commuter', 'commuter', 'minivan', 'minivan', 'panelvan', 'panelvan', 'icecream', 'shuttle', 'camper');
+RTRAFFIC.push('camper', 'camper', 'minivan', 'panelvan', 'classic', 'bruiser');
+PARK_MIX.push('kei', 'classic', 'electric', 'convertible', 'bruiser', 'commuter', 'commuter', 'minivan', 'minivan', 'camper', 'panelvan', 'icecream');
+DEALER_LAND.splice(DEALER_LAND.indexOf('sedan') + 1, 0, 'kei', 'commuter', 'electric', 'minivan'); DEALER_LAND.splice(DEALER_LAND.indexOf('muscle') + 1, 0, 'bruiser', 'classic', 'convertible'); DEALER_LAND.push('camper', 'panelvan', 'icecream', 'shuttle');
+MK_POOL.push('kei', 'classic', 'electric', 'convertible', 'bruiser', 'commuter', 'commuter', 'minivan', 'camper', 'panelvan');
+BEAT_POSH.add('electric');
+// the ice cream van plays its tune when you drive it
+{ const _u = update; update = function (dt) { _u(dt); const c = pCar(); if (!c || c.type !== 'icecream' || G.scene || (G.icT = (G.icT || 0) - dt) > 0) return; G.icT = 2.6; if (Math.abs(c.fwd || 0) < 400) { const S = Snd; if (!S.ctx) return; const t0 = S.ctx.currentTime, notes = [784, 659, 698, 784, 880, 784, 659]; notes.forEach((f, i) => { const o = S.ctx.createOscillator(), g = S.ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.value = 0; g.gain.setTargetAtTime(.05, t0 + i * .3, .01); g.gain.setTargetAtTime(0, t0 + i * .3 + .22, .03); o.connect(g); g.connect(S.sfx); o.start(t0 + i * .3); o.stop(t0 + i * .3 + .35); }); } }; }
+
+// ================= NO EXHAUST = STRAIGHT PIPED · NO HOOD = YOU SEE THE ENGINE =================
+// "Straight pipe" is no longer something you buy: pull the exhaust system off and the car runs straight-piped (and sounds it).
+function exhTier(car) { if (!car) return 0; const m = car.mods || {}; if (car.missing && (car.missing.exhaustp | 0) > 0) return 2; return clamp(m.exh | 0, 0, 3); }
+MODOPTS.exh.o[2][0] = 'Straight pipe (no exhaust fitted)';
+// old saves: a fitted "straight pipe" becomes a car with no exhaust system; spare straight pipes are dropped
+function exhMigrate() { if (!G.save || G.save.exh2) return; G.save.exh2 = 1; const fix = r => { if (r && r.mods && r.mods.exh === 2) { r.mods.exh = 0; r.missing = r.missing || {}; r.missing.exhaustp = Math.max(1, r.missing.exhaustp | 0); } };
+  try { for (const r of myCars()) fix(r); } catch (e) { } for (const c of G.cars) if (c.owned) { fix(c); if (c.mods && c.mods.exh === 0 && typeof applyMods === 'function') applyMods(c, c.mods); }
+  const P = PARTS(); if (P['exh:2']) delete P['exh:2']; if (G.save.lc && G.save.lc['exh:2']) delete G.save.lc['exh:2']; }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save && !G.save.exh2) exhMigrate(); }; }
+// AI cars that would have rolled "straight pipe" get a sport exhaust instead
+{ const _am = applyMods; applyMods = function (c, m) { if (m !== undefined && m && m.exh === 2 && !c.owned) m.exh = 1; return _am(c, m); }; }
+
+// ---------- engine bay: with the hood (a body panel) missing, the engine shows ----------
+const BAYCOL = { eng_i4: '#8d99a6', eng_i4t: '#90a4ae', eng_v6: '#a1887f', eng_v8: '#b71c1c', eng_sc8: '#c62828', eng_ev: '#1e88e5', eng_bike: '#9e9e9e' };
+function drawBay(g, d, L, Wd, eng, trunkOpen) { const x0 = L * .74, x1 = L - 1, y0 = 1.3, y1 = Wd - 1.3, w = x1 - x0, h = y1 - y0;
+  g.fillStyle = '#16181b'; g.fillRect(x0, y0, w, h); g.fillStyle = '#26292e'; g.fillRect(x0 + .3, y0 + .3, w - .6, h - .6);
+  g.fillStyle = '#3a3f45'; g.fillRect(x0 + .4, y0 + .4, 1.4, 1.4); g.fillRect(x0 + .4, y1 - 1.8, 1.4, 1.4); // strut towers
+  g.fillStyle = '#455a64'; g.fillRect(x1 - 1.1, y0 + .6, .9, h - 1.2); g.fillStyle = 'rgba(0,0,0,.4)'; for (let y = y0 + .9; y < y1 - .7; y += .7) g.fillRect(x1 - 1.05, y, .8, .25); // radiator
+  g.fillStyle = '#212121'; g.fillRect(x0 + 1.2, y1 - 2.6, 2, 1.6); g.fillStyle = '#c62828'; g.fillRect(x0 + 1.4, y1 - 2.5, .5, .4); // battery
+  if (!eng) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x0 + 2, y0 + 1.5, w - 3.5, h - 3); g.strokeStyle = '#555'; g.lineWidth = .25; g.beginPath(); g.moveTo(x0 + 2.5, y0 + 2); g.lineTo(x0 + w * .7, y1 - 2); g.stroke(); return; }
+  const c = BAYCOL[eng] || '#9e9e9e', cx = x0 + w * .45, cy = Wd / 2;
+  if (eng === 'eng_ev') { g.fillStyle = '#263238'; g.beginPath(); g.arc(cx, cy, Math.min(w, h) * .26, 0, TAU); g.fill(); g.strokeStyle = c; g.lineWidth = .6; g.stroke(); g.fillStyle = '#ff6f00'; g.fillRect(cx - w * .3, cy - .3, w * .25, .6); return; }
+  const v = /v6|v8|sc8/.test(eng), banks = v ? 2 : 1, cyl = eng === 'eng_v6' ? 3 : v ? 4 : 4, bw = v ? h * .26 : h * .32, bl = w * .58;
+  for (let b = 0; b < banks; b++) { const by = banks === 2 ? cy + (b ? 1 : -1) * h * .17 - bw / 2 : cy - bw / 2; g.fillStyle = '#37474f'; g.fillRect(cx - bl / 2, by - .2, bl, bw + .4); g.fillStyle = c; g.fillRect(cx - bl / 2 + .2, by, bl - .4, bw);
+    g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(cx - bl / 2 + .3, by + .15, bl - .6, .3); g.fillStyle = '#111'; for (let i = 0; i < cyl; i++) g.fillRect(cx - bl / 2 + .6 + i * (bl - 1) / cyl, by + bw * .45, .45, .45); }
+  if (v) { g.fillStyle = '#546e7a'; g.fillRect(cx - bl * .35, cy - h * .06, bl * .7, h * .12); }
+  if (eng === 'eng_sc8') { g.fillStyle = '#9e9e9e'; g.fillRect(cx - bl * .3, cy - h * .16, bl * .6, h * .32); g.fillStyle = '#212121'; for (let i = 0; i < 4; i++) g.fillRect(cx - bl * .26 + i * bl * .14, cy - h * .12, bl * .06, h * .24); g.fillStyle = '#bdbdbd'; g.beginPath(); g.arc(cx + bl * .38, cy, h * .1, 0, TAU); g.fill(); }
+  if (eng === 'eng_i4t') { g.fillStyle = '#b0bec5'; g.beginPath(); g.arc(cx + bl * .45, y0 + h * .22, h * .14, 0, TAU); g.fill(); g.strokeStyle = '#78909c'; g.lineWidth = .3; g.beginPath(); g.arc(cx + bl * .45, y0 + h * .22, h * .07, 0, 4.5); g.stroke(); }
+  g.fillStyle = '#1b1b1b'; g.beginPath(); g.arc(x0 + w * .82, cy, h * .09, 0, TAU); g.fill(); // air filter / intake
+}
+{ const _cs = carSprite; carSprite = function (type, color, wreck, m, full) { if (!m || (!m._bay && !m._nobay)) return _cs(type, color, wreck, m, full); const key = type + color + (wreck ? 'w' : '') + (full ? 'f' : '') + modKey(m) + '|bay' + m._bay;
+  if (SPR.cars[key]) return SPR.cars[key]; const m2 = Object.assign({}, m); delete m2._bay; const base = _cs(type, color, wreck, m2, full), c = mkCanvas(base.width, base.height), g = c.getContext('2d'); g.drawImage(base, 0, 0);
+  const d = CAR_TYPES[type]; if (!d.custom && !d.boat && !d.air && !d.two && !d.rider && !d.box && type !== 'truck') { g.scale(4, 4); g.translate(4, 4); drawBay(g, d, d.L, d.W, m._bay === 'none' ? null : m._bay); }
+  return SPR.cars[key] = c; }; }
+{ const _dc = drawCar0; drawCar0 = function (c, alpha) { const miss = c.missing && (c.missing.panels | 0) > 0; if (!miss || c.dead) return _dc(c, alpha); const mods = c.mods, eng = typeof engIdOf === 'function' ? engIdOf(c.type, c.mods, c.noEng) : null;
+  c.mods = Object.assign({}, mods || {}, { _bay: eng || 'none' }); try { return _dc(c, alpha); } finally { c.mods = mods; } }; }
+
 // ================= v1.67 POLISH: bug fixes, menu clean-up and UI tweaks =================
 // ---- a seized engine really is dead: no throttle until it's fixed or swapped ----
 { const _vt = vehTick; vehTick = function (c, d, dt, r) { if (c.pc && c.pc.eng !== undefined && c.pc.eng <= .02 && !c.d.pedal && !c.d.boat && !c.noEng) { c.throttle = 0; c.nosT = 0; c.burnout = 0; } return _vt(c, d, dt, r); }; }
@@ -11155,6 +11329,91 @@ aimAt = function (a, range, mode) { const fresh = G.t - AL.last > .25; AL.last =
   LK.t = AL.t; LK.hard = AL.t ? 1 : 0; LK.shot = G.t; if (!AL.t) { G.aimTarget = null; return a; }
   const [ox, oy] = aimOrigin(); G.aimTarget = AL.t; G.aimLockT = G.t; return Math.atan2(AL.t.y - oy, AL.t.x - ox); };
 pickTarget = function (a, range, mode) { if (G.t - AL.last < .25) return AL.t && tgtAlive(AL.t) ? AL.t : null; return pickFresh(a, range, mode); };
+
+// ================= ONE LOOK FOR EVERY MENU: shop lists become icon tiles with a detail card, like the backpack =================
+// Any list of rows that have buttons (things to buy, sell, rent, fit, bet on…) is turned into a grid of tiles: drawn icon, short name,
+// price badge. Tapping a tile opens the same detail card the backpack uses (a bottom sheet on phones held upright) with the actions.
+const UNIFY = { shopk: 1, pawn: 1, gunshop: 1, market: 1, pets: 1, bar: 1, decor: 1, yard: 1, project: 1, airport: 1, downs: 1, look: 1, farm: 1, kitchen: P => P.tab !== 'cook', phone: P => ['shop', 'cars', 'realty', 'empire'].includes(P.tab) };
+let N2I = null;
+function uNameToId(n) { if (!N2I) { N2I = {}; for (const id in ITEMS) if (ITEMS[id].n) N2I[ITEMS[id].n.toLowerCase()] = id; for (let i = 1; i < WEAPONS.length; i++) N2I[WEAPONS[i].name.toLowerCase()] = 'gun:' + WEAPONS[i].id;
+    for (const k in MODOPTS) { const o = MODOPTS[k].o; for (let v = 1; v < o.length; v++) { const id = k + ':' + v; try { N2I[partN(k, v).toLowerCase()] = id; } catch (e) { } if (o[v] && o[v][0] && !N2I[o[v][0].toLowerCase()]) N2I[o[v][0].toLowerCase()] = id; } } }
+  const k = String(n).toLowerCase().replace(/\s+\$[\d,]+.*$/, '').replace(/\s*[×x]\s*\d+$/, '').replace(/\s*\(.*?\)\s*$/, '').replace(/^(stock|part —|part -)\s+/, '').trim(); return N2I[k] || N2I['stock ' + k] || null; }
+const uCloneCv = (c, px) => { const n = document.createElement('canvas'); n.width = c.width; n.height = c.height; n.getContext('2d').drawImage(c, 0, 0); if (px) { n.style.width = px + 'px'; n.style.height = 'auto'; } return n; };
+function uIconFor(id) { if (!id) return null; try { return id.startsWith('gun:') ? gunIconBig(id.slice(4)) : itemIcon(id); } catch (e) { return null; } }
+function unifyBody(P, H) { const body = H.body, cols = [...body.querySelectorAll(':scope > .pcol')]; let sel = null;
+  cols.forEach((col, ci) => { const rows = [...col.querySelectorAll(':scope > .prow')].filter(r => r.querySelector('.pbs button')); if (rows.length < 2) return;
+    let grid = null; for (const r of rows) { if (!grid || r.previousElementSibling !== grid) { grid = H.mk('div', 'ggrid'); grid.dataset.side = 'shop'; r.before(grid); }
+      const name = (r.querySelector('.pt b') || {}).textContent || '', sub = (r.querySelector('.pt small') || {}).textContent || '', pe = r.querySelector('.pe'), btns = [...r.querySelectorAll('.pbs button')];
+      const key = P.mode + ':' + (P.tab || '') + ':' + ci + ':' + name, id = uNameToId(name), own = pe && pe.querySelector('canvas'), cv = own || uIconFor(id), emo = pe ? pe.textContent.trim() : '';
+      const price = (name + ' ' + btns.map(b => b.textContent).join(' ') + ' ' + sub).match(/\$[\d,]+/), short = name.replace(/\s+\$[\d,]+.*$/, '').replace(/\s*[×x]\s*(\d+)$/, '').trim(), short2 = short.includes(' — ') ? short.split(' — ').pop() : short, cnt = (name.match(/[×x]\s*(\d+)$/) || [])[1];
+      const t = gTile(H, grid, 'shop', key, emo || '•', short2 || name, price ? price[0] : cnt ? +cnt : null, cv ? { canvas: cv } : {}); if (btns.every(b => b.disabled)) t.classList.add('dim'); if (r.classList.contains('sel')) t.classList.add('eq'); t.title = name + (sub ? ' — ' + sub : '');
+      r.remove(); if (P.gsel && P.gsel.side === 'shop' && P.gsel.key === key) sel = { col, name, sub, btns, cv, emo, id, tile: t }; } });
+  if (!sel) return; sel.tile.classList.add('sel'); const d = H.mk('div', 'gdet'), ic = H.mk('span', 'gde'); if (sel.cv) ic.appendChild(uCloneCv(sel.cv, 60)); else ic.textContent = sel.emo || '•'; d.appendChild(ic);
+  const t = H.mk('div', 'gdt'); t.appendChild(H.mk('b', '', sel.name)); if (sel.sub) t.appendChild(H.mk('small', '', sel.sub)); const ds = sel.id && typeof itemDesc === 'function' ? itemDesc(sel.id) : ''; if (ds) { const s = H.mk('small', '', ds); s.style.color = '#e3e8f1'; t.appendChild(s); } d.appendChild(t);
+  const bb = H.mk('div', 'pbs'); for (const b of sel.btns) bb.appendChild(b); d.appendChild(bb); sel.col.insertBefore(d, sel.col.children[1] || null); }
+for (const m in UNIFY) { const f = PMODES[m]; if (typeof f !== 'function') continue; PMODES[m] = function (H) { const r = f.call(this, H); if (r === false) return r; const ok = UNIFY[m] === 1 || UNIFY[m](this); if (ok) try { unifyBody(this, H); } catch (e) { console.error('unify', m, e); } return r; }; }
+{ const _o = Panel.open; Panel.open = function (mode) { if (mode !== this.mode && this.gsel && this.gsel.side === 'shop') this.gsel = null; return _o.apply(this, arguments); }; }
+(() => { const st = document.createElement('style'); st.textContent = `#panel .gtile.dim{opacity:.45}#panel .ggrid[data-side=shop]{margin-bottom:8px}#panel .ggrid[data-side=shop] .gtile .ge{font-size:30px}#panel .gdet .gde{font-size:34px;display:flex;align-items:center;justify-content:center;min-width:60px}#panel .gdet .pbs{flex-wrap:wrap;gap:6px}#panel .gdet .pbs .pb{min-height:40px}#panel .gsheetc .gdet{flex-wrap:wrap;align-items:flex-start}#panel .gsheetc .gdet .gdt{flex:1 1 55%;min-width:0}#panel .gsheetc .gdet .pbs{width:100%;max-width:none;display:flex;gap:6px;margin-top:6px}#panel .gsheetc .gdet .pbs .pb{flex:1;padding:12px 8px}`; document.head.appendChild(st); })();
+
+// ================= DRAWN ICONS FOR GUN ATTACHMENTS (ids like "wm:muz:1") — everything you can own gets a real icon =================
+function wmName(s, v) { const o = WSLOTS[s] && WSLOTS[s].o[v]; return o ? o[0].split(' —')[0] : s; }
+function drawWmIcon(g, s, v) { const n = (WSLOTS[s] && WSLOTS[s].o[v] ? WSLOTS[s].o[v][0] : '').toLowerCase(), D = '#2b2f36', M = '#555c66', L = '#8a939e', R = (x, y, w, h, c, r) => { g.fillStyle = c; if (r) { rr(g, x, y, w, h, r); g.fill(); } else g.fillRect(x, y, w, h); };
+  g.save(); icShadow(g, 1);
+  if (/suppress/.test(n)) { R(10, 38, 76, 20, D, 9); R(12, 41, 72, 4, 'rgba(255,255,255,.18)'); for (let x = 22; x < 80; x += 12) R(x, 38, 2, 20, 'rgba(0,0,0,.35)'); R(80, 43, 8, 10, M, 2); }
+  else if (/compensat/.test(n)) { R(22, 36, 52, 24, D, 5); for (let i = 0; i < 4; i++) R(30 + i * 10, 38, 5, 8, '#111'); R(74, 42, 10, 12, M, 2); }
+  else if (/choke/.test(n)) { g.strokeStyle = D; g.lineWidth = 9; g.beginPath(); g.arc(48, 48, 22, 0, TAU); g.stroke(); g.strokeStyle = L; g.lineWidth = 3; g.beginPath(); g.arc(48, 48, 22, 0, TAU); g.stroke(); }
+  else if (/drum/.test(n)) { g.fillStyle = D; g.beginPath(); g.arc(48, 52, 28, 0, TAU); g.fill(); g.fillStyle = M; g.beginPath(); g.arc(48, 52, 18, 0, TAU); g.fill(); R(40, 10, 16, 22, D, 2); g.fillStyle = '#c9a227'; g.beginPath(); g.arc(48, 52, 6, 0, TAU); g.fill(); }
+  else if (/mag/.test(n)) { g.fillStyle = D; g.beginPath(); g.moveTo(36, 8); g.lineTo(58, 8); g.lineTo(66, 88); g.lineTo(42, 88); g.closePath(); g.fill(); R(38, 10, 18, 4, '#c9a227'); R(44, 80, 20, 6, M); }
+  else if (/red dot/.test(n)) { R(18, 44, 60, 22, D, 4); R(30, 26, 36, 26, M, 6); g.fillStyle = '#9fd3ff'; g.beginPath(); g.arc(48, 39, 10, 0, TAU); g.fill(); g.fillStyle = '#ff1744'; g.beginPath(); g.arc(48, 39, 3.5, 0, TAU); g.fill(); }
+  else if (/holo/.test(n)) { R(14, 50, 68, 18, D, 4); R(22, 22, 52, 32, M, 5); R(28, 27, 40, 22, '#9fd3ff'); g.strokeStyle = '#ff1744'; g.lineWidth = 2; g.beginPath(); g.arc(48, 38, 7, 0, TAU); g.stroke(); }
+  else if (/scope|×|8x|4x/.test(n)) { const big = /8/.test(n); R(10, 38, 76, 18, D, 8); R(big ? 62 : 66, 32, big ? 28 : 22, 30, D, 6); R(4, 35, 14, 24, D, 5); g.fillStyle = '#4fc3f7'; g.beginPath(); g.ellipse(big ? 86 : 86, 47, 3, 10, 0, 0, TAU); g.fill(); R(36, 30, 10, 8, M, 2); R(36, 56, 10, 6, M, 2); }
+  else if (/flashlight|light/.test(n) && /laser/.test(n)) { R(20, 34, 50, 26, D, 5); g.fillStyle = '#fff59d'; g.beginPath(); g.arc(72, 41, 6, 0, TAU); g.fill(); g.fillStyle = '#ff1744'; g.beginPath(); g.arc(72, 55, 3, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,245,157,.35)'; g.beginPath(); g.moveTo(76, 36); g.lineTo(94, 24); g.lineTo(94, 58); g.fill(); }
+  else if (/laser/.test(n)) { const c = /green/.test(n) ? '#00e676' : '#ff1744'; R(22, 38, 44, 20, D, 5); g.fillStyle = c; g.beginPath(); g.arc(68, 48, 4, 0, TAU); g.fill(); g.strokeStyle = c; g.lineWidth = 2; g.beginPath(); g.moveTo(70, 48); g.lineTo(94, 48); g.stroke(); }
+  else if (/barrel/.test(n)) { const ln = /long/.test(n) ? 84 : /short|sawn/.test(n) ? 46 : 70; R(48 - ln / 2, 42, ln, 12, D, 3); R(48 - ln / 2, 44, ln, 3, 'rgba(255,255,255,.2)'); if (/match/.test(n)) for (let x = 20; x < 76; x += 8) R(x, 42, 2, 12, '#c9a227'); }
+  else if (/bipod/.test(n)) { R(30, 20, 36, 12, D, 3); g.strokeStyle = D; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(42, 30); g.lineTo(26, 84); g.moveTo(54, 30); g.lineTo(70, 84); g.stroke(); }
+  else if (/grip/.test(n)) { R(26, 20, 44, 12, D, 3); g.fillStyle = D; g.beginPath(); g.moveTo(38, 30); g.lineTo(56, 30); g.lineTo(/angled/.test(n) ? 66 : 54, 84); g.lineTo(/angled/.test(n) ? 50 : 40, 84); g.closePath(); g.fill(); for (let y = 42; y < 80; y += 7) R(42, y, 12, 2, 'rgba(255,255,255,.12)'); }
+  else if (/stock/.test(n)) { g.fillStyle = /wood/.test(n) ? '#7a4e2d' : D; g.beginPath(); g.moveTo(84, 34); g.lineTo(84, 50); g.lineTo(30, 60); g.lineTo(10, 74); g.lineTo(10, 40); g.lineTo(30, 38); g.closePath(); g.fill(); R(10, 40, 6, 34, '#111'); }
+  else if (/hollow|armor|incend|ammo|round/.test(n)) { const c = /incend/.test(n) ? '#ff6d00' : /armor/.test(n) ? '#455a64' : '#c9a227'; for (let i = 0; i < 3; i++) { const x = 26 + i * 18; R(x, 40, 12, 44, '#c9a227', 2); g.fillStyle = c; g.beginPath(); g.moveTo(x, 40); g.quadraticCurveTo(x + 6, 14, x + 12, 40); g.fill(); if (/hollow/.test(n)) { g.fillStyle = '#111'; g.beginPath(); g.arc(x + 6, 24, 2, 0, TAU); g.fill(); } } }
+  else if (/trigger/.test(n)) { g.strokeStyle = D; g.lineWidth = 7; g.beginPath(); g.arc(48, 52, 22, Math.PI, TAU); g.stroke(); g.fillStyle = '#c9a227'; g.beginPath(); g.moveTo(44, 30); g.quadraticCurveTo(36, 50, 48, 66); g.lineTo(54, 62); g.quadraticCurveTo(46, 50, 52, 30); g.fill(); }
+  else if (/heat|warhead/.test(n)) { R(18, 38, 50, 20, '#556b2f', 6); g.fillStyle = '#c62828'; g.beginPath(); g.moveTo(68, 34); g.lineTo(92, 48); g.lineTo(68, 62); g.fill(); }
+  else if (s === 'skin' || /paint|camo|gold|chrome|skin/.test(n)) { const c = typeof SKINCOL !== 'undefined' && SKINCOL[v] ? SKINCOL[v] : '#c9a227'; g.fillStyle = '#ddd'; rr(g, 26, 14, 36, 66, 8); g.fill(); g.fillStyle = c; rr(g, 26, 34, 36, 46, 6); g.fill(); R(36, 6, 16, 10, '#888', 2); }
+  else { icE(g, '🔩', 48, 50, 54); }
+  g.restore(); icShadow(g, 0); }
+{ const _src = itemIconSrc; itemIconSrc = function (id) { if (typeof id === 'string' && id.startsWith('wm:')) { if (ICONC[id]) return ICONC[id]; const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'), [, s, v] = id.split(':'); try { drawWmIcon(g, s, +v); } catch (e) { icE(g, '🔩', 48, 50, 54); } return ICONC[id] = c; } return _src(id); }; }
+{ const _d = itemDesc; itemDesc = function (id) { if (typeof id === 'string' && id.startsWith('wm:')) { const [, s, v] = id.split(':'), o = WSLOTS[s] && WSLOTS[s].o[+v]; const t2 = o ? (o[0].split(' — ')[1] || '') : ''; return o ? (WSLOTS[s].n + ' attachment. ' + (t2 ? t2[0].toUpperCase() + t2.slice(1) + '.' : '') + (typeof ADESC !== 'undefined' && ADESC[s + ':' + v] ? ' ' + ADESC[s + ':' + v] : '')).trim() : ''; } return _d(id); }; }
+// the unified menus look attachment names up too
+{ const _n = uNameToId; uNameToId = function (n) { const r = _n(n); if (r) return r; const k = String(n).toLowerCase().replace(/\s*[×x]\s*\d+$/, '').replace(/\s+\$[\d,]+.*$/, '').trim(); let hit = null;
+  for (const s in WSLOTS) WSLOTS[s].o.forEach((o, v) => { if (!v || hit) return; const full = o[0].toLowerCase(), short = full.split(' —')[0]; if (k === full || k === short || k === (WSLOTS[s].n + ' — ' + short).toLowerCase()) hit = 'wm:' + s + ':' + v; }); return hit; }; }
+{ const f = PMODES.gunws; if (f) PMODES.gunws = function (H) { const r = f.call(this, H); if (r !== false) try { unifyBody(this, H); } catch (e) { console.error(e); } return r; }; }
+
+// ================= ONE GRID FOR THE GUN SHOP, ONE GRID FOR THE GARAGE — no more list → detail → grid → sheet on phones =================
+// every bottom sheet hugs its content instead of always taking half the screen
+(() => { const st = document.createElement('style'); st.textContent = `@media (orientation:portrait){#panel .pbody.gsheet>.pcol.gsheetc{flex:0 1 auto;max-height:64%}}
+#panel .gdet .pgun{width:100%;max-width:340px;height:auto;display:block;margin:0 auto 4px}#panel .gdet .gbars{width:100%}#panel .gdet .gbars .pbar{margin:2px 0}#panel .gtile .gown{position:absolute;left:3px;top:3px;background:#2ecc71;color:#06210f;font:800 9px Rubik,system-ui,sans-serif;border-radius:6px;padding:1px 4px}`; document.head.appendChild(st); })();
+const GS_CATS = [['all', 'All'], ['guns', '🔫 Guns'], ['muz', 'Muzzle'], ['sight', 'Optics'], ['laser', 'Laser'], ['mag', 'Mags'], ['barrel', 'Barrels'], ['grip', 'Grips'], ['stock', 'Stocks'], ['ammo', 'Ammo'], ['trig', 'Trigger'], ['head', 'Warheads']];
+function gsNewTab(H) { const P = Panel, p = H.p || G.player, f = P.gsCat || 'all', slots = Object.keys(WSLOTS).filter(s => s !== 'skin'), items = [];
+  for (const w of WEAPONS.slice(1)) items.push({ key: 'g:' + w.id, cat: 'guns', name: w.name, price: w.price, own: p.ammo[WI[w.id]] > 0, cv: () => gunIconBig(w.id), gun: w.id });
+  items.push({ key: 'g:armor', cat: 'guns', name: 'Body armor', price: 500, cv: () => null, e: '🦺', armor: 1 });
+  for (const s of slots) WSLOTS[s].o.forEach((o, v) => { if (!v || !o[1]) return; items.push({ key: 'p:' + s + ':' + v, cat: s, name: o[0].split(' —')[0], price: Math.round(o[1] / 10) * 10, have: GPARTS()[s + ':' + v] | 0, cv: () => itemIcon('wm:' + s + ':' + v), s, v }); });
+  const c = H.col('Gun shop · tap anything'), bar = H.mk('div', 'gchips'); for (const [k, n] of GS_CATS) { if (k !== 'all' && !items.some(i => i.cat === k)) continue; const b = H.mk('button', k === f ? 'on' : '', n); b.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.gsCat = k; Panel.render(); }; bar.appendChild(b); } c.appendChild(bar);
+  const grid = gGrid(H, c, 'gs'); let sel = null; for (const it of items) { if (f !== 'all' && it.cat !== f) continue; const t = gTile(H, grid, 'gs', it.key, it.e || '🔩', it.name, it.own ? null : money(it.price), { canvas: it.cv() || undefined }); if (it.gun) t.classList.add('gun'); if (it.own) t.appendChild(H.mk('span', 'gown', 'OWNED')); if (it.have) t.appendChild(H.mk('span', 'gown', 'BENCH ' + it.have));
+    if (P.gsel && P.gsel.side === 'gs' && P.gsel.key === it.key) { sel = it; t.classList.add('sel'); } }
+  if (!sel) { c.appendChild(H.mk('div', 'pempty', 'Guns come with ammo. Attachments go to the gun bench at home — fit them there.')); return; }
+  const d = H.mk('div', 'gdet'), ic = H.mk('span', 'gde'), tx = H.mk('div', 'gdt'), bb = H.mk('div', 'pbs');
+  if (sel.gun) { const id = sel.gun, w = WEAPONS[WI[id]], own = p.ammo[WI[id]] > 0, cv2 = gunIconBig(id); cv2.className = 'pgun'; cv2.style.cssText = 'width:min(240px,70%);height:auto;display:block;margin:0 auto 4px'; tx.appendChild(cv2); tx.appendChild(H.mk('b', '', w.name + (own ? ' · owned (' + p.ammo[WI[id]] + ' rds)' : '')));
+    tx.appendChild(H.mk('small', '', (w.melee ? 'Close range · silent · ' : '') + (w.mag ? 'Magazine ' + pw(WI[id]).mag + ' · reload ' + w.reload + 's · ' : '') + 'comes with ' + w.ammo0 + (w.proj ? ' shots' : ' rounds'))); const ds = H.mk('small', '', WDESC[id] || ''); ds.style.color = '#e3e8f1'; tx.appendChild(ds);
+    const gb = H.mk('div', 'gbars'); gb.appendChild(barsEl(gunStats(id))); tx.appendChild(gb);
+    if (!(w.melee && own)) bb.appendChild(H.btn(own ? 'Buy ammo +' + w.ammo0 + '  ' + money(w.ammoPrice) : 'Buy  ' + money(w.price), () => { if (pay(own ? w.ammoPrice : w.price)) { giveWeapon(id); Snd.play('cock'); } }, 'y', G.cash < (own ? w.ammoPrice : w.price)));
+    if (own && id !== 'molotov' && id !== 'knife') bb.appendChild(H.btn('🔧 Customize', () => { P.mode = 'guns'; P.tab = id; P.pv = null; })); }
+  else if (sel.armor) { ic.textContent = '🦺'; tx.appendChild(H.mk('b', '', 'Body armor')); tx.appendChild(H.mk('small', '', 'Soaks up damage until it\'s shot through. Refills to full.')); bb.appendChild(H.btn(p.armor >= 100 ? 'Armor already full' : 'Buy  $500', () => { if (pay(500)) { p.armor = 100; Snd.play('armor'); } }, 'y', p.armor >= 100 || G.cash < 500)); }
+  else { const o = WSLOTS[sel.s].o[sel.v]; ic.appendChild(itemIcon('wm:' + sel.s + ':' + sel.v, 60)); tx.appendChild(H.mk('b', '', WSLOTS[sel.s].n + ' — ' + sel.name)); const ds = H.mk('small', '', itemDesc('wm:' + sel.s + ':' + sel.v)); ds.style.color = '#e3e8f1'; tx.appendChild(ds);
+    tx.appendChild(H.mk('small', '', 'Fits: ' + ((o[2] || []).map(g => WEAPONS[WI[g]] ? WEAPONS[WI[g]].name : g).join(', ') || 'most guns') + (sel.have ? ' · ' + sel.have + ' on your bench' : '')));
+    bb.appendChild(H.btn('Buy for my bench  ' + money(sel.price), () => { if (payAny(sel.price)) { gpAdd(sel.s, sel.v); toast('Sent to your home gun bench'); } }, 'y', !canPay(sel.price))); }
+  if (ic.childNodes.length || ic.textContent) d.appendChild(ic); d.appendChild(tx); d.appendChild(bb); c.insertBefore(d, c.children[1] || null); }
+{ const gs = PMODES.gunshop; PMODES.gunshop = function (H) { if ((this.gtab || 'new') !== 'new') return gs.call(this, H); const r = gs.call(this, Object.assign({}, H, { col: t => { const c = H.mk('div', 'pcol'); return c; }, body: H.mk('div'), foot: H.mk('div') }));
+  H.body.innerHTML = ''; gsNewTab.call(this, H); return r; }; }
+// the garage's Vehicles tab: cars and fitted parts become tiles too (loose parts already are)
+{ const hg = PMODES.hgarage; PMODES.hgarage = function (H) { const r = hg.call(this, H); if (this.tab === 'veh' && r !== false) try { unifyBody(this, H); } catch (e) { console.error(e); } return r; }; }
 
 // ================= MULTIPLAYER (room capability) =================
 const Net = {

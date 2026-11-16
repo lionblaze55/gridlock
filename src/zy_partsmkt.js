@@ -7,7 +7,7 @@ Object.assign(MODDESC, { eng: (MODDESC.eng || '') + ' Built race motors and hand
 const pkName = pk => { const [k, v] = pk.split(':'); return MODOPTS[k] ? MODOPTS[k].n + ' — ' + MODOPTS[k].o[+v][0] : pk; };
 const pkShop = pk => { const [k, v] = pk.split(':'); return MODOPTS[k] && MODOPTS[k].o[+v] ? MODOPTS[k].o[+v][1] : 0; };
 const pkValue = pk => r50(pkShop(pk) * (RARE.has(pk) ? .7 : .5));
-const PART_POOL = () => { const out = []; for (const k in MODOPTS) { if (PART_EXCL.has(k) || MOTOK.includes(k) || k === 'swp') continue; MODOPTS[k].o.forEach((o, v) => { if (v && o[1] >= 300) out.push(k + ':' + v); }); } return out; };
+const PART_POOL = () => { const out = []; for (const k in MODOPTS) { if (PART_EXCL.has(k) || MOTOK.includes(k) || k === 'swp') continue; MODOPTS[k].o.forEach((o, v) => { if (v && o[1] >= 300 && !(k === 'exh' && v === 2)) out.push(k + ':' + v); }); } return out; };
 function genPartListing(M) {
   const rare = Math.random() < .5, pool = PART_POOL(), pk = rare ? pick([...RARE]) : pick(pool.filter(p => !RARE.has(p))), v = pkValue(pk), r = Math.random(), scam = Math.random() < .12;
   const arch = scam ? 'scam' : r < .1 ? 'steal' : r < .3 ? 'deal' : r < .75 ? 'fair' : 'greedy', mult = { steal: .45 + Math.random() * .15, deal: .65 + Math.random() * .2, fair: .9 + Math.random() * .2, greedy: 1.15 + Math.random() * .25, scam: .45 + Math.random() * .2 }[arch];

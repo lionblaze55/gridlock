@@ -50,7 +50,7 @@ const updS0 = Snd.update;
 Snd.update = function (dt) { updS0.call(this, dt); if (!this.ctx) return; this.carLoops(); const c = this.ctx, t = c.currentTime, L = this.L, set = (p, v, k) => p.setTargetAtTime(v, t, k || .06);
   const car = G.mode === 'play' ? pCar() : null, E = L.exh, TU = L.turbo;
   if (car && !car.dead && !car.d.pedal && !car.st.ev && !car.d.boat) {
-    const m = car.mods || {}, ex = m.exh | 0, tur = m.tur | 0, e = L.engine, rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0;
+    const m = car.mods || {}, ex = exhTier(car), tur = m.tur | 0, e = L.engine, rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0;
     const base = car.st.eb || car.d.eb || 36, fire = (base + rpm * base * 2.4) * (car.d.two ? 1 : .5);
     set(E.lfo.frequency, Math.max(8, fire), .04); set(E.lp.frequency, 180 + rpm * 260 + ex * 70, .08);
     set(E.g.gain, (.03 + ex * .035 + (car.type === 'muscle' ? .04 : 0)) * (.45 + rpm * .55 + thr * .4), .07);
@@ -64,7 +64,7 @@ Snd.update = function (dt) { updS0.call(this, dt); if (!this.ctx) return; this.c
     if (e.gear > (car.sndGear || 1) && thr > .5 && ex >= 2 && Math.random() < .6) this.pop(car.x, car.y, false, .7); car.sndGear = e.gear; car.sndThr = car.throttle;
   } else { set(E.g.gain, 0, .1); set(TU.g.gain, 0, .05); set(TU.g2.gain, 0, .05); if (TU) TU.boost = 0; }
   // tuned AI cars nearby (race rivals, meet cars) crackle on the overrun too
-  if (G.mode === 'play' && !G.scene) for (const k of G.cars) { if (k === car || !k.driver || k.dead || !k.mods || (k.mods.exh | 0) + (k.mods.tur | 0) < 1 || dist2(k.x, k.y, this.listener.x, this.listener.y) > 900 * 900) continue; if ((k.sndThr || 0) > .5 && k.throttle <= 0 && k.spd > 150) { if (k.mods.tur && Math.random() < .5) this.blowoff(k.x, k.y, Math.random() < .4); for (let i = 0; i < 3; i++) setTimeout(() => this.pop(k.x, k.y, false, .6), 80 + Math.random() * 500); } k.sndThr = k.throttle; }
+  if (G.mode === 'play' && !G.scene) for (const k of G.cars) { if (k === car || !k.driver || k.dead || !k.mods || exhTier(k) + (k.mods.tur | 0) < 1 || dist2(k.x, k.y, this.listener.x, this.listener.y) > 900 * 900) continue; if ((k.sndThr || 0) > .5 && k.throttle <= 0 && k.spd > 150) { if (k.mods.tur && Math.random() < .5) this.blowoff(k.x, k.y, Math.random() < .4); for (let i = 0; i < 3; i++) setTimeout(() => this.pop(k.x, k.y, false, .6), 80 + Math.random() * 500); } k.sndThr = k.throttle; }
 };
 // ---------- voices driven by the words being said ----------
 const VF = { a: [730, 1090, 2440], e: [530, 1840, 2480], i: [300, 2200, 2950], o: [520, 920, 2400], u: [330, 1000, 2350], y: [400, 2000, 2600], '@': [500, 1450, 2450] };

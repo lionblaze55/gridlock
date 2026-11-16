@@ -121,7 +121,7 @@ function carSprite(type, color, wreck, m, full) {
     g.fillStyle = glassA; g.fillRect(L * .9, 2.2, 2.6, Wd - 4.4); g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(L * .91, 2.6, .8, Wd - 5.2);
     g.fillStyle = lt; g.fillRect(L * .74, 2.2, L * .14, Wd - 4.4); g.fillStyle = '#555'; g.fillRect(L * .72, 1, 1.2, 1.2); g.fillRect(L * .72, Wd - 2.2, 1.2, 1.2);
   } else {
-    const rf = isBox ? 2.2 : (type === 'sports' || d.low) ? 6 : 4.5, rr = isBox ? 1.6 : 3.2;
+    const rf = d.rf !== undefined ? d.rf : isBox ? 2.2 : (type === 'sports' || d.low) ? 6 : 4.5, rr = d.rr !== undefined ? d.rr : isBox ? 1.6 : 3.2;
     carBodyPath(g, -.4, -.4 - wide * .5, L + .8, Wd + .8 + wide, rf + .3, rr + .3); g.fillStyle = 'rgba(0,0,0,.55)'; g.fill();
     carBodyPath(g, 0, 0, L, Wd, rf, rr); g.fillStyle = bodyGrad(0, Wd); g.fill();
     // liveries (clipped to body)
@@ -154,7 +154,7 @@ function carSprite(type, color, wreck, m, full) {
       g.fillStyle = glassA; g.fillRect(L * .47, 2, 1.8, Wd - 4); g.fillRect(L * .7, 1.6, 3.4, Wd - 3.2); g.fillStyle = glassB; g.fillRect(L * .71, 2.2, .9, Wd - 4.4);
       g.fillStyle = lt; g.fillRect(L * .52, 2, L * .17, Wd - 4);
     } else {
-      const lowc = type === 'sports' || d.low, ws = lowc ? .55 : .6, rs = lowc ? .22 : .2;
+      const lowc = type === 'sports' || d.low, ws = d.ws || (lowc ? .55 : .6), rs = d.rs || (lowc ? .22 : .2);
       // rear glass
       g.fillStyle = glassA; g.beginPath(); g.moveTo(L * rs, 1.6); g.lineTo(L * (rs + .1), 2.3); g.lineTo(L * (rs + .1), Wd - 2.3); g.lineTo(L * rs, Wd - 1.6); g.fill();
       // windshield
@@ -182,7 +182,8 @@ function carSprite(type, color, wreck, m, full) {
       if (!wreck && m.sp === 2) { g.fillStyle = dk; g.beginPath(); g.moveTo(0, 1.4); g.quadraticCurveTo(-1.6, Wd / 2, 0, Wd - 1.4); g.lineTo(1, Wd - 1.4); g.lineTo(1, 1.4); g.fill(); }
     }
   }
-  if (!wreck && d.deco) d.deco(g, L, Wd);
+  if (!wreck && d.deco) d.deco(g, L, Wd, color);
+  if (!wreck && typeof carLights === 'function' && !d.custom) carLights(g, d, L, Wd, isTruck);
   if (!wreck) {
     const hc = HLCOL[m.hl || 0];
     g.fillStyle = hc; g.beginPath(); g.ellipse(L - .9, 2.6, .9, 1.4, 0, 0, TAU); g.ellipse(L - .9, Wd - 2.6, .9, 1.4, 0, 0, TAU); g.fill();

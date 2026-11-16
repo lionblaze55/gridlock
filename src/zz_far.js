@@ -1,11 +1,11 @@
 // ================= THE FAR SHORE: the map grows east and south across a channel (generated last, so existing land, property IDs and saves never change) =================
 for (const [k, as, name] of [['prairie4', 'farmland', 'Seabreeze Plains'], ['estate4', 'farmland', 'Windward Farms'], ['woods4', 'woods', 'Cedar Hollow'], ['lake4', 'lake', 'Mirror Lake'], ['orchard4', 'orchard', 'Cider Hills'],
-  ['quarry4', 'quarry', 'Granite Bluff'], ['town6', 'town', 'Port Calloway'], ['coast4', 'coast', 'Driftwood Beach'], ['narrows', 'coast', 'The Narrows'], ['downs', 'farmland', 'Varro Downs'], ['links', 'farmland', 'Varro Links']]) DISTRICTS[k] = Object.assign({}, DISTRICTS[as], { name, as });
+  ['quarry4', 'quarry', 'Granite Bluff'], ['town6', 'town', 'Port Calloway'], ['suburbs3', 'suburbs', 'Maple Grove'], ['coast4', 'coast', 'Driftwood Beach'], ['narrows', 'coast', 'The Narrows'], ['downs', 'farmland', 'Varro Downs'], ['links', 'farmland', 'Varro Links']]) DISTRICTS[k] = Object.assign({}, DISTRICTS[as], { name, as });
 for (const k of ['prairie4', 'estate4', 'woods4', 'lake4', 'orchard4', 'quarry4', 'coast4', 'narrows', 'downs', 'links']) RURALSET.add(k);
 const FARCODE = { P: 'prairie4', E: 'estate4', W: 'woods4', L: 'lake4', O: 'orchard4', Q: 'quarry4', K: 'town6', D: 'coast4', X: 'narrows', H: 'downs', G: 'links' };
 // east strip: columns 27–28 for rows 0–25; south strip: rows 27–28 for columns 0–28; column/row 26 is the channel, 29 the beach
 const FAR_E = ['WW', 'WW', 'PP', 'KK', 'KK', 'PP', 'EE', 'EE', 'LL', 'LL', 'OO', 'OO', 'PP', 'WW', 'WW', 'PP', 'EE', 'EE', 'PP', 'QQ', 'PP', 'WW', 'LL', 'LL', 'PP', 'PP'];
-const FAR_S = ['PPWWHHHPPEEKKGGGWLLPPEEPPOOPP', 'PPWWHHHPPEEKKGGGWLLPPEEPPOOPP'];
+const FAR_S = ['PPWWEEPPPEEKKGGGWLLPPEEPPOOPP', 'PPWWEEPPPEEKKGGGWLLPPEEPPOOPP'];
 const BR_ROWS = [3, 9, 15, 21], BR_COLS = [3, 9, 15, 21];
 function farCh(bi, bj) { if (bi >= 29 || bj >= 29) return 'D'; if ((bi === 26 && bj <= 26) || (bj === 26 && bi <= 26)) return 'X'; if (bj >= 27) return FAR_S[bj - 27][bi] || 'P'; if (bi >= 27) return bj <= 25 ? FAR_E[bj][bi - 27] : 'P'; return 'P'; }
 const inChan = (x, y) => (x >= NOLD && x < NOLD + 12 && y < NOLD + 12) || (y >= NOLD && y < NOLD + 12 && x < NOLD + 12);
@@ -38,7 +38,32 @@ function farGen() { const B = W._bc; if (!B) return; W.nOld = W.buildings.length
     W.labels.push({ n, x: bi * RSP + 10, y: bj * RSP + 10, big: n === n.toUpperCase() ? 1 : 0 });
   const cand = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((x >= NOLD || y >= NOLD) && (W.tile[idx(x, y)] === TILE.DIRT || W.tile[idx(x, y)] === TILE.PATH) && !W.solid[idx(x, y)]) cand.push([x, y]);
   for (let i = 0; i < 10 && cand.length; i++) { const [x, y] = cand.splice(Math.floor(rng() * cand.length), 1)[0]; W.pickupSpots.push({ x: (x + .5) * T, y: (y + .5) * T, t: ['health', 'cash', 'armor', 'pistol'][i % 4], next: 0, alive: true }); } }
-{ const _sg = storeGen; storeGen = function () { _sg(); try { farGen(); } catch (e) { console.error('farGen', e); } }; }
+// ---------- Maple Grove: farm blocks just south of the city become a suburb (old buildings are retired, never renumbered) ----------
+const SUBSET = new Set(['8,12', '9,12', '10,12', '11,12', '13,12', '14,12', '15,12', '11,13', '12,13', '13,13']);
+{ const _df = districtFor; districtFor = function (bi, bj) { if (W.subOn && SUBSET.has(bi + ',' + bj)) return GENALIAS ? 'suburbs' : 'suburbs3'; return _df(bi, bj); }; }
+// a suburban block: sidewalk ring, four family homes with driveways, back yards with fences, trees and the odd pool — or a little park
+function suburbBlock(bi, bj, rng, park) { const B = W._bc, x0 = bi * RSP + 4, y0 = bj * RSP + 4, walls = [8, 9, 12, 13, 3, 7], pk = a => a[Math.floor(rng() * a.length)];
+  for (let y = y0; y < y0 + 12; y++) for (let x = x0; x < x0 + 12; x++) B.setT(x, y, x === x0 || x === x0 + 11 || y === y0 || y === y0 + 11 ? TILE.WALK : TILE.GRASS);
+  W.blocks.push({ bi, bj, bx: x0, by: y0, d: 'suburbs3', li: bi });
+  if (park) { B.pond(x0 + 6, y0 + 6, 2.2, 1.6); for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; B.P(i % 3 ? 'tree' : 'bush', x0 + 6 + Math.cos(a) * 4.2, y0 + 6 + Math.sin(a) * 4.2); } W.labels.push({ n: 'Maple Grove Park', x: x0 + 6, y: y0 + 10.3 }); return; }
+  for (const [hx, hy, face] of [[x0 + 1, y0 + 2, 0], [x0 + 6, y0 + 2, 0], [x0 + 1, y0 + 7, 2], [x0 + 6, y0 + 7, 2]]) {
+    const b = B.mkB(hx, hy, 4, 3, pk(walls), 1, 'home', '', 'suburbs3', face); if (!b) continue; b.d = 'suburbs3'; b.sub2 = 1;
+    const dx = hx + 4, ys = face ? [hy + 1, hy + 2, hy + 3] : [y0 + 1, y0 + 2, y0 + 3, y0 + 4]; for (const y of ys) B.setT(dx, y, TILE.LOT);
+    if (rng() < .7) W.parkSpots.push({ x: (dx + .5) * T, y: (face ? hy + 2.6 : y0 + 2.4) * T, a: face ? Math.PI / 2 : -Math.PI / 2, type: pk(['sedan', 'hatch', 'pickup', 'van', 'suv', 'sedan']) });
+    if (rng() < .4) W.pools.push({ x: (hx + .4) * T, y: (y0 + 5.15) * T, w: 2.6 * T, h: 1.5 * T }); else B.P(pk(['tree', 'bush', 'tree']), hx + 1.5 + rng(), y0 + 5.8);
+    B.P('bush', hx + .4, face ? hy + 3.5 : hy - .5); }
+  for (let x = x0 + 1; x < x0 + 11; x++) B.P('fence', x + .5, y0 + 6.5); }
+function suburbsGen() { const B = W._bc; if (!B) return; const n0 = W.buildings.length, rng = mulberry32(2718), rr = (a, b) => a + Math.floor(rng() * (b - a + 1)), cells = [...SUBSET].map(k => k.split(',').map(Number));
+  for (const [bi, bj] of cells) { const x0 = bi * RSP + 4, y0 = bj * RSP + 4, X0 = x0 * T, Y0 = y0 * T, X1 = (x0 + 12) * T, Y1 = (y0 + 12) * T, inB = (x, y) => x >= X0 && x < X1 && y >= Y0 && y < Y1;
+    if (W.buildings.some(b => !b.gone && b.realty && b.x >= x0 - 1 && b.x < x0 + 13 && b.y >= y0 - 1 && b.y < y0 + 13)) continue;
+    for (const b of W.buildings) { if (b.gone || b.x < x0 - 1 || b.x >= x0 + 13 || b.y < y0 - 1 || b.y >= y0 + 13) continue; b.gone = 1; b.door = null; for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) W.bmap[idx(x, y)] = -1; }
+    killProps(p => inB(p.x, p.y)); for (const k of ['parkSpots', 'lifeSpots', 'ruralSpots', 'pickupSpots', 'dealerSpots']) if (W[k]) W[k] = W[k].filter(s => !inB(s.x, s.y));
+    W.blocks = W.blocks.filter(k => !(k.bi === bi && k.bj === bj)); for (let y = y0; y < y0 + 12; y++) for (let x = x0; x < x0 + 12; x++) B.setT(x, y, TILE.GRASS); }
+  W.subOn = 1; W.pools = W.pools || []; let parks = 0; for (const [bi, bj] of cells) suburbBlock(bi, bj, rng, parks++ === 4);
+  assignDoors(rng, n0);
+  for (const [bi, bj] of cells) for (let y = bj * RSP; y < bj * RSP + 20; y++) for (let x = bi * RSP; x < bi * RSP + 20; x++) { if (!inMap(x, y)) continue; const k = idx(x, y); if (W.tile[k] === TILE.ROAD) W.rur[k] = 0; markTile(x, y); }
+  W.labels.push({ n: 'Maple Grove', x: 11.5 * RSP + 6, y: 12.6 * RSP + 6, big: 1 }); }
+{ const _sg = storeGen; storeGen = function () { _sg(); try { farGen(); } catch (e) { console.error('farGen', e); } try { suburbsGen(); } catch (e) { console.error('suburbsGen', e); } }; }
 
 // ================= VARRO DOWNS: a real horse racetrack =================
 const HNAMES = ['Dust Devil', 'Velvet Thunder', 'Neon Gambler', 'Copper Kettle', 'Lucky Strike', 'Midnight Ledger', 'Silk Road', 'Second Mortgage', 'Paper Tiger', 'Sundown Kid', 'Golden Parachute', 'Big Sky Betty', 'Iron Mule', 'Hot Tip', 'Wildcat Stock', 'Offshore Account', 'Blue Chip', 'Long Odds', 'Sugar Daddy', 'Rusty Spur', 'Pocket Aces', 'Mister Tuesday', 'Quiet Money', 'Last Call'];
@@ -110,7 +135,7 @@ function drawHorse(x, y, a, h, v) { const g = ctx, gal = v > 30, ph = G.t * (gal
   g.fillStyle = shade(h.coat, .5); g.fillRect(14, -1.5, 9, 3); g.strokeStyle = shade(h.coat, .45); g.lineWidth = 3.5; g.beginPath(); g.moveTo(-17, 0); g.quadraticCurveTo(-25, gal ? Math.sin(ph) * 4 : 2, -29, gal ? Math.sin(ph * .8) * 5 : 4); g.stroke();
   g.fillStyle = '#fff'; g.fillRect(-6, -8, 10, 16); g.fillStyle = h.silk; g.fillRect(-5, -7, 8, 14); g.fillStyle = h.silk === '#f5f5f5' ? '#111' : '#fff'; g.font = 'bold 8px Rubik, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(h.num, -1, 0);
   g.fillStyle = h.silk; g.beginPath(); g.ellipse(3, 0, 5, 4.5, 0, 0, TAU); g.fill(); g.fillStyle = '#222'; g.beginPath(); g.arc(7, 0, 3, 0, TAU); g.fill(); g.restore(); }
-{ const _dg = drawGaragePads; drawGaragePads = function () { _dg(); drawDowns(); }; }
+{ const _dg = drawGaragePads; drawGaragePads = function () { _dg(); drawDowns(); if (G.scene || !W.pools) return; const g = ctx; for (const p of W.pools) { if (!inView(p.x + p.w / 2, p.y + p.h / 2, 200)) continue; g.fillStyle = '#e0e0e0'; rr(g, p.x - 6, p.y - 6, p.w + 12, p.h + 12, 10); g.fill(); g.fillStyle = '#29b6f6'; rr(g, p.x, p.y, p.w, p.h, 8); g.fill(); g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 2; const o = Math.sin(G.t * 1.5) * 6; g.beginPath(); g.moveTo(p.x + 14 + o, p.y + 16); g.lineTo(p.x + 40 + o, p.y + 12); g.moveTo(p.x + p.w - 50 - o, p.y + p.h - 18); g.lineTo(p.x + p.w - 22 - o, p.y + p.h - 22); g.stroke(); } }; }
 // ---------- betting at the tote window (outside) or inside the clubhouse ----------
 const STAKES = [100, 250, 500, 1000, 2500];
 PMODES.downs = function (H) { const P = this, R = hrRace(); H.title.textContent = '🏇 Varro Downs — Tote'; if (!R) return H.empty(H.col('Closed'), 'No races today.');

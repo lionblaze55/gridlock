@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.78
+- One look for every menu: stores, the pawn shop, gun shop, markets, pets, bars, furniture, yard, parts orders, the online shop, aviation and more show what they sell as icon tiles with price badges. Tap one for a detail card with its actions (a bottom sheet on phones held upright). Sheets now hug their content instead of always filling half the screen.
+- Gun shop redesigned into one grid with category chips (guns, muzzle, optics, lasers, mags, barrels, grips, stocks, ammo…): tap a gun for a card with its art, stats and Buy/Customize, or an attachment to buy it for your bench. Every gun attachment has a drawn icon and a description, including on the home gun bench.
+- Garage › Vehicles: fitted parts are icon tiles too.
+- Horse racing moved into the casino: the Race book now shows the race running live on a big screen (same race for everyone in a room). High rollers in the casino sell race tips (right about 60% of the time) and offer the other back-room deals. The world racetrack is gone.
+- Golf controls reworked: tap or drag on the course to aim, the stick and ◀ ▶ buttons for fine aim, a power meter that fills once and then fades if you hold too long, a blue mark showing the power that reaches the pin, a putter scaled to the putt, yardage on the aim reticle, and a camera that frames each shot.
+- Maple Grove: a new suburb just south of the city with family homes, driveways with cars, fenced back yards, swimming pools and a little park.
+- Cars look like themselves: per-model body shapes, headlights and tail lights in different styles, two-tone roofs, chrome, stripes and trim, so models are easy to tell apart.
+- Six new cars (Pocket kei car, Bel Aire 57 classic with fins, Volta electric, Breeze convertible, Bruiser 70 muscle car, Civita commuter) and five vans (Voyager minivan, Wanderer camper, Tradesman work van, Mr. Frosty ice cream van with its tune, Varro Shuttle).
+- No hood, no secret: a car missing a body panel shows its engine bay: inline fours, V6/V8 banks, a supercharger, a turbo, an electric motor, or an empty bay.
+- "Straight pipe" is no longer a part you buy: take the exhaust system off and the car runs straight-piped and sounds it. Old straight-piped cars convert automatically.
+
 ## 1.77
 - The map is bigger: the Far Shore, a strip of new land east and south across The Narrows, reached by eight bridges. It holds Port Calloway (a new town with bars and shops), Seabreeze Plains, Windward Farms (new farms for sale), Cedar Hollow, Mirror Lake, Cider Hills, Granite Bluff and Driftwood Beach. The existing world is untouched, so saves and owned properties carry over.
 - Varro Downs: a horse racetrack with a grandstand and crowd, rails, finish post, starting gate, tote board and the Varro Downs Clubhouse bar. A race every ~2 minutes: six drawn horses with silks and numbers gallop two laps, with commentary and a live ticker. Bet Win or Place at the tote window or inside the clubhouse (2 tickets per race, $2,500 max each); payouts are automatic. The house keeps ~15%.

@@ -16,7 +16,7 @@ Snd.exhLoops = function () { const c = this.ctx, L = this.L; if (L.rasp) return;
 { const upd = Snd.update; Snd.update = function (dt) { upd.call(this, dt); if (!this.ctx || !this.L.engine) return; this.exhLoops(); const c = this.ctx, t = c.currentTime, L = this.L, R = L.rasp, E = L.exh, e = L.engine, set = (p, v, k) => p.setTargetAtTime(v, t, k || .05);
   const car = G.mode === 'play' ? pCar() : null;
   if (!car || car.dead || car.d.pedal || car.st.ev || car.d.boat || G.scene && !car) { set(R.g.gain, 0, .08); set(R.lg.gain, 0); return; }
-  const m = car.mods || {}, ex = clamp(m.exh | 0, 0, 3), P = EXHP[ex], rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0, ty = car.type;
+  const m = car.mods || {}, ex = exhTier(car), P = EXHP[ex], rpm = e.lastRpm || 0, thr = car.throttle > 0 ? car.throttle : 0, ty = car.type;
   const base = car.st.eb || car.d.eb || (ty === 'truck' || ty === 'swat' ? 24 : ty === 'van' || ty === 'pickup' ? 30 : ty === 'sports' ? 44 : ty === 'muscle' ? 30 : 36), f = base + rpm * base * 2.4;
   // muffler: re-voice the main engine tone
   set(e.f.frequency, (260 + rpm * 1000 + (thr ? 400 : 0) + (ty === 'sports' ? 500 : 0)) * P.muf, .06);
@@ -34,5 +34,5 @@ Snd.exhLoops = function () { const c = this.ctx, L = this.L; if (L.rasp) return;
   if (top && P.spit && Math.random() < dt * P.spit) this.pop(car.x, car.y, Math.random() < P.big * .5, .55);
   if (ex >= 2 && thr > .9 && rpm > .97 && Math.random() < dt * 6) this.pop(car.x, car.y, false, .45); }; }
 // pops get their own character too: straight pipe = sharp crack, race = deep bang
-{ const pop0 = Snd.pop; Snd.pop = function (x, y, big, v) { pop0.call(this, x, y, big, v); if (!this.ctx) return; const car = pCar(), ex = car && dist2(car.x, car.y, x, y) < 40 * 40 ? (car.mods || {}).exh | 0 : 0; if (ex < 2) return; const a = this.att(x, y) * (v || 1); if (a < .02) return; const t = this.ctx.currentTime, o = this.out(x, y);
+{ const pop0 = Snd.pop; Snd.pop = function (x, y, big, v) { pop0.call(this, x, y, big, v); if (!this.ctx) return; const car = pCar(), ex = car && dist2(car.x, car.y, x, y) < 40 * 40 ? exhTier(car) : 0; if (ex < 2) return; const a = this.att(x, y) * (v || 1); if (a < .02) return; const t = this.ctx.currentTime, o = this.out(x, y);
   if (ex === 2) this.nz(.025, rnd(2400, 4200), 'highpass', .35 * a, t, 0, o); else if (big) this.tone('sine', 70, 30, .22, .45 * a, t, o); }; }
