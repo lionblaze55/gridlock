@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.83
+- Guns are individual items with their own parts, like cars. Every gun's bench now starts with its core parts — Frame, Barrel, Action and Feed — each with its own wear bar, ahead of the attachment slots.
+- Core parts in three grades: stock, match-grade and competition. Aftermarket barrels tighten spread and add range and damage, actions raise fire rate, magazines add capacity and reload faster; attachments stack on top. Buy & fit at a gun shop, or buy for the bench to stockpile. Swapping a part puts the old one (with its wear and grade) on your bench; spare parts can be scrapped.
+- Gun rack: spare guns are their own items. Buying a used gun you already own now offers "Keep both" — it goes on the rack at your home bench, where you can carry it instead of your current one or strip it for its barrel, action, magazine and attachments. Spares can be sold at gun shops and pawn shops.
+- Every gun tile (backpack, locker, bench) shows that gun's condition bar.
+- Armed NPCs carry their own guns: different models, random attachments and wear by who they are (cops well kept, gangs rough). Kill someone who's holding a gun and it always drops — pick it up to get that exact gun, with its wear and attachments. If you already own one you get the ammo, and a better one goes to your rack. Indoors you take it on the spot.
+- Gun shops have 3–5 armed customers, and the clerk keeps a shotgun. Fire a shot in there and everyone opens up on you.
+- Aim lock no longer snaps backwards mid-fight: it only picks threats in an arc in front of you; a threat behind you counts only at arm's length.
+
 ## 1.82
 - Gun workbenches reorganized: your guns are item tiles, not tabs. Open the bench to a grid of your guns (with drawn art and badges for fitted attachments or spare parts that fit), tap one to work on it, and use "‹ All guns" to go back. The home bench also shows your spare parts as tiles. "Customize" at the gun shop still opens that gun directly.
 
