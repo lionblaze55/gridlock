@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.82
+- Gun workbenches reorganized: your guns are item tiles, not tabs. Open the bench to a grid of your guns (with drawn art and badges for fitted attachments or spare parts that fit), tap one to work on it, and use "‹ All guns" to go back. The home bench also shows your spare parts as tiles. "Customize" at the gun shop still opens that gun directly.
+
 ## 1.81
 - Gun attachment slots no longer scroll off the side of the screen: all slots show at once in a five-across grid (two rows on a phone), on both the shop workbench and the home gun bench. Empty-slot icons are easier to see.
 
