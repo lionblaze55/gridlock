@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.81
+- Gun attachment slots no longer scroll off the side of the screen: all slots show at once in a five-across grid (two rows on a phone), on both the shop workbench and the home gun bench. Empty-slot icons are easier to see.
+
 ## 1.80
 - Menu overhaul after a full audit of every screen on a phone. One rule everywhere: things (items, guns, attachments, parts, furniture) are icon tiles; places, jobs, services and listings are compact lists with filter chips and drill-in submenus; anything that is a thing shows its drawn icon in lists too.
 - Gun attachments (shop workbench and home bench): a slot strip, the options for the selected slot as icon tiles, and one card with Buy & fit / Fit / Take off — all on one screen, no scrolling.
