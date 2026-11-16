@@ -32,7 +32,7 @@ function dropItem(id, n) { const p = G.player, o = G.scene ? G.outPos : p; for (
 function giveLoot(id, text) { const it = ITEMS[id]; if (invAdd(id, 1, 1)) { Snd.play('pickup'); toast(text || ('Found: ' + it.n + '  (worth ' + money(it.v) + ')')); } else { dropItem(id, 1); toast('Bag full — ' + it.n + ' left on the ground'); } }
 function useInv0(id) {
   const it = ITEMS[id], p = G.player; if (!G.inv[id]) return;
-  if (it.heal) { if (p.hp >= 100 && !it.drunk) return toast('Already at full health'); heal(it.heal); if (it.drunk) G.drunk = Math.min(40, G.drunk + it.drunk); Snd.play(it.k === 'med' ? 'heal' : 'munch'); invDel(id); toast(it.n + '  +' + it.heal + ' HP'); }
+  if (it.heal) { if (p.hp >= 100 && !it.drunk) return toast('Already at full health'); heal(it.heal); if (it.drunk) drink(it.drunk * .0028); Snd.play(it.k === 'med' ? 'heal' : 'munch'); invDel(id); toast(it.n + '  +' + it.heal + ' HP'); }
   else if (it.armor) { if (p.armor >= 100) return toast('Armor already full'); p.armor = 100; Snd.play('armor'); invDel(id); toast('Armor vest on'); }
   else if (it.repair) { const c = p.car || nearestCar(50); if (!c) return toast('Stand next to a car to use this'); c.hp = c.st.hp; c.fireT = 0; c.flat = 0; Snd.play('ratchet'); invDel(id); toast(c.d.name + ' repaired'); }
   else toast(it.k === 'drug' ? 'Sell it to a street dealer.' : it.k === 'loot' ? 'Sell it at a pawn shop.' : 'Nothing to do with that here.');

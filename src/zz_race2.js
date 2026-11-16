@@ -10,7 +10,7 @@ const NEON = ['#ff1744', '#00e5ff', '#76ff03', '#ffea00', '#d500f9', '#ff9100', 
 
 // ---------------- Pinewood Raceway: two empty country blocks near town become an asphalt ring ----------------
 function trackGen() { W.track = null; const empty = b => { if (!RURALSET.has(b.d)) return false; for (let y = b.by; y < b.by + 12; y++) for (let x = b.bx; x < b.bx + 12; x++) { const t = W.tile[idx(x, y)]; if (t === TILE.BLD || t === TILE.WATER || W.solid[idx(x, y)]) return false; } return !W.buildings.some(B => B.door && B.door.x > b.bx * T - T && B.door.x < (b.bx + 13) * T && B.door.y > b.by * T - T && B.door.y < (b.by + 13) * T); };
-  const ref = W.meet || { x: NR * RSP * T / 2, y: NR * RSP * T / 2 }; let best = null;
+  const ref = W.meet || { x: 27 * RSP * T / 2, y: 27 * RSP * T / 2 }; let best = null;
   for (const a of W.blocks) { if (!empty(a)) continue; const b = W.blocks.find(o => o.bi === a.bi + 1 && o.bj === a.bj); if (!b || !empty(b)) continue; const d = dist2((a.bx + 14) * T, (a.by + 6) * T, ref.x, ref.y); if (!best || d < best.d) best = { a, b, d }; }
   if (!best) return; const x0 = best.a.bx, x1 = best.b.bx + 11, y0 = best.a.by, y1 = best.a.by + 11;
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const k = idx(x, y), t = W.tile[k]; if (t === TILE.ROAD || t === TILE.WALK) continue; const ring = x >= x0 + 1 && x <= x1 - 1 && y >= y0 + 1 && y <= y1 - 1 && (x <= x0 + 2 || x >= x1 - 2 || y <= y0 + 2 || y >= y1 - 2); W.tile[k] = ring ? TILE.LOT : TILE.GRASS; markTile(x, y); if (ring && TIMGI.lot0 !== undefined) W.timg[k] = TIMGI.lot0; }

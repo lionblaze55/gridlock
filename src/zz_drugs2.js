@@ -13,7 +13,7 @@ LABREC.push({ id: 'syrup', ing: { supplies: 2 }, out: 3, diff: 1.2, note: 'Cough
 // ---------- more lab properties (one per new product) ----------
 function addLabs2() { if (!W || !W.realty || W._labs2) return; W._labs2 = 1; const used = new Set();
   for (const [drug, pr, nm, types] of [['caps', 40000, 'Mushroom Cellar', ['barn', 'warehouse']], ['syrup', 70000, 'Syrup Works', ['warehouse', 'factory']], ['frost', 120000, 'Frost Lockup', ['warehouse', 'factory']], ['velvet', 200000, 'Velvet Lab', ['warehouse', 'factory', 'office']]]) {
-    const C = W.buildings.filter(b => types.includes(b.type) && b.door && !b.realty && !used.has(b.id) && !inBase(b.door.x, b.door.y)).sort((a, b) => hash01(nm + a.id) - hash01(nm + b.id)); const b = C[0]; if (!b) continue; used.add(b.id);
+    const C = W.buildings.filter(b => types.includes(b.type) && b.door && !b.realty && !used.has(b.id) && !(W.nOld !== undefined && b.id >= W.nOld) && !inBase(b.door.x, b.door.y)).sort((a, b) => hash01(nm + a.id) - hash01(nm + b.id)); const b = C[0]; if (!b) continue; used.add(b.id);
     b.name = nm; b.locked = 1; b.realty = { id: b.id, name: nm, kind: 'lab', price: pr, drug }; W.realty.push(b.realty); } }
 { const _er = econRealty; econRealty = function () { _er(); addLabs2(); }; }
 // ---------- the lab as a business ----------

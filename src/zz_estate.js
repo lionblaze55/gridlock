@@ -58,7 +58,7 @@ const myPlaces = () => { const out = [], a = aptB(); if (a && aptMine()) out.pus
 
 // ---------- the Ironwood Bunker: a hardened hideout in the woods ----------
 const CABINS = /^(Hunting Cabin|Trapper's Cabin|Ranger Cabin|Old Cabin)$/;
-function bunkerGen() { const C = W.buildings.filter(b => b.door && b.type === 'home' && !b.realty && CABINS.test(b.name)); if (!C.length) return; const cx = NR * RSP * T * .35, cy = NR * RSP * T * .35;
+function bunkerGen() { const C = W.buildings.filter(b => b.door && b.type === 'home' && !b.realty && CABINS.test(b.name)); if (!C.length) return; const cx = 27 * RSP * T * .35, cy = 27 * RSP * T * .35;
   C.sort((a, b) => dist2(a.door.x, a.door.y, cx, cy) - dist2(b.door.x, b.door.y, cx, cy)); const b = C[Math.floor(C.length * .5)];
   b.name = 'Ironwood Bunker'; b.bunker = 1; b.locked = 1; b.realty = { id: b.id, name: b.name, kind: 'bunker', price: 450000 }; W.realty.push(b.realty); W.bunker = b;
   killProps(p => p.x > b.x * T - 80 && p.x < (b.x + b.w) * T + 80 && p.y > b.y * T - 80 && p.y < (b.y + b.h) * T + 80 && !TALLP[p.t] && p.t !== 'tree'); }

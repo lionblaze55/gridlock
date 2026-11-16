@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.77
+- The map is bigger: the Far Shore, a strip of new land east and south across The Narrows, reached by eight bridges. It holds Port Calloway (a new town with bars and shops), Seabreeze Plains, Windward Farms (new farms for sale), Cedar Hollow, Mirror Lake, Cider Hills, Granite Bluff and Driftwood Beach. The existing world is untouched, so saves and owned properties carry over.
+- Varro Downs: a horse racetrack with a grandstand and crowd, rails, finish post, starting gate, tote board and the Varro Downs Clubhouse bar. A race every ~2 minutes: six drawn horses with silks and numbers gallop two laps, with commentary and a live ticker. Bet Win or Place at the tote window or inside the clubhouse (2 tickets per race, $2,500 max each); payouts are automatic. The house keeps ~15%.
+- Varro Links: a playable 9-hole golf course (par 35) with fairways, greens, bunkers, water hazards and trees. Aim with the stick, change club, hold SWING to charge power and release; wind, lies (tee, fairway, rough, sand, green), penalties for water and out of bounds, lip-outs, a scorecard and birdie/eagle calls. $150 green fee at the Starter.
+- Club members at the racetrack and golf course chat about shady deals among themselves and offer you a cut: race-fix tips (they work about 60% of the time), 5-minute land flips (grease the inspector for better odds), leaning on a business owner to buy his shop 30% under asking (extortion heat, he may pull a shotgun), briefcase courier runs (sometimes a police sting) and golf wagers. Balanced to beat regular jobs on average but with real losses and heat; offers are rationed with cooldowns and stake caps.
+- Alcohol: every bar has a drinks menu (beer, IPA, wine, vodka, whiskey, tequila, cocktails, moonshine, a round for the bar, water, coffee) plus bottles to go. Blood alcohol drives the effects: buzzed (shrug off some damage), tipsy/drunk (double vision, tunnel vision, swaying, wobbly aim and steering), wasted (you may throw up), 0.30+ blackout (wake up somewhere else hours later, maybe robbed). Drunk driving near cops is a DUI. Heavy nights leave a hangover. Drinks at a bar you own are on the house.
+- Everything you own shows in green on the map and minimap: icons and building footprints.
+
 ## 1.76
 - Sell anything you own: homes, farms, businesses, nightclubs, drug labs, the bunker and your first apartment. Sell buttons are in Phone › Property › Mine (a full list, plus one on each property's own page) and in Property › For sale under "Yours — sell".
 - Every sale asks twice: a first screen spells out what you get (70% of value plus whatever is in the safe), the garage space you lose, where stored cars go and what stays behind; then a final "Yes, sell it" confirmation.

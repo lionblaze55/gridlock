@@ -21,7 +21,7 @@ function bigCountry() {
   const P = (t, x, y, ex) => addProp(t, x * T, y * T, ex);
   W.nodeOff = W.nodeOff || new Set(); const n0 = W.buildings.length;
   // 1. ground, roads, the Sound and its bridges
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (!isNewT(x, y)) continue; if (inSound(x, y)) { setT(x, y, TILE.WATER); continue; } setT(x, y, isRoadCol(x) || isRoadRow(y) ? TILE.ROAD : TILE.GRASS); }
+  for (let y = 0; y < NOLD; y++) for (let x = 0; x < NOLD; x++) { if (!isNewT(x, y)) continue; if (inSound(x, y)) { setT(x, y, TILE.WATER); continue; } setT(x, y, isRoadCol(x) || isRoadRow(y) ? TILE.ROAD : TILE.GRASS); }
   for (const j of BRIDGE_ROWS) for (let y = j * RSP; y < j * RSP + 4; y++) for (let x = N0; x < N0 + 16; x++) setT(x, y, TILE.ROAD);
   for (const i of BRIDGE_COLS) for (let x = i * RSP; x < i * RSP + 4; x++) for (let y = N0; y < N0 + 16; y++) setT(x, y, TILE.ROAD);
   W.bridges = { rows: BRIDGE_ROWS, cols: BRIDGE_COLS };
@@ -29,15 +29,15 @@ function bigCountry() {
   // 2. merge blocks into big open lots: estates (2x2), ranches (3x2), and wherever 2x2 of prairie / forest / lake line up
   const code = (bi, bj) => (EXTMAP[bj] || '')[bi] || '.', used = new Set(), megas = [];
   const tryRect = (bi, bj, w, h, ch) => { for (let y = bj; y < bj + h; y++) for (let x = bi; x < bi + w; x++) if (code(x, y) !== ch || used.has(x + ',' + y) || (x < NB0 && y < NB0)) return false; for (let y = bj; y < bj + h; y++) for (let x = bi; x < bi + w; x++) used.add(x + ',' + y); megas.push({ bi, bj, w, h, ch }); return true; };
-  for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) { const c = code(bi, bj); if (c === 'R') tryRect(bi, bj, 3, 2, 'R'); else if (c === 'E') tryRect(bi, bj, 2, 2, 'E'); }
-  for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) { const c = code(bi, bj); if ('PWL'.includes(c) && !used.has(bi + ',' + bj)) tryRect(bi, bj, 2, 2, c); }
+  for (let bj = 0; bj < NBX; bj++) for (let bi = 0; bi < NBX; bi++) { const c = code(bi, bj); if (c === 'R') tryRect(bi, bj, 3, 2, 'R'); else if (c === 'E') tryRect(bi, bj, 2, 2, 'E'); }
+  for (let bj = 0; bj < NBX; bj++) for (let bi = 0; bi < NBX; bi++) { const c = code(bi, bj); if ('PWL'.includes(c) && !used.has(bi + ',' + bj)) tryRect(bi, bj, 2, 2, c); }
   for (const M of megas) { M.x0 = M.bi * RSP + 4; M.y0 = M.bj * RSP + 4; M.x1 = (M.bi + M.w) * RSP; M.y1 = (M.bj + M.h) * RSP; // tiles [x0,x1) x [y0,y1)
     for (let y = M.y0; y < M.y1; y++) for (let x = M.x0; x < M.x1; x++) setT(x, y, TILE.GRASS);
     for (let j = M.bj + 1; j < M.bj + M.h; j++) for (let i = M.bi + 1; i < M.bi + M.w; i++) W.nodeOff.add(j * NR + i);
     for (let j = M.bj; j < M.bj + M.h; j++) for (let i = M.bi; i < M.bi + M.w; i++) W.blocks.push({ bi: i, bj: j, bx: i * RSP + 4, by: j * RSP + 4, d: EXTCODE[M.ch], li: i, mega: M }); }
   // 3. ordinary blocks: towns, orchards, quarries, beaches use the existing generators; prairie / forest / lake singles get the open-country treatment
   const singles = [];
-  for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) { if (bi < NB0 && bj < NB0) continue; const c = code(bi, bj); if (c === 'S' || used.has(bi + ',' + bj)) continue; const k = EXTCODE[c] || 'prairie';
+  for (let bj = 0; bj < NBX; bj++) for (let bi = 0; bi < NBX; bi++) { if (bi < NB0 && bj < NB0) continue; const c = code(bi, bj); if (c === 'S' || used.has(bi + ',' + bj)) continue; const k = EXTCODE[c] || 'prairie';
     if ('PWL'.includes(c)) { const M = { bi, bj, w: 1, h: 1, ch: c, x0: bi * RSP + 4, y0: bj * RSP + 4, x1: bi * RSP + 16, y1: bj * RSP + 16 }; W.blocks.push({ bi, bj, bx: M.x0, by: M.y0, d: k, li: bi, mega: M }); singles.push(M); continue; }
     const nb = W.buildings.length; GENALIAS = 1; genBlock(bi, bj, rng, rr); GENALIAS = 0; W.blocks[W.blocks.length - 1].d = k; for (let i = nb; i < W.buildings.length; i++) { const b = W.buildings[i]; b.d = k; for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) W.solid[idx(x, y)] = 1; } }
   const mkB = (x, y, w, h, wall, H, type, name, d, face) => { if (W.buildings.some(b => !b.gone && x < b.x + b.w + 1 && x + w + 1 > b.x && y < b.y + b.h + 1 && y + h + 1 > b.y)) return null; const b = makeBuilding({ x, y, w, h }, d, { H: [H, H], walls: [wall] }, rng, rr); b.type = type; b.name = name; b.d = d; for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) W.solid[idx(xx, yy)] = 1; doorOn(b, face); return b; };
@@ -90,8 +90,9 @@ function bigCountry() {
   assignDoors(rng, n0);
   for (const [d, nm] of [['town3', 'Copper Springs Market'], ['town4', 'Eastport Market'], ['town5', 'Bluebell Market']]) { const b = W.buildings.find(b => b.id >= n0 && b.type === 'store' && !b.sub && b.door && b.d === d); if (b) { b.sub = 'market'; b.name = nm; } }
   for (const [n, bi, bj] of [['BIG SKY COUNTRY', 21, 9], ['VARRO SOUND', 16.5, 7], ['Copper Springs', 18, 3.5], ['Eastport', 18, 13.5], ['Bluebell', 9, 18.5], ['Longhorn Range', 7.5, 20.2], ['Elk Ridge Forest', 23.5, 1.5], ['Silver Lake', 24, 15.2], ['Sunset Orchards', 23.5, 5], ['Red Rock Quarry', 23.5, 9.5], ['Golden Sands', 12, 25.4], ['Silver Lake', 3, 19.8], ['Elk Ridge Forest', 11, 21.5], ['Big Sky Prairie', 2, 23.2], ['Big Sky Prairie', 15.5, 22.5]]) W.labels.push({ n, x: bi * RSP + 4, y: bj * RSP + 4, big: 2 });
-  const cand = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isNewT(x, y) && (W.tile[idx(x, y)] === TILE.DIRT || W.tile[idx(x, y)] === TILE.PATH) && !W.solid[idx(x, y)]) cand.push([x, y]);
+  const cand = []; for (let y = 0; y < NOLD; y++) for (let x = 0; x < NOLD; x++) if (isNewT(x, y) && (W.tile[idx(x, y)] === TILE.DIRT || W.tile[idx(x, y)] === TILE.PATH) && !W.solid[idx(x, y)]) cand.push([x, y]);
   for (let i = 0; i < 26 && cand.length; i++) { const [x, y] = cand.splice(Math.floor(rng() * cand.length), 1)[0]; W.pickupSpots.push({ x: (x + .5) * T, y: (y + .5) * T, t: pk(['health', 'pistol', 'shotgun', 'cash', 'armor', 'rifle', 'health', 'cash']), next: 0, alive: true }); }
   buildRail();
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (isNewT(x, y)) markTile(x, y);
+  for (let y = 0; y < NOLD; y++) for (let x = 0; x < NOLD; x++) if (isNewT(x, y)) markTile(x, y);
+  W._bc = { prairie, forest, lake, estate, mkB, scatter, pond, setT, P, rng, rr, R, pk };
 }

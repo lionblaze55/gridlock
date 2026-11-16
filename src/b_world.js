@@ -1,5 +1,5 @@
 // ================= WORLD / CITY GENERATION =================
-const N = 420, N0 = 260, NB0 = 16, RSP = 16, NB = 26, CITYX = 4, OX = 4, OY = 4; // the original 12x12 world sits at block offset (OX, OY); new land lies north and west of it
+const N = 484, NOLD = 420, NBX = 26, N0 = 260, NB0 = 16, RSP = 16, NB = 30, CITYX = 4, OX = 4, OY = 4; // the original 12x12 world sits at block offset (OX, OY); new land lies north and west of it
 const W = {
   tile: new Uint8Array(N * N), timg: new Uint16Array(N * N), solid: new Uint8Array(N * N), bmap: new Int16Array(N * N).fill(-1),
   rur: new Uint8Array(N * N), ruralSpots: [], buildings: [], props: [], pgrid: new Array(N * N), pickupSpots: [], phones: [], sprays: [], parkSpots: [], blocks: [],
@@ -46,6 +46,7 @@ const NEWMAP = ['XXwwfwwlSSSSSSSD', 'XXwfttfwSSSPSSSD', 'wwqfttfoIIMMMMSD', 'wlw
 const NEWCODE = { f: 'farmland2', w: 'woods2', l: 'lake2', t: 'town2', r: 'trailer2', q: 'quarry2', j: 'junkyard2', b: 'coast2', o: 'orchard2', h: 'ranch2', D: 'docks2', I: 'industrial2', S: 'suburbs2', M: 'midtown2', P: 'park2', X: 'base' };
 let GENALIAS = 0;
 function districtFor(bi, bj) {
+  if (bi >= NBX || bj >= NBX) { const k = FARCODE[farCh(bi, bj)] || 'prairie4'; return GENALIAS ? (DISTRICTS[k].as || k) : k; }
   if (bi >= NB0 || bj >= NB0) { const k = EXTCODE[(EXTMAP[bj] || '')[bi]] || 'prairie'; return GENALIAS ? (DISTRICTS[k].as || k) : k; }
   if (bi < OX || bj < OY) { const k = NEWCODE[NEWMAP[bj][bi]]; return GENALIAS ? (DISTRICTS[k].as || k) : k; }
   bi -= OX; bj -= OY;

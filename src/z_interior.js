@@ -129,7 +129,7 @@ function clutterUse(it) {
     case 'sink': heal(2); Snd.play('splash'); toast('Washed up'); return true;
     case 'tub': heal(15); Snd.play('splash'); toast('Nice long soak  +15 health'); return true;
     case 'armchair': case 'bench2': toast('You take a seat for a moment'); heal(2); return true;
-    case 'keg': if (pay(5)) { heal(4); G.drunk += 6; Snd.play('pour'); toast('Cold one.'); } return true;
+    case 'keg': if (pay(5)) { heal(4); drink(.022); Snd.play('pour'); toast('Cold one.'); } return true;
     case 'claw': if (pay(2)) { if (Math.random() < .15) { toast('You won a plush toy!'); Snd.play('mission'); } else { toast('So close…'); Snd.play('bad'); } } return true;
     case 'magrack': toast(pick(['"10 Tips for a Faster Getaway"', '"San Varro\'s Hottest Clubs"', '"Is Your Neighbor a Gangster?"', '"Tuner Monthly: Redline Special"'])); return true;
     case 'icechest': if (pay(2)) { heal(3); toast('Brain freeze.'); } return true;

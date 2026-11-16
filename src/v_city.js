@@ -206,11 +206,11 @@ function drawInstrument(q) { if (!q.inst) return; ctx.save(); ctx.translate(q.x,
 function buildRail() {
 
   // pick the fully-rural, non-base column pair that only crosses plain homes/barns (fewest of them); those get cleared
-  let best = null; for (let x0 = N0 + 18; x0 < N - 20; x0++) { if (isRoadCol(x0) || isRoadCol(x0 + 1)) continue; if (FARMS.some(f => f.estate && (x0 + 2) * T > f.x0 && x0 * T < f.x1)) continue; let rur = 0, ok = 1; const bs = new Set(); for (let y = 0; y < N && ok; y++) for (const x of [x0, x0 + 1]) { const cx = (x + .5) * T, cy = (y + .5) * T; if (inBase(cx, cy) || W.base && cx > W.base.x0 - 2 * T && cx < W.base.x1 + 2 * T && cy < W.base.y1 + 2 * T) { ok = 0; break; } if (RURALSET.has(districtAt(cx, cy))) rur++; const bi = W.bmap[idx(x, y)]; if (bi >= 0 && W.buildings[bi]) bs.add(bi); }
-    if (!ok || rur < N * 2 * .85) continue; const L = [...bs].map(k => W.buildings[k]); if (L.some(b => b.realty || b.sub || b.mc || FARMS.some(f => f.b === b))) continue; if (!best || L.length < best.L.length) best = { x0, L }; }
+  let best = null; for (let x0 = N0 + 18; x0 < NOLD - 20; x0++) { if (isRoadCol(x0) || isRoadCol(x0 + 1)) continue; if (FARMS.some(f => f.estate && (x0 + 2) * T > f.x0 && x0 * T < f.x1)) continue; let rur = 0, ok = 1; const bs = new Set(); for (let y = 0; y < NOLD && ok; y++) for (const x of [x0, x0 + 1]) { const cx = (x + .5) * T, cy = (y + .5) * T; if (inBase(cx, cy) || W.base && cx > W.base.x0 - 2 * T && cx < W.base.x1 + 2 * T && cy < W.base.y1 + 2 * T) { ok = 0; break; } if (RURALSET.has(districtAt(cx, cy))) rur++; const bi = W.bmap[idx(x, y)]; if (bi >= 0 && W.buildings[bi]) bs.add(bi); }
+    if (!ok || rur < NOLD * 2 * .85) continue; const L = [...bs].map(k => W.buildings[k]); if (L.some(b => b.realty || b.sub || b.mc || FARMS.some(f => f.b === b))) continue; if (!best || L.length < best.L.length) best = { x0, L }; }
   if (best) for (const b of best.L) { b.gone = 1; b.door = null; for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) { W.bmap[idx(x, y)] = -1; setTileX(x, y, TILE.GRASS); } killProps(p => p.x > b.x * T - 20 && p.x < (b.x + b.w) * T + 20 && p.y > b.y * T - 20 && p.y < (b.y + b.h) * T + 20); }
   if (best) { const x0 = best.x0, crossings = []; W.rail = { x0, xc: (x0 + 1) * T, crossings };
-    for (let y = 0; y < N; y++) for (const x of [x0, x0 + 1]) { const t = W.tile[idx(x, y)]; if (t === TILE.BLD) continue; if (t === TILE.ROAD) continue; if (t === TILE.WATER) { W.tile[idx(x, y)] = TILE.DIRT; } setTileX(x, y, TILE.DIRT); }
+    for (let y = 0; y < NOLD; y++) for (const x of [x0, x0 + 1]) { const t = W.tile[idx(x, y)]; if (t === TILE.BLD) continue; if (t === TILE.ROAD) continue; if (t === TILE.WATER) { W.tile[idx(x, y)] = TILE.DIRT; } setTileX(x, y, TILE.DIRT); }
     for (let j = 0; j < NR; j++) crossings.push([j * RSP * T, (j * RSP + 4) * T]);
     killProps(p => Math.abs(p.x - W.rail.xc) < T * 1.2); W.parkSpots = W.parkSpots.filter(s => Math.abs(s.x - W.rail.xc) > T * 1.5); W.ruralSpots = W.ruralSpots.filter(s => Math.abs(s.x - W.rail.xc) > T * 1.5); W.lifeSpots = W.lifeSpots.filter(s => Math.abs(s.x - W.rail.xc) > T * 1.5); }
   if (W.rail) W.rail.crossings = W.rail.crossings.filter(([y0]) => W.tile[idx(W.rail.x0 - 1, Math.floor(y0 / T) + 1)] === TILE.ROAD || W.tile[idx(W.rail.x0 + 2, Math.floor(y0 / T) + 1)] === TILE.ROAD);
@@ -243,7 +243,7 @@ function trainTick(dt) {
   if (!W.rail || G.mode !== 'play') return; const p = G.player; if (!p) return;
   if (!G.train) { if (G.trainNext === undefined) G.trainNext = G.t + 25; if (G.t > G.trainNext) { const dir = (G.trainDir = -(G.trainDir || -1)); G.train = { dir, y: dir > 0 ? -300 : N * T + 300, v: 560, len: TRAIN_LEN, horn: 0, clank: 0, cols: Array.from({ length: TRAIN_CARS - 1 }, () => pick(['#8d6e63', '#455a64', '#b71c1c', '#1565c0', '#2e7d32', '#6d4c41', '#f9a825'])), kinds: Array.from({ length: TRAIN_CARS - 1 }, () => pick(['box', 'box', 'tank', 'hopper', 'flat'])) }; } return; }
   const tr = G.train; tr.y += tr.dir * tr.v * dt; const y0 = Math.min(tr.y, tr.y - tr.dir * tr.len), y1 = Math.max(tr.y, tr.y - tr.dir * tr.len), xc = W.rail.xc;
-  if ((tr.dir > 0 && y0 > N * T + 200) || (tr.dir < 0 && y1 < -200)) { G.train = null; G.trainNext = G.t + rnd(120, 200); return; }
+  if ((tr.dir > 0 && y0 > NOLD * T + 200) || (tr.dir < 0 && y1 < -200)) { G.train = null; G.trainNext = G.t + rnd(120, 200); return; }
   const px = pCar() ? pCar().x : p.x, py = pCar() ? pCar().y : p.y, dP = Math.abs(px - xc) + Math.max(0, Math.abs(py - (y0 + y1) / 2) - tr.len / 2);
   tr.horn -= dt; if (dP < 1100 && tr.horn <= 0 && !G.scene) { tr.horn = rnd(5, 9); Snd.play('trainhorn', xc, clamp(py, y0, y1)); }
   tr.clank -= dt; if (dP < 900 && tr.clank <= 0 && !G.scene) { tr.clank = .28; Snd.play('clank', xc, clamp(py, y0, y1), .35); }
@@ -257,7 +257,7 @@ function trainTick(dt) {
 function railBlock(c) { const tr = G.train; if (!tr || !W.rail) return false; const xc = W.rail.xc, dx = xc - c.x; if (Math.abs(dx) > 300 || Math.abs(dx) < 70 || dx * Math.cos(c.a) <= 0) return false; const y0 = Math.min(tr.y, tr.y - tr.dir * tr.len) - 900, y1 = Math.max(tr.y, tr.y - tr.dir * tr.len) + 400; return c.y > y0 && c.y < y1; }
 function drawRail() {
   if (!W.rail || G.scene) return; const [vx0, vy0, vx1, vy1] = viewRect(T), xc = W.rail.xc; if (xc < vx0 - 100 || xc > vx1 + 100) return;
-  const ya = Math.max(0, vy0 - 40), yb = Math.min(N * T, vy1 + 40); ctx.fillStyle = '#6b6259'; ctx.fillRect(xc - 40, ya, 80, yb - ya); ctx.fillStyle = '#4e342e'; for (let y = Math.floor(ya / 22) * 22; y < yb; y += 22) ctx.fillRect(xc - 32, y, 64, 9);
+  const ya = Math.max(0, vy0 - 40), yb = Math.min(NOLD * T, vy1 + 40); ctx.fillStyle = '#6b6259'; ctx.fillRect(xc - 40, ya, 80, yb - ya); ctx.fillStyle = '#4e342e'; for (let y = Math.floor(ya / 22) * 22; y < yb; y += 22) ctx.fillRect(xc - 32, y, 64, 9);
   ctx.fillStyle = '#9ea7ad'; ctx.fillRect(xc - 20, ya, 5, yb - ya); ctx.fillRect(xc + 15, ya, 5, yb - ya); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(xc - 19, ya, 1.5, yb - ya); ctx.fillRect(xc + 16, ya, 1.5, yb - ya);
   const tr = G.train, near = tr ? [Math.min(tr.y, tr.y - tr.dir * tr.len) - 900, Math.max(tr.y, tr.y - tr.dir * tr.len) + 500] : null;
   for (const [cy0, cy1] of W.rail.crossings) { if (cy1 < vy0 - 60 || cy0 > vy1 + 60) continue; const on = near && cy1 > near[0] && cy0 < near[1], fl = Math.floor(G.t * 3) % 2;
