@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.80
+- Menu overhaul after a full audit of every screen on a phone. One rule everywhere: things (items, guns, attachments, parts, furniture) are icon tiles; places, jobs, services and listings are compact lists with filter chips and drill-in submenus; anything that is a thing shows its drawn icon in lists too.
+- Gun attachments (shop workbench and home bench): a slot strip, the options for the selected slot as icon tiles, and one card with Buy & fit / Fit / Take off — all on one screen, no scrolling.
+- Car customs: every option is an icon tile. The garage's Add/Swap part picker is tiles with a card.
+- Phone › Property › For sale: a compact list with kind filters (homes, businesses, clubs, labs, farms, bunker). Property › Mine: a short list of what you own; tap one to open its own page with management and Sell, and a Back button.
+- Aviation, pets, gun repair and gun selling are compact lists again (they need their descriptions). Long shops (parts catalogue, courier shop, vehicles) get a section switcher on phones instead of one endless scroll.
+- Fixed: two cars of the same model in a garage were both selected when you tapped one.
+
 ## 1.79
 - Police air support only joins at 5 wanted stars (was 3), and its door gunner hits less often. It peels away once you're down to 3 stars.
 - The police chopper is much easier to bring down: 110 HP (about a rifle magazine), aim lock now picks it up (high priority, longer range, no line-of-sight needed since it's in the air), and your shots hit it over rooftops with a hit area the size of its rotor.

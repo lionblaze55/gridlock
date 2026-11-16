@@ -45,7 +45,7 @@ function garCarObj(it) { const r = myCars().find(r => r.id === it.rid); if (!r) 
   const empty = slot === 'eng' ? t.noEng : slot.startsWith('m:') ? !(t.mods[slot.slice(2)] | 0) : (t.missing[slot] | 0) > 0;
   box.appendChild(H.mk('div', 'ptitle', (empty ? 'Add: ' : 'Swap: ') + slotName(slot) + ' — ' + t.d.name));
   G._pk = 1; try { looseRows(H, box, t, engIdOf(t.type, t.mods, t.noEng), stockEng(t.type), reqOf(t.type), t.missing, t.mods); } finally { G._pk = 0; }
-  box.querySelectorAll('.prow').forEach((x, i) => { if (i === 0) return x.remove(); x.classList.add('pmsg'); x.querySelectorAll('button').forEach(b => { b.style.minHeight = '40px'; b.style.minWidth = '72px'; b.style.fontSize = '14px'; }); });
+  { const f = box.querySelector('.prow'); if (f && !f.querySelector('.pbs button')) f.remove(); } const psel = unifyCol(this, H, box, 0, 'pk'); if (psel) { const cd = unifyCard(H, psel); cd.classList.remove('gdet'); cd.classList.add('gdet2'); box.appendChild(cd); } box.querySelectorAll('.prow').forEach(x => { x.classList.add('pmsg'); });
   box.addEventListener('click', ev => { if (ev.target.tagName === 'BUTTON' && /^(Fit|Swap)/.test(ev.target.textContent)) Panel.slot = null; }, true);
   const cb = H.btn('Close', () => { Panel.slot = null; }); cb.style.cssText = 'width:100%;min-height:44px;margin-top:8px;font-size:15px'; box.appendChild(cb);
   ov.addEventListener('click', ev => { if (ev.target === ov) { Panel.slot = null; Panel.render(); } }); ov.appendChild(box); H.el.appendChild(ov); return r; }; }
