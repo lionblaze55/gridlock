@@ -45,7 +45,7 @@ function fireHitscan(shooter, x, y, a, w, isPlayerShot, net) {
   for (const p of peds) { if (p === shooter || p.dead) continue; const t = rayCircle(x, y, dx, dy, p.x, p.y, p.r + (isPlayerShot ? (p === LT ? 14 : 5) : 2)); if (t >= 0 && t < bt) { bt = t; best = p; } }
   const pl = G.player;
   if (pl && !pl.dead && !pl.car && shooter !== pl) { const t = rayCircle(x, y, dx, dy, pl.x, pl.y, pl.r + 2); if (t >= 0 && t < bt) { bt = t; best = pl; } }
-  if (!G.scene) for (const c of G.cars) { if (c === (shooter && shooter.car)) continue; for (const [cx, cy] of c.circles()) { const t = rayCircle(x, y, dx, dy, cx, cy, c.W / 2 + (c === LT ? 8 : 0)); if (t >= 0 && t < bt) { bt = t; best = c; } } }
+  if (!G.scene) for (const c of G.cars) { if (c === (shooter && shooter.car)) continue; const air = (c.alt || 0) > .02; if (air) { if (!isPlayerShot) continue; const t = rayCircle(x, y, dx, dy, c.x, c.y, (c.copHeli ? 26 : c.W / 2 + 6) * (1 + c.alt * .45) + (c === LT ? 10 : 0)); if (t >= 0 && t < (best ? bt : range)) { bt = t; best = c; } continue; } for (const [cx, cy] of c.circles()) { const t = rayCircle(x, y, dx, dy, cx, cy, c.W / 2 + (c === LT ? 8 : 0)); if (t >= 0 && t < bt) { bt = t; best = c; } } }
   { const ah = animalRayHit(x, y, dx, dy, bt); if (ah) { best = ah[0]; bt = ah[1]; } }
   if (isPlayerShot) for (const r of Net.remoteTargets()) { const t = rayCircle(x, y, dx, dy, r.x, r.y, r.rad); if (t >= 0 && t < bt) { bt = t; best = r; } }
   const hx = x + dx * bt, hy = y + dy * bt;

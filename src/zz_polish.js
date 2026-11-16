@@ -43,14 +43,14 @@ chargeFine = function (e) { const mult = Math.min(4, 1 + (e.n - 1) * .5); for (c
 const AL = { t: null, held: 0, last: -9, gone: 0 };
 function pickFresh(a, range, mode) { const p = G.player, [ox, oy] = aimOrigin(), peds = G.scene ? G.scene.peds : G.peds; let best = null, bs = 1e9;
   G.hostNear = peds.some(q => !q.dead && isHostileT(q) && dist2(q.x, q.y, ox, oy) < range * range * 1.3);
-  const consider = (q, kind) => { const d = dist(ox, oy, q.x, q.y); if (d > range || d < 4) return; if (!losClear(ox, oy, q.x, q.y)) return; const da = Math.abs(angDiff(a, Math.atan2(q.y - oy, q.x - ox))), hostile = kind === 'car' ? true : isHostileT(q);
+  const consider = (q, kind) => { const air = q.copHeli && (q.alt || 0) > .02, d = dist(ox, oy, q.x, q.y); if (d > range * (air ? 1.4 : 1) || d < 4) return; if (!air && !losClear(ox, oy, q.x, q.y)) return; const da = Math.abs(angDiff(a, Math.atan2(q.y - oy, q.x - ox))), hostile = kind === 'car' ? true : isHostileT(q);
     // drag-aim: only near where you point; tap-fire / drive-by: a wide arc in front, and a threat close by counts from any direction
     const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && d < range * .55 ? Math.PI : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
-    const pri = kind === 'car' ? .8 : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? .2 : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
+    const pri = kind === 'car' ? (q.copHeli ? .25 : .8) : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? .2 : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
     const s = (da / Math.PI * 1.2 + d / range * .7) * pri; if (s < bs) { bs = s; best = q; } };
   for (const q of peds) if (!q.dead && !q.talking && q !== p) consider(q, 'ped');
   if (G.settings.pvp) for (const r of Net.remoteTargets()) if (!r.inCar) consider(r, 'ped');
-  if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || !c.driver || c.driver === p) continue; const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (hostile) consider(c, 'car'); }
+  if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || (!c.driver && !c.copHeli) || c.driver === p) continue; if (c.copHeli) { consider(c, 'car'); continue; } const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (hostile) consider(c, 'car'); }
     for (const an of G.animals) if (!an.dead && an.scene === undefined && !an.pet && !(an.d && an.d.pet) && !an.stray && !an.leash && !an.remoteF && !an.coop) consider(an, 'ani'); }
   return best; }
 aimAt = function (a, range, mode) { const fresh = G.t - AL.last > .25; AL.last = G.t; LK.lastCall = G.t; LK.fireT = G.t;

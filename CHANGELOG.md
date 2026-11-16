@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.79
+- Police air support only joins at 5 wanted stars (was 3), and its door gunner hits less often. It peels away once you're down to 3 stars.
+- The police chopper is much easier to bring down: 110 HP (about a rifle magazine), aim lock now picks it up (high priority, longer range, no line-of-sight needed since it's in the air), and your shots hit it over rooftops with a hit area the size of its rotor.
+
 ## 1.78
 - One look for every menu: stores, the pawn shop, gun shop, markets, pets, bars, furniture, yard, parts orders, the online shop, aviation and more show what they sell as icon tiles with price badges. Tap one for a detail card with its actions (a bottom sheet on phones held upright). Sheets now hug their content instead of always filling half the screen.
 - Gun shop redesigned into one grid with category chips (guns, muzzle, optics, lasers, mags, barrels, grips, stocks, ammo…): tap a gun for a card with its art, stats and Buy/Customize, or an attachment to buy it for your bench. Every gun attachment has a drawn icon and a description, including on the home gun bench.

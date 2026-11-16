@@ -2,7 +2,7 @@
 
 A 2D top-down open-world crime game in the style of the classic top-down GTA games, built for phones and the browser. It ships as a single self-contained HTML file and as an Android app, with optional online room multiplayer.
 
-**Current version: 1.78**
+**Current version: 1.79**
 
 ## Play
 
