@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.85
+- New gun models: every gun now has its own detailed drawing (Glock-style pistol, stainless revolver, hand cannon, Uzi, PDW, pump shotgun, sawn-off, combat shotgun, AK, M4 carbine, LMG with ammo box, hunting rifle, tactical sniper, M14-style marksman rifle, RPG, combat knife, Molotov) with shaded metal, polymer and wood grain. Every attachment shows on the gun: red dots, holo sights, 4× and 8× scopes, lasers and flashlights (with the beam on the workbench), suppressors, compensators, chokes, extended and drum mags, long and short barrels, foregrips, bipods, stocks, and finishes including chrome, gold and camo. Tiles show each individual gun's own attachments and finish.
+- Gun workshop rebuilt to work like car parts: one grid of every gun you own — carried and collection — each its own tile, never stacked. Tap a gun for its card: Work on it, Carry it / Store it, ⚡ Fix now (pay gunsmith rates for an instant repair to 100%), 🐢 Slow fix (clean & oil), Strip for parts, and 🗑 Scrap (attachments go back to your bench; tap twice to confirm).
+- You can now open and work on any gun in your collection, not just the ones you carry.
+- Spare core parts and attachments on the bench are tappable tiles with Fix now and Scrap. Inside a gun, the fitted part and spare parts both get a Fix now button.
+- No more tabs across the top when you open a gun — the "‹ Guns" back button is in the title bar. The attachment barrel slot is now called "Barrel length" so it isn't confused with the core barrel.
+- The home gun locker holds individual guns (the same ones as your collection), each with its own condition and attachments, instead of stacking by type. Guns stored the old way move over automatically.
+- Registers: walking up to a staffed register asks whether you want to talk to the clerk or rob it.
+- Robbing a gun shop's register now sets off everyone armed in the store, not just a gunshot.
+- People shooting at you after you started trouble (a robbery, a shooting) don't hit each other in the crossfire, and security sides with them — no more gun shop owner shooting the security guard.
+
 ## 1.84
 - Hoard guns like cars: no more "Keep both" prompt. Buying a gun type you already carry (used or new — gun shops now show "Buy another → collection") puts it straight into your gun collection (up to 99 guns). Guns you pick up off bodies that you already own go there too, after you take the ammo.
 - Robbing a register (or a safe, theft, or a killing indoors) only brings the cops if someone living sees it. Empty store, or nobody left standing — nobody calls it in, and you hear "Nobody saw a thing."
