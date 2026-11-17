@@ -6,7 +6,7 @@ WSLOTS.barrel.n = 'Barrel length';
 const GRFIX = [1, 1.6, 2.4], r5g = v => Math.round(v / 5) * 5;
 const compW = k => (GCOMP.find(x => x[0] === k) || [0, 0, .25])[2];
 function coreFixCost(id, k, c, g) { if (c >= .95) return 0; return Math.max(25, r5g(repairCost(WEAPONS[WI[id]].price * compW(k), c) * 2.2 * GRFIX[g | 0])); }
-function gunFixCost(id, wc) { const g = wc.g || {}; return GCOMP.reduce((s, [k]) => s + coreFixCost(id, k, wc[k] ?? 1, g[k]), 0); }
+function gunFixCost(id, wc) { const g = wc.g || {}, ms = wc.miss || {}; return GCOMP.reduce((s, [k]) => s + (ms[k] ? 0 : coreFixCost(id, k, wc[k] ?? 1, g[k])), 0); }
 const gunScrapVal = (id, wc) => Math.max(10, r5g(gunValue(id, {}, wc) * .08));
 const attScrapVal = (s, v) => Math.max(5, r5g(WSLOTS[s].o[v][1] * .12));
 const attList = m => Object.keys(m || {}).filter(s => m[s] && s !== 'skin' && WSLOTS[s] && WSLOTS[s].o[m[s]]);
@@ -62,12 +62,12 @@ function gCardShell(H, P, icon, title, sub, onClose) { const d = H.mk('div', 'ld
 
 function gunCard(H, P, x) { const id = x.id, nm = gName(id), avg = cAvg(x.wc), gr = x.wc.g || {}, at = attList(x.mods), ic = gunIconBig(id, 64, x.mods); ic.classList.add('gbig');
   const K = gCardShell(H, P, ic, nm + (x.carried ? ' · carried' : ' · collection'), condWord2(avg) + ' ' + pct(avg) + ' · ' + GCOMP.map(([k]) => (gr[k] ? GRB[gr[k]] + ' ' : '') + coreName(k).split(' ')[0].replace('Trigger', 'Action').replace('Magazine', 'Feed').toLowerCase() + ' ' + pct(x.wc[k] ?? 1)).join(' · '), () => { P.gwSel = null; P.gwConf = null; });
-  K.bar(avg); K.hint((at.length ? 'Fitted: ' + at.map(s => WSLOTS[s].o[x.mods[s]][0].split(' —')[0]).join(', ') : 'No attachments') + ' · ' + x.ammo + ' rounds');
+  K.bar(avg); K.hint((gMissAny(x.wc) ? '⚠ Missing ' + GCOMP.filter(([k]) => gMiss(x.wc, k)).map(([k]) => coreName(k).split(' ')[0].replace('Trigger', 'action').replace('Magazine', 'feed').toLowerCase()).join(' & ') + ' — won\'t fire · ' : '') + (at.length ? 'Fitted: ' + at.map(s => WSLOTS[s].o[x.mods[s]][0].split(' —')[0]).join(', ') : 'No attachments') + ' · ' + x.ammo + ' rounds');
   const B = K.B, open = () => { if (x.carried) { gUnmount(); P.wbSp = null; } else { gMount(x.sp); P.wbSp = x.sp.uid; } P.wbGun = id; P.cslot = 'c:barrel'; P.copt = null; P.pv = null; P.gwSel = null; };
   B('🔧 Work on it', 'Core parts, wear & attachments', open, 'y', false, true);
   if (x.carried) B('📦 Store it', 'Into your collection', () => { if (!addToCollection(id, x.mods, x.wc, x.ammo)) return; dropGun(id); P.gwSel = null; Snd.play('cock'); toast(nm + ' stored in your collection'); }, '', SPARES().length >= GUNCAP);
   else B('🎒 Carry it', ownsGun(id) ? 'Swaps with the ' + nm + ' you carry' : 'Take it with you', () => { const k = 'c:' + id; spareCarry(x.sp); P.gwSel = k; });
-  const fix = gunFixCost(id, x.wc); B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); const w = x.carried ? gcond(id) : x.sp.wc; for (const [k] of GCOMP) w[k] = 1; if (x.carried && G.save.wclean && G.save.wclean.id === id) G.save.wclean = null; PWC = {}; Snd.play('ratchet'); toast('✨ ' + nm + ' fixed up — good as new'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
+  const fix = gunFixCost(id, x.wc); B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); const w = x.carried ? gcond(id) : x.sp.wc; for (const [k] of GCOMP) if (!(w.miss && w.miss[k])) w[k] = 1; if (x.carried && G.save.wclean && G.save.wclean.id === id) G.save.wclean = null; PWC = {}; Snd.play('ratchet'); toast('✨ ' + nm + ' fixed up — good as new'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
   if (x.carried) { const CL = G.save.wclean, cc = cleanCost(id), on = CL && CL.id === id; B('🐢 Slow fix', on ? 'Cleaning now…' : cc ? money(cc) + ' · clean & oil while you play' : 'Nothing to clean', () => startClean(id), '', on || !cc || !canPay(cc)); }
   else { B('🧩 Strip for parts', 'Barrel, action, feed' + (at.length ? ' + ' + at.length + ' attachment' + (at.length > 1 ? 's' : '') : '') + ' → bench', () => { spareStrip(x.sp); P.gwSel = null; }); }
   const sv = gunScrapVal(id, x.wc), conf = P.gwConf === x.key;
@@ -96,12 +96,39 @@ function attCard(H, P, s, v, n) { const o = WSLOTS[s].o[v], sv = attScrapVal(s, 
   try { return gw.call(this, H); } finally { if (fake) p.ammo[i] = 0; } }; }
 // the shop workbench gets the same title back button (via wbBack); its gun picker keeps only carried guns
 
-// ---------- on the bench: Fix now for the fitted part and for a spare part, like car parts ----------
-{ const _cb = coreBench; coreBench = function (H, P, id, shop) { const r = _cb(H, P, id, shop); try { const k = P.cslot.slice(2), bb = H.body.querySelector('.gdet2 .pbs'); if (!bb) return r;
-    if (P.copt === 'cur' && !shop) { const c = gcond(id), cur = c[k] ?? 1, cost = coreFixCost(id, k, cur, cgrade(id, k));
-      if (cost) bb.insertBefore(H.btn('⚡ Fix now · ' + money(cost), () => { if (!payAny(cost)) return Snd.play('bad'); c[k] = 1; PWC = {}; Snd.play('ratchet'); doSave(true); }, 'y', !canPay(cost)), bb.firstChild);
-      if (GMOUNT) for (const b of bb.querySelectorAll('.pb')) if (/Clean & oil/.test(b.textContent)) { b.textContent = 'Slow fix: carry it first'; b.disabled = true; b.classList.add('dis'); } }
-    else if (String(P.copt).startsWith('l')) { const R = GCORE(), x = R[+P.copt.slice(1)]; if (x) { const cost = coreFixCost(x.id, x.k, x.c, x.g); if (cost) bb.insertBefore(H.btn('⚡ Fix now · ' + money(cost), () => { if (!payAny(cost)) return Snd.play('bad'); x.c = 1; Snd.play('ratchet'); doSave(true); }, '', !canPay(cost)), bb.lastChild); } } } catch (e) { console.error(e); } return r; }; }
+// ---------- core parts on the bench work like car parts: pull off, fit, swap, fix, scrap ----------
+const gMiss = (c, k) => !!(c.miss && c.miss[k]);
+const gMissAny = c => !!(c && c.miss && Object.keys(c.miss).some(k => c.miss[k]));
+function coreBench(H, P, id, shop) { const k = P.cslot.slice(2), c = gcond(id), miss = gMiss(c, k), cur = miss ? 0 : (c[k] ?? 1), g0 = cgrade(id, k), R = GCORE(), canSwap = k !== 'frame';
+  const loose = canSwap ? R.filter(r => r.k === k && gfam(r.id) === gfam(id)) : [], price = r5g(compPrice(id, k)), done = () => { PWC = {}; P.copt = 'cur'; doSave(true); };
+  const opts = [miss ? { key: 'cur', name: 'Empty slot', e: '✕', badge: 'NONE' } : { key: 'cur', name: 'Fitted', cv: coreIcon(id, k), cond: cur, badge: 'FITTED' }];
+  loose.forEach(r => opts.push({ key: 'l' + R.indexOf(r), name: (r.g ? GRN[r.g] + ' ' : 'Stock ') + coreName(k).split(' ')[0].toLowerCase(), cv: coreIcon(r.id, k), cond: r.c, badge: r.g ? GRB[r.g] : 'BENCH', badgeCls: 'own' }));
+  if (shop && canSwap) for (let g = 0; g < 3; g++) opts.push({ key: 'new' + g, name: 'New ' + GRN[g].toLowerCase(), cv: coreIcon(id, k), cond: 1, price: money(r5g(price * GRM[g])), badge: GRB[g], badgeCls: 'own' });
+  if (!opts.some(o => o.key === P.copt)) P.copt = 'cur'; const sel = P.copt, nm = coreName(k), short = nm.split(' ')[0].replace('Trigger', 'Action').replace('Magazine', 'Feed').toLowerCase();
+  const wear = k === 'barrel' ? 'A worn barrel throws shots wide and short.' : k === 'action' ? 'A worn action misfires.' : k === 'mag' ? 'A worn magazine and feed jams.' : 'A worn frame rattles and can misfire.';
+  let card;
+  if (sel === 'cur') { const btns = [];
+    if (miss) btns.push(H.btn(loose.length ? 'Tap a spare above to fit it' : 'No spare ' + short + ' on your bench', () => { }, '', true));
+    else { if (canSwap) btns.push(H.btn('🔧 Pull it off → bench', () => { R.push({ id, k, c: cur, g: g0 }); c.miss = Object.assign({}, c.miss, { [k]: 1 }); c[k] = 0; setGrade(id, k, 0); Snd.play('ratchet'); toast(nm + ' is on your bench — the gun won\'t fire without one'); done(); }, 'y'));
+      const fc = shop ? smithCost(id, k) : coreFixCost(id, k, cur, g0); btns.push(H.btn(fc ? '⚡ Fix now · ' + money(fc) : 'No repair needed', () => { if (!payAny(fc)) return Snd.play('bad'); c[k] = 1; Snd.play('ratchet'); done(); }, shop ? 'y' : '', !fc || !canPay(fc)));
+      if (!shop) btns.push(GMOUNT ? H.btn('🐢 Slow fix: carry it first', () => { }, '', true) : H.btn(cur < .95 ? '🐢 Clean & oil (slow, cheap)' : 'Clean — in good shape', () => startClean(id), '', cur >= .95 || !!G.save.wclean)); }
+    card = { cv: miss ? null : coreIcon(id, k, 60), e: '✕', name: miss ? nm + ' · missing' : (g0 ? GRN[g0] + ' ' : '') + nm + ' · ' + condWord2(cur) + ' ' + pct(cur),
+      sub: !canSwap ? 'The frame is the gun itself — it can be repaired but not swapped.' : miss ? 'The gun can\'t fire until a ' + short + ' is fitted.' : loose.length ? loose.length + ' spare on your bench fit' + (loose.length > 1 ? '' : 's') + ' this gun — tap one above to swap it in' : 'No spares on your bench. Strip a spare gun for parts' + (shop ? ', or buy a new one here.' : ', or buy new at a gun shop.'), desc: miss ? '' : wear, btns }; }
+  else if (sel.startsWith('new')) { const g = +sel.slice(3), pr = r5g(price * GRM[g]);
+    card = { cv: coreIcon(id, k, 60), name: 'New ' + GRN[g].toLowerCase() + ' ' + nm.toLowerCase(), sub: g ? GRFX[k][g] : 'Factory spec — 100%', desc: (g ? GRFX[k][0] + '. ' : '') + (miss ? 'Fit it now, or buy it for your bench.' : 'Fit it now (your old one, ' + pct(cur) + ', goes to your bench) or buy it for the bench to stockpile.'),
+      btns: [H.btn((miss ? 'Buy & fit · ' : 'Buy & swap in · ') + money(pr), () => { if (!payAny(pr)) return; if (!miss) R.push({ id, k, c: cur, g: g0 }); if (c.miss) delete c.miss[k]; c[k] = 1; setGrade(id, k, g); Snd.play('ratchet'); done(); }, 'y', !canPay(pr)), H.btn('Buy for bench · ' + money(pr), () => { if (!payAny(pr)) return; R.push({ id, k, c: 1, g }); Snd.play('cash'); toast('On your bench at home'); doSave(true); }, '', !canPay(pr))] }; }
+  else { const r = R[+sel.slice(1)], fc = coreFixCost(r.id, k, r.c, r.g), sv = Math.round(coreScrap(r.id, k, r.c) * GRM[r.g | 0]);
+    card = { cv: coreIcon(r.id, k, 60), name: (r.g ? GRN[r.g] + ' ' : 'Stock ') + nm.toLowerCase() + ' · ' + pct(r.c), sub: (r.g ? GRFX[k][r.g] + ' · ' : '') + (miss ? 'The slot is empty' : r.c > cur ? 'Better than the fitted one (' + pct(cur) + ')' : 'Worse than the fitted one (' + pct(cur) + ')'), desc: 'From a ' + gName(r.id) + '. ' + (miss ? 'Fit it to get the gun firing again.' : 'Swapping puts the fitted one on your bench.'),
+      btns: [H.btn(miss ? '🔧 Fit it' : '🔁 Swap it in', () => { if (miss) { c[k] = r.c; setGrade(id, k, r.g | 0); delete c.miss[k]; R.splice(R.indexOf(r), 1); } else { const old = c[k] ?? 1; c[k] = r.c; setGrade(id, k, r.g | 0); r.c = old; r.g = g0; r.id = id; } Snd.play('ratchet'); done(); }, 'y'),
+        H.btn(fc ? '⚡ Fix · ' + money(fc) : 'Fix — not needed', () => { if (!payAny(fc)) return Snd.play('bad'); r.c = 1; Snd.play('ratchet'); doSave(true); }, '', !fc || !canPay(fc)),
+        H.btn('🗑 Scrap · +' + money(sv), () => { addCash(sv); R.splice(R.indexOf(r), 1); Snd.play('grinder'); done(); }, 'r')] }; }
+  const cv = H.mk('canvas', 'cfgpv'); cv.width = 360; cv.height = 150; drawGunPreview(cv, id, G.wmods[id] || {});
+  cfgRender(H, { title: gName(id) + ' · ' + (gMissAny(c) ? 'missing parts — won\'t fire' : condWord2(gcAvg(id)) + ' ' + pct(gcAvg(id)) + ' · misfire ' + Math.round(misfireChance(id) * 100) + '%'), top: cv, bars: barsEl(gunStats(id)), slotTitle: 'Core parts & attachment slots', selSlot: P.cslot, onSlot: s => { P.cslot = s; P.copt = null; P.pv = null; },
+    slots: coreSlots(id).concat(attTiles(id, !shop)), opts, selOpt: sel, onOpt: o => { P.copt = o; }, card }); }
+// an empty core slot shows as empty, and the gun won't fire
+{ const _cs = coreSlots; coreSlots = function (id) { const c = gcond(id); return _cs(id).map(t => { const k = t.key.slice(2); if (gMiss(c, k)) { t.empty = 1; t.badge = 'NONE'; t.badgeCls = ''; delete t.cond; } return t; }); }; }
+{ const _pf = playerFire0; playerFire0 = function (aimA, charge) { const p = G.player, b = WEAPONS[p.weapon]; if (b && p.weapon > 0 && isGunW(b) && gMissAny(gcond(b.id))) { if (G.t - (G.missTip || -9) > 2) { G.missTip = G.t; Snd.play('bad'); toast('Your ' + b.name + ' is missing its ' + GCOMP.filter(([k]) => gMiss(gcond(b.id), k)).map(x => coreName(x[0]).split(' ')[0].replace('Trigger', 'action').replace('Magazine', 'feed').toLowerCase()).join(' and ') + ' — fit one at your gun bench'); } return; } return _pf(aimA, charge); }; }
+{ const _ct = cleanTick; cleanTick = function () { const CL = G.save && G.save.wclean; const r = _ct(); if (CL) { const c = gcond(CL.id); if (c.miss) for (const k in c.miss) if (c.miss[k]) c[k] = 0; } return r; }; }
 
 // ---------- the home locker holds individual guns (the same ones as the collection) ----------
 function lockerMigrate() { const L = G.stash && G.stash.guns; if (!L) return; for (const id in L) { const a = L[id] | 0; delete L[id]; if (a <= 0 || WI[id] === undefined) continue; const p = G.player;

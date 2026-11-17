@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.86
+- Gun workbench: core parts now come off like car parts. Select a gun's Barrel, Action or Feed slot and tap "🔧 Pull it off → bench" — the part goes on your bench with its wear and grade. A gun with an empty slot shows "NONE" on that slot and won't fire until you fit one ("Your Pistol is missing its barrel — fit one at your gun bench").
+- Fitting and swapping are spelled out: tap a spare part under the slot and you get "🔧 Fit it" (empty slot) or "🔁 Swap it in" (the fitted one goes to your bench), plus Fix and Scrap for that spare. The fitted part's card tells you how many spares fit and to tap one to swap it in.
+- Attachments say the same: "🔧 Fit it" when the slot is empty, "🔁 Swap it in (old one → bench)" when something's already on it, and "🔧 Pull it off → bench".
+- At a gun shop, a new core part is "Buy & swap in" (old part to your bench) or "Buy & fit" if the slot is empty.
+
 ## 1.85
 - New gun models: every gun now has its own detailed drawing (Glock-style pistol, stainless revolver, hand cannon, Uzi, PDW, pump shotgun, sawn-off, combat shotgun, AK, M4 carbine, LMG with ammo box, hunting rifle, tactical sniper, M14-style marksman rifle, RPG, combat knife, Molotov) with shaded metal, polymer and wood grain. Every attachment shows on the gun: red dots, holo sights, 4× and 8× scopes, lasers and flashlights (with the beam on the workbench), suppressors, compensators, chokes, extended and drum mags, long and short barrels, foregrips, bipods, stocks, and finishes including chrome, gold and camo. Tiles show each individual gun's own attachments and finish.
 - Gun workshop rebuilt to work like car parts: one grid of every gun you own — carried and collection — each its own tile, never stacked. Tap a gun for its card: Work on it, Carry it / Store it, ⚡ Fix now (pay gunsmith rates for an instant repair to 100%), 🐢 Slow fix (clean & oil), Strip for parts, and 🗑 Scrap (attachments go back to your bench; tap twice to confirm).
