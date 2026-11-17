@@ -223,7 +223,7 @@ function useItem0(it) {
     case 'register': {
       if (it.used && G.t - it.used < 120) return toast('Register is empty');
       if (clerk && p.weapon === 0) { pedSay(clerk, 'Hands off the register!'); clerk.state = 'fight'; clerk.target = p; clerk.timer = 10; return; }
-      it.used = G.t; const n = rint(150, 600); addCash(n); Snd.play('alarm'); crime(2, 'Armed robbery'); toast('Robbed ' + money(n)); if (clerk) { if (clerk.weapon > 0) { clerk.state = 'fight'; clerk.target = p; clerk.timer = 30; } else { clerk.state = 'flee'; clerk.threat = p; clerk.timer = 10; pedSay(clerk, 'Don\'t shoot!'); } } return;
+      it.used = G.t; const n = rint(150, 600); addCash(n); crime(2, 'Armed robbery'); toast('Robbed ' + money(n)); if (clerk) { if (clerk.weapon > 0) { clerk.state = 'fight'; clerk.target = p; clerk.timer = 30; } else { clerk.state = 'flee'; clerk.threat = p; clerk.timer = 10; pedSay(clerk, 'Don\'t shoot!'); } } return;
     }
     case 'shelf': Snd.play('rustle'); if (clerk) { if (pay(3)) { heal(8); toast('Snack +8'); } } else { heal(8); toast('Free snack'); } return;
     case 'fridge': Snd.play('clunk'); if (s.b.type === 'store' && clerk) { if (pay(4)) { heal(12); toast('Cold drink +12'); } } else { heal(15); toast('Cold drink +15'); } return;

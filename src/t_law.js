@@ -20,17 +20,19 @@ function crimeT(sev, label) {
   const add = sev * .15; G.heat = before === 0 ? Math.min(.95, G.heat + add) : Math.min(5.99, G.heat + add);
   if (gun) { G.shotsN = (G.t - (G.shotsT || -99) < 15 ? (G.shotsN || 0) : 0) + 1; G.shotsT = G.t; if (G.shotsN >= 4) { G.shotsN = 0; reportCrime(1, 'Shots fired', 'witness'); } return; }
   if (sev < .45) return;
-  const alarm = G.scene && ALARM_PLACES.includes(G.scene.b.type) && ['Armed robbery', 'Safecracking', 'Theft', 'Burglary'].includes(label);
+  if (G.scene && ['Armed robbery', 'Safecracking', 'Theft', 'Burglary', 'Murder', 'Assault'].includes(label)) { const w = sceneWitness(p); if (!w) { if (label === 'Armed robbery') toast('Nobody saw a thing.'); return; } if (label === 'Armed robbery' && ALARM_PLACES.includes(G.scene.b.type)) Snd.play('alarm'); return reportCrime(sev >= 1.5 ? 2 : 1, label, 'witness', w); }
+  const alarm = false;
   let st = sev >= 1.5 ? 2 : 1;
   if (label === 'Armed robbery') st = G.pShotT > G.t - 20 && Math.random() < .4 ? 2 : 1;
   if (label === 'Murder') { G.kills5 = (G.kills5 || []).filter(t => G.t - t < 60); G.kills5.push(G.t); if (G.kills5.length >= 3) st = 2; }
   reportCrime(st, label || 'Crime', alarm ? 'alarm' : 'witness');
 }
-function reportCrime(st, label, how) {
+function sceneWitness(p) { const s = G.scene; if (!s) return null; let best = null, bd = 1e12; for (const q of s.peds) { if (q === p || q.dead || q.isPlayer || q.cuffed || q.gang) continue; const d = dist2(q.x, q.y, p.x, p.y); if (d < 900 * 900 && losClear(q.x, q.y, p.x, p.y) && d < bd) { bd = d; best = q; } } return best; }
+function reportCrime(st, label, how, forcedWho) {
   const p = G.player, spot = G.scene ? { x: G.outPos.x, y: G.outPos.y, b: G.scene.b } : { x: p.x, y: p.y };
   let who = null;
   if (how === 'witness') {
-    who = pickWitness(p); if (!who) return; // gangsters don't snitch; drivers mostly just floor it
+    who = forcedWho || pickWitness(p); if (!who) return; // gangsters don't snitch; drivers mostly just floor it
   }
   const ex = G.reports.find(r => dist2(r.x, r.y, spot.x, spot.y) < 900 * 900);
   if (ex) { ex.st = Math.max(ex.st, st); if (how === 'alarm') ex.how = 'alarm'; return; }

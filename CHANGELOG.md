@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.84
+- Hoard guns like cars: no more "Keep both" prompt. Buying a gun type you already carry (used or new — gun shops now show "Buy another → collection") puts it straight into your gun collection (up to 99 guns). Guns you pick up off bodies that you already own go there too, after you take the ammo.
+- Robbing a register (or a safe, theft, or a killing indoors) only brings the cops if someone living sees it. Empty store, or nobody left standing — nobody calls it in, and you hear "Nobody saw a thing."
+- More people coming and going: pedestrians walk out of and into shop, bar, diner and office doors around you, and inside businesses patrons come in, find a spot, and leave.
+- Bodies freak people out: anyone who sees a corpse screams, runs (or rushes out of the building) and spreads the panic to people nearby. If you're the killer and you're still around, they call it in on you; otherwise a patrol car comes to look and takes the body away.
+- Police actually police the streets now, where you can see it:
+  - Traffic stops: drivers who speed, crash into cars or hit people get lit up, pulled over to the curb, and an officer walks up. Most get a ticket; some get cuffed and taken in. Runners are always arrested, and gang drivers may pull a gun.
+  - Raids on dealers and gang members: a cruiser rolls up, two officers jump out and take them down.
+  - Gang members who beat up civilians get arrested by cops on the spot.
+  - Arrested people are cuffed (you'll see the cuffs), walked to a cruiser, put in the back and driven off — "🚓 … was taken into custody."
+  - Cops on a job stay on it; if you hit 2 stars they drop it and come for you.
+
 ## 1.83
 - Guns are individual items with their own parts, like cars. Every gun's bench now starts with its core parts — Frame, Barrel, Action and Feed — each with its own wear bar, ahead of the attachment slots.
 - Core parts in three grades: stock, match-grade and competition. Aftermarket barrels tighten spread and add range and damage, actions raise fire rate, magazines add capacity and reload faster; attachments stack on top. Buy & fit at a gun shop, or buy for the bench to stockpile. Swapping a part puts the old one (with its wear and grade) on your bench; spare parts can be scrapped.
