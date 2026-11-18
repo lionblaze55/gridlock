@@ -9473,7 +9473,7 @@ function slowAll(t) { const r = t.r; if (!r) return toast('Park it in a garage f
 { const _st = slowFixTick; slowFixTick = function () { const before = myCars().map(r => r.sfix && r.sfix.s); _st(); myCars().forEach((r, i) => { if (!r.sfix && r.sfixQ && r.sfixQ.length) { let s; while ((s = r.sfixQ.shift()) && !(r.pc && r.pc[s] < .95)); if (s) r.sfix = { s, t: G.t }; } }); }; }
 { const hg = PMODES.hgarage; PMODES.hgarage = function (H) { const r = hg.call(this, H); if (this.tab === 'parts' || !this.wsel || (this.slot && this.slotCar === this.wsel)) return r; const t = gTarget(this.wsel, this.opt.g); if (!t) return r; const n = wornSlots(t).length; if (!n) return r;
   const fc = fixAllCost(t), sc = slowAllCost(t), o = tOwner(t), q = (o.sfixQ || []).length + (o.sfix ? 1 : 0); const fr = H.mk('div', ''); fr.style.cssText = 'display:flex;gap:6px;width:100%;margin-bottom:6px';
-  const b1 = H.btn('🔧 Fix all ' + n + ' worn — ' + money(fc), () => fixAll(t), 'y', !canPay(fc)); const b2 = q ? H.btn('🐢 Slow-fixing (' + q + ' left) — stop', () => { o.sfix = null; o.sfixQ = null; }) : H.btn('🐢 Slow fix all — ' + money(sc), () => slowAll(t), '', t.kind === 'car' || !canPay(sc));
+  const b1 = H.btn('🔧 Fix all ' + n + ' worn — ' + money(fc), () => fixAll(t), 'y', !canPay(fc)); const b2 = q ? H.btn('🐢 Slow-fixing (' + q + ' left) — stop', () => { o.sfix = null; o.sfixQ = null; }) : H.btn(t.kind === 'car' ? '🐢 Slow fix: garage it first' : '🐢 Slow fix all — ' + money(sc), () => slowAll(t), '', t.kind === 'car' || !canPay(sc));
   for (const b of [b1, b2]) { b.style.flex = '1'; b.style.margin = '0'; fr.appendChild(b); } H.foot.insertBefore(fr, H.foot.firstChild); return r; }; }
 // ---------- the workbench: slow-fix loose parts too (they sit on the bench while you work on them) ----------
 const BENCH = () => G.save.bench || (G.save.bench = []);
@@ -11718,7 +11718,7 @@ function gunHome(H, P) { gUnmount(); H.title.textContent = '🔧 Gun workshop'; 
   if (!guns.length) H.empty(c, 'You don\'t own any guns. Buy one at a gun shop — every extra one you buy or pick up is kept here.');
   else { if (sel) c.appendChild(gunCard(H, P, sel)); const g = gGrid(H, c, 'gw'); g.style.gridTemplateColumns = 'repeat(auto-fill,minmax(96px,1fr))';
     for (const x of guns) { const t = gTile(H, g, 'gw', x.key, '🔫', gName(x.id), null, { canvas: gunIconBig(x.id, undefined, x.mods), cond: cAvg(x.wc) }); t.classList.add('gun');
-      if (x.carried) t.appendChild(H.mk('span', 'gfx car', 'CARRIED')); else if (attList(x.mods).length) t.appendChild(H.mk('span', 'gfx own', attList(x.mods).length + ' ATT'));
+      if (x.carried) t.appendChild(H.mk('span', 'gfx car', 'CARRIED')); else if (G.save.wclean && G.save.wclean.uid === x.sp.uid) t.appendChild(H.mk('span', 'gfx own', '🧽 CLEANING')); else if (attList(x.mods).length) t.appendChild(H.mk('span', 'gfx own', attList(x.mods).length + ' ATT'));
       if (sel === x) t.classList.add('sel'); t.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.gwSel = P.gwSel === x.key ? null : x.key; P.gpSel = null; P.gwConf = null; Panel.render(); }; }
     if (!sel) c.appendChild(H.mk('div', 'gwnote', 'Tap a gun to work on it, carry it, fix it or scrap it.')); }
   // spare parts: core parts (each its own, with wear) and attachments
@@ -11746,8 +11746,9 @@ function gunCard(H, P, x) { const id = x.id, nm = gName(id), avg = cAvg(x.wc), g
   if (x.carried) B('📦 Store it', 'Into your collection', () => { if (!addToCollection(id, x.mods, x.wc, x.ammo)) return; dropGun(id); P.gwSel = null; Snd.play('cock'); toast(nm + ' stored in your collection'); }, '', SPARES().length >= GUNCAP);
   else B('🎒 Carry it', ownsGun(id) ? 'Swaps with the ' + nm + ' you carry' : 'Take it with you', () => { const k = 'c:' + id; spareCarry(x.sp); P.gwSel = k; });
   const fix = gunFixCost(id, x.wc); B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); const w = x.carried ? gcond(id) : x.sp.wc; for (const [k] of GCOMP) if (!(w.miss && w.miss[k])) w[k] = 1; if (x.carried && G.save.wclean && G.save.wclean.id === id) G.save.wclean = null; PWC = {}; Snd.play('ratchet'); toast('✨ ' + nm + ' fixed up — good as new'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
-  if (x.carried) { const CL = G.save.wclean, cc = cleanCost(id), on = CL && CL.id === id; B('🐢 Slow fix', on ? 'Cleaning now…' : cc ? money(cc) + ' · clean & oil while you play' : 'Nothing to clean', () => startClean(id), '', on || !cc || !canPay(cc)); }
-  else { B('🧩 Strip for parts', 'Barrel, action, feed' + (at.length ? ' + ' + at.length + ' attachment' + (at.length > 1 ? 's' : '') : '') + ' → bench', () => { spareStrip(x.sp); P.gwSel = null; }); }
+  { const CL = G.save.wclean; if (x.carried) B(SFIX_NO_GUN, 'Carried guns: pay for Fix now, or store it here', () => { }, '', true);
+    else { const on = CL && CL.uid === x.sp.uid, cc = spCleanCost(x.sp); B('🐢 Slow fix', on ? 'Cleaning on the bench… tap to stop' : cc ? money(cc) + ' · ~' + spCleanMins(x.sp) + ' min on the bench' : 'Nothing to clean', () => { if (on) { G.save.wclean = null; Snd.play('cock'); return; } startCleanSp(x.sp); }, '', !on && (!cc || !canPay(cc))); }
+    if (!x.carried) B('🧩 Strip for parts', 'Barrel, action, feed' + (at.length ? ' + ' + at.length + ' attachment' + (at.length > 1 ? 's' : '') : '') + ' → bench', () => { spareStrip(x.sp); P.gwSel = null; }); }
   const sv = gunScrapVal(id, x.wc), conf = P.gwConf === x.key;
   B('🗑 Scrap', conf ? 'Tap again — it\'s gone for good' : '+' + money(sv) + (at.length ? ' · attachments → bench' : ''), () => { if (!conf) { P.gwConf = x.key; return; } P.gwConf = null; for (const s of at) gpAdd(s, x.mods[s]);
     if (x.carried) dropGun(id); else { const S = SPARES(), i = S.indexOf(x.sp); if (i >= 0) S.splice(i, 1); } addCash(sv); Snd.play('grinder'); toast('Scrapped the ' + nm + ' — ' + money(sv)); P.gwSel = null; doSave(true); }, 'r');
@@ -11789,7 +11790,7 @@ function coreBench(H, P, id, shop) { const k = P.cslot.slice(2), c = gcond(id), 
     if (miss) btns.push(H.btn(loose.length ? 'Tap a spare above to fit it' : 'No spare ' + short + ' on your bench', () => { }, '', true));
     else { if (canSwap) btns.push(H.btn('🔧 Pull it off → bench', () => { R.push({ id, k, c: cur, g: g0 }); c.miss = Object.assign({}, c.miss, { [k]: 1 }); c[k] = 0; setGrade(id, k, 0); Snd.play('ratchet'); toast(nm + ' is on your bench — the gun won\'t fire without one'); done(); }, 'y'));
       const fc = shop ? smithCost(id, k) : coreFixCost(id, k, cur, g0); btns.push(H.btn(fc ? '⚡ Fix now · ' + money(fc) : 'No repair needed', () => { if (!payAny(fc)) return Snd.play('bad'); c[k] = 1; Snd.play('ratchet'); done(); }, shop ? 'y' : '', !fc || !canPay(fc)));
-      if (!shop) btns.push(GMOUNT ? H.btn('🐢 Slow fix: carry it first', () => { }, '', true) : H.btn(cur < .95 ? '🐢 Clean & oil (slow, cheap)' : 'Clean — in good shape', () => startClean(id), '', cur >= .95 || !!G.save.wclean)); }
+      if (!shop) { const CL = G.save.wclean; btns.push(!GMOUNT ? H.btn(SFIX_NO_GUN, () => { }, '', true) : CL && CL.uid === GMOUNT.uid ? H.btn('🐢 Cleaning… tap to stop', () => { G.save.wclean = null; Snd.play('cock'); }) : H.btn(cur < .95 ? '🐢 Slow fix: clean & oil' : 'Clean — in good shape', () => startClean(id), '', cur >= .95 || !!CL)); } }
     card = { cv: miss ? null : coreIcon(id, k, 60), e: '✕', name: miss ? nm + ' · missing' : (g0 ? GRN[g0] + ' ' : '') + nm + ' · ' + condWord2(cur) + ' ' + pct(cur),
       sub: !canSwap ? 'The frame is the gun itself — it can be repaired but not swapped.' : miss ? 'The gun can\'t fire until a ' + short + ' is fitted.' : loose.length ? loose.length + ' spare on your bench fit' + (loose.length > 1 ? '' : 's') + ' this gun — tap one above to swap it in' : 'No spares on your bench. Strip a spare gun for parts' + (shop ? ', or buy a new one here.' : ', or buy new at a gun shop.'), desc: miss ? '' : wear, btns }; }
   else if (sel.startsWith('new')) { const g = +sel.slice(3), pr = r5g(price * GRM[g]);
@@ -12117,6 +12118,33 @@ const defender = q => q && (q.gunOwner || q.sec || q.role === 'guard' || q.role 
   if (s.secFor && s.secFor !== G.player && onYou(s.secFor)) s.secFor = G.player; }; }
 // NPC-law: an NPC shooting at you during your robbery isn't committing a crime
 { const _no = npcOffense; npcOffense = function (a, v, n, kind) { if (onYou(a) && G.scene && youStartedIt(G.scene)) return; return _no(a, v, n, kind); }; }
+
+// ================= slow fixes only happen in storage =================
+// Guns: only a gun in your collection (stored at the home gun bench) can be slow-fixed (cleaned & oiled).
+// A gun you're carrying gets Fix now (pay) — or store it first. Cars: only garaged cars slow-fix; a car you take out
+// keeps the job and picks it back up when you garage it again.
+const SFIX_NO_GUN = '🐢 Slow fix: store it first';
+const spCleanCost = sp => GCOMP.reduce((s, [k]) => { const v = sp.wc[k] ?? 1; return s + (!(sp.wc.miss && sp.wc.miss[k]) && v < .95 ? Math.max(3, Math.round(compPrice(sp.id, k) * .03 * (1 - v))) : 0); }, 0);
+const spCleanMins = sp => Math.ceil(Math.max(0, ...GCOMP.map(([k]) => (sp.wc.miss && sp.wc.miss[k]) ? 0 : .95 - (sp.wc[k] ?? 1))) * 100 / CLEAN_RATE / 60);
+const cleaningSp = () => { const CL = G.save && G.save.wclean; return CL && CL.uid ? SPARES().find(s => s.uid === CL.uid) || null : null; };
+// the carried gun can't be slow-fixed any more (an old job already running is allowed to finish)
+{ const _sc = startClean; startClean = function (id) { if (ownsGun(id) && !GMOUNT) { Snd.play('bad'); return toast('Slow fixes happen on the bench: store the ' + gName(id) + ' in your collection first, or pay for Fix now'); } if (GMOUNT && GMOUNT.id === id) { const sp = SPARES().find(s => s.uid === GMOUNT.uid); if (sp) return startCleanSp(sp, spCleanCost({ id, wc: gcond(id) })); } return _sc(id); }; }
+function startCleanSp(sp, cost) { cost = cost ?? spCleanCost(sp); if (!cost) return toast('Nothing to clean'); const CL = G.save.wclean; if (CL) { const o = CL.uid ? cleaningSp() : null; return toast('You\'re already cleaning ' + (o ? 'a ' + gName(o.id) : 'the ' + gName(CL.id)) + ' — one at a time'); }
+  if (!payAny(cost)) return; G.save.wclean = { uid: sp.uid, last: G.t }; Snd.play('ratchet'); msg('🧽 The ' + gName(sp.id) + ' is stripped on your bench for cleaning — about ' + spCleanMins(GMOUNT && GMOUNT.uid === sp.uid ? { id: sp.id, wc: gcond(sp.id) } : sp) + ' min.', '#4fc3f7'); doSave(true); }
+{ const _ct = cleanTick; cleanTick = function () { const CL = G.save && G.save.wclean; if (!CL || !CL.uid) return _ct();
+  const sp = cleaningSp(); if (!sp) { G.save.wclean = null; return; } const d = G.t - (CL.last || G.t); CL.last = G.t; if (d <= 0 || d > 5) return;
+  const w = GMOUNT && GMOUNT.uid === sp.uid ? gcond(sp.id) : sp.wc; let left = 0; for (const [k] of GCOMP) { if (w.miss && w.miss[k]) continue; const v = w[k] ?? 1; if (v < .95) { w[k] = Math.min(.95, v + CLEAN_RATE / 100 * d); left++; } } if (GMOUNT) PWC = {};
+  if (!left) { G.save.wclean = null; Snd.play('cock'); msg('✨ The ' + gName(sp.id) + ' in your collection is clean, oiled and back together.', '#2ecc71'); doSave(true); } }; }
+// taking a gun off the bench to carry it puts it back together
+{ const _sc = spareCarry; spareCarry = function (sp) { const CL = G.save.wclean; if (CL && CL.uid === sp.uid) { G.save.wclean = null; toast('Cleaning stopped — it\'s back together'); } return _sc(sp); }; }
+
+// backpack: carried guns don't offer a slow clean any more
+{ const pi = PMODES.inv; PMODES.inv = function (H) { const r = pi.call(this, H); try { for (const b of H.body.querySelectorAll('.pb')) if (/Clean & oil it/.test(b.textContent)) { b.textContent = SFIX_NO_GUN + ' at your gun bench'; b.disabled = true; } } catch (e) { } return r; }; }
+
+// ---------- cars: a car you drive can't be slow-fixed; the job waits for it to be garaged again ----------
+{ const _to = takeOut; takeOut = function (i, g) { const rec = myCars()[i], job = rec && (rec.sfix || (rec.sfixQ && rec.sfixQ.length)) ? { s: rec.sfix && rec.sfix.s, q: (rec.sfixQ || []).slice() } : null, n0 = G.cars.length; const r = _to(i, g);
+  if (job && G.cars.length > n0) { const c = G.cars[G.cars.length - 1]; c._sfix = job; toast('Slow fix paused — it picks back up when you garage it'); } return r; }; }
+{ const _st = storeCar; storeCar = function (c) { const n0 = myCars().length, job = c && c._sfix; const r = _st(c); const L = myCars(); if (job && L.length > n0) { const rec = L[L.length - 1]; const q = (job.s ? [job.s] : []).concat(job.q).filter(s => rec.pc && rec.pc[s] < .95); if (q.length) { rec.sfix = { s: q[0], t: G.t }; rec.sfixQ = q.slice(1); toast('Back in the garage — slow fix carries on'); } } return r; }; }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with

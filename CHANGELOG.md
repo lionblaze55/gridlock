@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.87
+- Slow fixes only happen in storage. A gun you're carrying can't be slow-fixed any more: pay for ⚡ Fix now, or store it at your home gun bench first. Guns in your collection get 🐢 Slow fix (clean & oil on the bench — cheap, takes a few minutes of play), shown with a 🧽 CLEANING badge; tap again to stop. Taking a gun off the bench to carry it stops its cleaning. One gun on the bench at a time.
+- Cars work the same way: only garaged cars can be slow-fixed (the garage now says "Slow fix: garage it first" for a car that's out). If you take a car out mid-job, the slow fix pauses and picks back up when you garage it again.
+- A carried gun that was already being cleaned before this update is allowed to finish.
+
 ## 1.86
 - Gun workbench: core parts now come off like car parts. Select a gun's Barrel, Action or Feed slot and tap "🔧 Pull it off → bench" — the part goes on your bench with its wear and grade. A gun with an empty slot shows "NONE" on that slot and won't fire until you fit one ("Your Pistol is missing its barrel — fit one at your gun bench").
 - Fitting and swapping are spelled out: tap a spare part under the slot and you get "🔧 Fit it" (empty slot) or "🔁 Swap it in" (the fitted one goes to your bench), plus Fix and Scrap for that spare. The fitted part's card tells you how many spares fit and to tap one to swap it in.
