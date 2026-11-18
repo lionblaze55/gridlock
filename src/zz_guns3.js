@@ -34,7 +34,7 @@ function spareStrip(sp) { const S = SPARES(); for (const [k] of GCOMP) if (k !==
 // guns are hoardable like cars: every extra gun you buy or pick up joins your collection at the home gun bench
 const GUNCAP = 99;
 function addToCollection(id, mods, wc, ammo) { if (SPARES().length >= GUNCAP) { toast('Your gun collection is full (' + GUNCAP + ')'); return false; } SPARES().push({ uid: 'sp' + Date.now().toString(36) + Math.floor(Math.random() * 9999), id, mods: Object.assign({}, mods || {}), wc: Object.assign({ frame: 1, barrel: 1, action: 1, mag: 1 }, wc || {}), ammo: ammo | 0 }); doSave(true); return true; }
-function buyUsed(u) { const has = ownsGun(u.id); if (!payAny(u.price)) return;
+function buyUsed(u) { const has = ownsGun(u.id); if (!(Panel.mode === 'pawn' ? payCash(u.price) : payAny(u.price))) return;
   if (has) { if (!addToCollection(u.id, u.m, u.c, u.ammo)) { addCash(u.price); return; } toast(WEAPONS[WI[u.id]].name + ' added to your gun collection (home gun bench)'); }
   else { G.wmods[u.id] = Object.assign({}, u.m); for (const s in u.m) if (u.m[s]) G.wown[u.id + s + u.m[s]] = 1; WCOND()[u.id] = Object.assign({}, u.c); giveWeapon(u.id, u.ammo); }
   u.sold = 1; PWC = {}; Snd.play('cock'); doSave(true); Panel.render(); }

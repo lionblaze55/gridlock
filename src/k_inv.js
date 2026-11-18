@@ -162,13 +162,13 @@ const Panel = {
         for (let i = 1; i < WEAPONS.length; i++) if (p.ammo[i] > 0) { const pr = Math.round(WEAPONS[i].price * .3 / 10) * 10; row(c2, '', WEAPONS[i].name, p.ammo[i] + ' rounds · offer ' + money(pr), [btn('Sell', () => { p.ammo[i] = 0; p.clip[i] = 0; if (p.weapon === i) p.weapon = bestWeapon(); addCash(pr); })]).querySelector('.pe').appendChild(this.icon(WEAPONS[i].id, i)); }
       } else {
         const c = col('For sale'), pack = G.save.pack || 0;
-        const sell = (e, n, sub, price, fn, dis) => row(c, e, n, sub + ' · ' + money(price), [btn('Buy', () => { if (pay(price)) fn(); }, 'y', dis || G.cash < price)]);
+        const sell = (e, n, sub, price, fn, dis) => row(c, e, n, sub + ' · ' + money(price), [btn('Buy', () => { if (payCash(price)) fn(); }, 'y', dis || G.cash < price)]);
         if (pack < 30) sell('🎒', 'Backpack', 'carry 60 instead of 30', 400, () => { G.save.pack = 30; });
         else if (pack < 70) sell('🧳', 'Duffel bag', 'carry 100', 1200, () => { G.save.pack = 70; });
         const it2 = (id, price) => sell(ITEMS[id].e, ITEMS[id].n, id === 'rod' ? 'fish at lake piers' : id === 'repairkit' ? 'fully fixes a car' : ITEMS[id].heal ? '+' + ITEMS[id].heal + ' HP' : 'full armor', price, () => { if (!invAdd(id, 1)) G.cash += price; });
         it2('rod', 80); it2('medkit', 70); it2('bandage', 25); it2('repairkit', 300); it2('vest', 350);
         const c2 = col('Used guns');
-        for (const [id, am, price] of [['pistol', 24, 150], ['uzi', 60, 450], ['shotgun', 12, 700], ['rifle', 45, 1700]]) row(c2, '', 'Used ' + WEAPONS[WI[id]].name, am + ' rounds · ' + money(price), [btn('Buy', () => { if (pay(price)) { giveWeapon(id, am); Snd.play('cock'); } }, 'y', G.cash < price)]).querySelector('.pe').appendChild(this.icon(id, WI[id]));
+        for (const [id, am, price] of [['pistol', 24, 150], ['uzi', 60, 450], ['shotgun', 12, 700], ['rifle', 45, 1700]]) row(c2, '', 'Used ' + WEAPONS[WI[id]].name, am + ' rounds · ' + money(price), [btn('Buy', () => { if (payCash(price)) { giveWeapon(id, am); Snd.play('cock'); } }, 'y', G.cash < price)]).querySelector('.pe').appendChild(this.icon(id, WI[id]));
       }
     } else if (this.mode === 'guns') {
       title.textContent = 'Weapon workbench';
@@ -181,8 +181,8 @@ const Panel = {
       for (const [n, v] of gunStats(id)) { const r = mk('div', 'gbar'); r.appendChild(mk('span', '', n)); const i2 = mk('i'), b = mk('b'); b.style.width = Math.round(clamp(v, .03, 1) * 100) + '%'; i2.appendChild(b); r.appendChild(i2); c.appendChild(r); }
       const c2 = col('Attachments');
       for (const s in WSLOTS) { const opts = WSLOTS[s].o.map((o, i) => [o, i]).filter(([o, i]) => i === 0 || o[2].includes(id)); if (opts.length < 2) continue; c2.appendChild(mk('div', 'ptitle', WSLOTS[s].n));
-        for (const [o, i] of opts) { const on = (m[s] | 0) === i, own = i === 0 || G.wown[id + s + i]; const b = mk('button', 'gopt' + (on ? ' on' : '')); b.appendChild(mk('span', '', (on ? '✓ ' : '') + o[0])); b.appendChild(mk('small', '', on ? 'Fitted' : own ? 'Owned' : money(o[1]))); if (!own && o[1] > G.cash) b.disabled = true;
-          b.onclick = () => { if (!own) { if (G.cash < o[1]) return; G.cash -= o[1]; G.wown[id + s + i] = 1; Snd.play('cash'); } Snd.play(s === 'skin' ? 'spray' : 'ratchet'); G.wmods[id] = Object.assign({}, G.wmods[id], { [s]: i }); PWC = {}; const wi = WI[id]; p.clip[wi] = Math.min(p.clip[wi], pw(wi).mag || 0); this.render(); }; c2.appendChild(b); } }
+        for (const [o, i] of opts) { const on = (m[s] | 0) === i, own = i === 0 || G.wown[id + s + i]; const b = mk('button', 'gopt' + (on ? ' on' : '')); b.appendChild(mk('span', '', (on ? '✓ ' : '') + o[0])); b.appendChild(mk('small', '', on ? 'Fitted' : own ? 'Owned' : money(o[1]))); if (!own && o[1] > (G.cash + G.bank)) b.disabled = true;
+          b.onclick = () => { if (!own) { if (!payAny(o[1])) return; G.wown[id + s + i] = 1; Snd.play('cash'); } Snd.play(s === 'skin' ? 'spray' : 'ratchet'); G.wmods[id] = Object.assign({}, G.wmods[id], { [s]: i }); PWC = {}; const wi = WI[id]; p.clip[wi] = Math.min(p.clip[wi], pw(wi).mag || 0); this.render(); }; c2.appendChild(b); } }
     }
   },
   icon(id, i) { const c = document.createElement('canvas'); c.width = 44; c.height = 30; const g = c.getContext('2d'); drawWeaponIcon(g, id, 22, 15, 1.4, i && G.wmods[id] && G.wmods[id].skin ? shade(SKINCOL[G.wmods[id].skin], 1.3) : '#f2c230'); return c; },

@@ -86,7 +86,8 @@ function doInteract0(o) {
   if (o.k === 'trunk') return openStorage('trunk', o.c);
   if (o.k === 'salv') return salvageWreck(o.c);
 }
-function pay(n) { if (G.cash < n) { Snd.play('bad'); toast("You can't afford that"); return false; } G.cash -= n; Snd.play('cash'); return true; }
+function payCash(n) { if (G.cash < n) { Snd.play('bad'); toast("You don't have enough cash on you"); return false; } G.cash -= n; Snd.play('cash'); return true; }
+function pay(n) { return payAny(n); }
 function heal(n) { const p = G.player; p.hp = Math.min(100, p.hp + n); }
 const HEADLINES = ['MAYOR DENIES "GIANT RAT" IN SEWERS', 'LOCAL MAN STEALS 41 CARS IN ONE DAY — "IT WAS A SLOW DAY," HE SAYS', 'DOCK VIPERS AND CROWN KINGS: TURF WAR HEATS UP', 'SVPD BUDGET SPENT ON "MORE DONUTS"', 'BANK OF VARRO VAULT "ABSOLUTELY UNCRACKABLE," SAYS MAN ABOUT TO BE WRONG', 'PIXEL PALACE HIGH SCORE STILL HELD BY UNKNOWN "AAA"', 'TRAFFIC: STILL BAD', 'HOT DOG VENDOR DENIES HOT DOGS ARE MADE OF HOT DOGS', 'RESPRAY SHOPS BOOMING; POLICE "BAFFLED"', 'WEATHER: SUNNY WITH A CHANCE OF EXPLOSIONS'];
 function useProp(pr) {
@@ -145,19 +146,19 @@ function talkTo0(q) {
   const opts = [];
   opts.push({ t: 'Chat', f: () => say(q.name, pick(LINES[role] || LINES.default), opts) });
   if (role === 'cop') {
-    if (stars() > 0) opts.push({ t: `Bribe (${money(200 * stars())})`, c: 'y', f: () => { if (pay(200 * stars())) { G.heat = 0; return say(q.name, 'I didn\'t see anything. Now beat it.'); } crime(1, 'Attempted bribery'); q.hostile = 1; return say(q.name, 'Trying to bribe an officer with empty pockets? You\'re coming with me!'); } });
+    if (stars() > 0) opts.push({ t: '💵 Offer a bribe', c: 'y', f: () => bribeOffer(q) });
     opts.push({ t: 'Insult', c: 'r', f: () => { crime(1.1, 'Insulting an officer'); q.hostile = 1; pedSay(q, 'That\'s it!'); } });
   } else if (role === 'gang') {
     const gi = GANGS[q.gang];
-    { const sl = gi.sells || ['uzi', 80, 500], rp = G.rep[q.gang] | 0, pr = Math.round(sl[2] * (rp >= 30 ? .6 : 1)); opts.push({ t: `Buy ${WEAPONS[WI[sl[0]]].name} (${money(pr)})`, f: () => { if (pay(pr)) { giveWeapon(sl[0], sl[1]); return say(first, 'No questions asked. Pleasure doing business.'); } } }); if (q.gang === 'reapers') opts.push({ t: 'Buy moonshine ($40)', f: () => { if (pay(40)) { if (!invAdd('moonshine', 1)) G.cash += 40; } return true; } }); }
+    { const sl = gi.sells || ['uzi', 80, 500], rp = G.rep[q.gang] | 0, pr = Math.round(sl[2] * (rp >= 30 ? .6 : 1)); opts.push({ t: `Buy ${WEAPONS[WI[sl[0]]].name} (${money(pr)})`, f: () => { if (payCash(pr)) { giveWeapon(sl[0], sl[1]); return say(first, 'No questions asked. Pleasure doing business.'); } } }); if (q.gang === 'reapers') opts.push({ t: 'Buy moonshine ($40)', f: () => { if (payCash(40)) { if (!invAdd('moonshine', 1)) G.cash += 40; } return true; } }); }
     opts.push({ t: 'Ask for work', c: 'y', d: !!G.mission, f: () => { offerGangJob(q); return true; } });
     opts.push({ t: 'Run product', d: !!G.mission, f: () => { const m = makeRunMission(q); return say(q.name, `Take this package to our buyer across town. ${m.timer} seconds, and don't get busted. Pays ${money(m.reward)}.`, [{ t: 'Deal', c: 'y', f: () => { startMission(m); } }, { t: 'Pass' }]); } });
     opts.push({ t: 'Diss the ' + gi.name, c: 'r', f: () => { repAdd(q.gang, -10); G.gangAggro[q.gang] = 60; q.state = 'fight'; q.target = p; q.timer = 20; pedSay(q, 'You\'re dead!'); } });
   } else if (role === 'prisoner') {
-    opts.push({ t: 'Slip him a file ($50)', f: () => { if (pay(50)) { q.role = 'civ'; q.inside.items.filter(i => i.t === 'bars').forEach(i => i.broken = 1); crime(1.5, 'Aiding a jailbreak'); q.state = 'flee'; q.threat = p; q.timer = 10; return say(first, 'You\'re a real pal! I owe ya one! *runs*'); } } });
+    opts.push({ t: 'Slip him a file ($50)', f: () => { if (payCash(50)) { q.role = 'civ'; q.inside.items.filter(i => i.t === 'bars').forEach(i => i.broken = 1); crime(1.5, 'Aiding a jailbreak'); q.state = 'flee'; q.threat = p; q.timer = 10; return say(first, 'You\'re a real pal! I owe ya one! *runs*'); } } });
   } else {
     opts.push({ t: 'Ask for a tip', f: () => giveTip(q) });
-    opts.push({ t: 'Give $20', d: G.cash < 20, f: () => { if (!pay(20)) return; q.mood = Math.min(1, q.mood + .5); if (Math.random() < .35) { const s = W.pickupSpots.filter(s => s.alive).sort((a, b) => dist2(a.x, a.y, p.x, p.y) - dist2(b.x, b.y, p.x, p.y))[0]; if (s) { G.tip = { x: s.x, y: s.y, t: 90, label: 'Stash' }; return say(first, 'Gee, thanks! Here, I\'ll let you in on something — there\'s a stash nearby. I marked it on your map.'); } } return say(first, pick(['Wow, thanks!', 'You\'re too kind!', 'I\'ll put this toward rent. Or lottery tickets.', 'Really? For me?'])); } });
+    opts.push({ t: 'Give $20', d: G.cash < 20, f: () => { if (!payCash(20)) return; q.mood = Math.min(1, q.mood + .5); if (Math.random() < .35) { const s = W.pickupSpots.filter(s => s.alive).sort((a, b) => dist2(a.x, a.y, p.x, p.y) - dist2(b.x, b.y, p.x, p.y))[0]; if (s) { G.tip = { x: s.x, y: s.y, t: 90, label: 'Stash' }; return say(first, 'Gee, thanks! Here, I\'ll let you in on something — there\'s a stash nearby. I marked it on your map.'); } } return say(first, pick(['Wow, thanks!', 'You\'re too kind!', 'I\'ll put this toward rent. Or lottery tickets.', 'Really? For me?'])); } });
     opts.push({ t: armed ? 'Rob (show weapon)' : 'Rob', c: 'r', f: () => {
         if (armed || Math.random() < .4) { const n = rint(10, 90); addCash(n); if (Math.random() < .3) giveLoot(lootPick('ped')); crime(.45, 'Mugging'); q.state = 'flee'; q.threat = p; q.timer = 8; pedSay(q, 'Take it! Take it!'); toast('Mugged ' + money(n)); }
         else { q.state = 'fight'; q.target = p; q.timer = 10; pedSay(q, 'Not today, punk!'); crime(.2); }
@@ -260,7 +261,7 @@ function useItem0(it) {
     case 'wbench': return Panel.open('guns');
     case 'pshelf': return Panel.open('pawn', { name: s.b.name, tab: 'buy' });
     case 'stash_old': { Snd.play('cock'); if (G.t - (G.stashT || -999) < 300) return toast('Stash restocks in ' + Math.ceil(300 - (G.t - G.stashT)) + 's'); G.stashT = G.t; p.armor = 100; giveWeapon('pistol', 20); return toast('Grabbed armor + pistol ammo'); }
-    case 'stage': { if (!pay(20)) return; const ps = s.peds.filter(q => q.role === 'perf' && !q.dead); bills((it.x + it.w / 2) * T, (it.y + it.h / 2) * T, 8); if (ps.length) pedSay(pick(ps), pick(['Thanks, baby!', 'Ooh, a big spender.', 'Keep \'em coming!'])); return; }
+    case 'stage': { if (!payCash(20)) return; const ps = s.peds.filter(q => q.role === 'perf' && !q.dead); bills((it.x + it.w / 2) * T, (it.y + it.h / 2) * T, 8); if (ps.length) pedSay(pick(ps), pick(['Thanks, baby!', 'Ooh, a big spender.', 'Keep \'em coming!'])); return; }
     case 'vip': if (pay(200)) { G.fade = 2.6; p.hp = 100; G.drunk = 0; setTimeout(() => toast('An hour later... you feel like a million bucks.'), 900); } return;
     case 'toilet': Snd.play('flush'); return toast(pick(['*flush*', 'Ahh.', 'You wash your hands. Good job.']));
     case 'cabinet': { Snd.play('rustle'); if (it.used && G.t - it.used < 120) return toast('Empty'); it.used = G.t; p.hp = 100; crime(.5, 'Theft'); return toast('Medicine! Full health'); }

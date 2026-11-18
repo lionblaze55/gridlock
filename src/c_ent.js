@@ -171,7 +171,7 @@ class Ped {
     if (this.gang) { this.shirt = GANGS[this.gang].col; this.hat = 2; this.hatCol = GANGS[this.gang].col2; this.weapon = Math.random() < .55 ? (Math.random() < .3 ? 2 : 1) : 0; this.hp = 80; }
     this.vp = Math.random() < .5 ? rnd(95, 135) : rnd(180, 240); this.hs = Math.floor(Math.random() * 6); this.jk = Math.random() < .3 ? pick(['#263238', '#4e342e', '#1b5e20', '#37474f', '#880e4f', '#0d47a1', '#5d4037']) : null; this.shoe = pick(['#111', '#3e2723', '#eee', '#222']);
     if (this.role === 'perf') { this.shirt = pick(['#ff2bd6', '#e91e63', '#9c27b0', '#00bcd4', '#ffd400', '#f44336']); this.pants = this.shirt; this.hs = 4; this.jk = null; this.sparkle = 1; this.hp = 50; }
-    if (this.gang) { const GG = GANGS[this.gang]; if (GG.jk) this.jk = GG.jk; if (GG.nohat) { this.hat = 0; this.hs = 0; this.shades = 1; } if (GG.hp) this.hp = GG.hp; }
+    if (this.role === 'cop') { this.jk = null; this.hood = 0; } if (this.gang) { const GG = GANGS[this.gang]; if (GG.jk) this.jk = GG.jk; if (GG.nohat) { this.hat = 0; this.hs = 0; this.shades = 1; } if (GG.hp) this.hp = GG.hp; }
     Object.assign(this, o.extra || {});
   }
   hurt(n, by, kind) {

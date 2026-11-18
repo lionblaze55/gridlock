@@ -81,7 +81,7 @@ function vehTick(c, d, dt, rainG) { // called from updateCar with the frame's wo
 function riderCrash(c, v) {
   if (!c.d.rider || c.dead) return; const lim = c.d.pedal ? 190 : 270; if (v < lim) return;
   if (c === pCar()) { const pl = G.player, vx = c.vx, vy = c.vy; exitCar(true); pl.kx = -vx * .5 + Math.cos(c.a) * 160; pl.ky = -vy * .5 + Math.sin(c.a) * 160; hurtPlayer(Math.min(50, 8 + (v - lim) * .1), null, 'crash'); toast('Thrown off!'); G.cam.shake = 10; }
-  else if (c.driver && c.ai && c.ai.mode !== 'parked') { const q = new Ped(c.x, c.y, { role: 'civ', gang: c.driver.gang || null }); if (c.driver.skin) q.skin = c.driver.skin; if (c.driver.shirt) q.shirt = c.driver.shirt; q.kx = Math.cos(c.a) * 200; q.ky = Math.sin(c.a) * 200; q.state = 'flee'; q.timer = 6; G.peds.push(q); c.driver = null; c.ai = { mode: 'parked' }; }
+  else if (c.driver && c.ai && c.ai.mode !== 'parked') { const cop = c.driver.role === 'cop' || c.type === 'cop' || c.type === 'swat', q = new Ped(c.x, c.y, cop ? { role: c.type === 'swat' ? 'swat' : 'cop' } : { role: 'civ', gang: c.driver.gang || null }); if (c.driver.skin) q.skin = c.driver.skin; if (c.driver.shirt && !cop) q.shirt = c.driver.shirt; q.kx = Math.cos(c.a) * 200; q.ky = Math.sin(c.a) * 200; q.state = 'flee'; q.timer = 6; G.peds.push(q); c.driver = null; c.ai = { mode: 'parked' }; }
 }
 
 // ---------- drawing ----------
@@ -255,7 +255,7 @@ function deliverCar(i) {
   for (let dy = -7; dy <= 7; dy++) for (let dx = -7; dx <= 7; dx++) { const tx = tx0 + dx, ty = ty0 + dy, t = tileAt(tx, ty); if (t !== TILE.ROAD && t !== TILE.LOT && t !== TILE.DIRT) continue; const x = (tx + .5) * T, y = (ty + .5) * T, d = Math.hypot(dx, dy) + (t === TILE.ROAD ? 0 : -.5); if (d < 1.5 || d >= bd) continue; if (G.cars.some(c => dist2(c.x, c.y, x, y) < 90 * 90)) continue; bd = d; best = [x, y, t]; }
   if (!best) { toast('No room outside to deliver it'); return; }
   let a = 0; if (best[2] === TILE.ROAD) { const fx = ((best[0] / T - 2) % RSP + RSP) % RSP; a = fx < 2.2 || fx > RSP - 2.2 ? Math.PI / 2 : 0; }
-  const c = new Car(rec.type, best[0], best[1], a); applyMods(c, Object.assign({}, rec.mods || {})); c.trunk = rec.trunk || {}; if (rec.cond !== undefined) { c.hp = c.st.hp * rec.cond; if (rec.cond < .3) c.flat = 1; } c.legit = isLegitRec(rec) ? 1 : 0; c.noEng = rec.noEng ? 1 : 0; c.missing = Object.assign({}, rec.missing || {}); c.owned = 1; c.persist = 1; c.ai = { mode: 'parked' }; G.cars.push(c); L.splice(i, 1); Snd.play('door'); msg(c.d.name + ' is parked outside.', '#2ecc71'); doSave(true);
+  const c = new Car(rec.type, best[0], best[1], a); applyMods(c, Object.assign({}, rec.mods || {})); c.trunk = rec.trunk || {}; if (rec.cond !== undefined) { c.hp = c.st.hp * rec.cond; if (rec.cond < .1) c.flat = 1; } c.legit = isLegitRec(rec) ? 1 : 0; c.noEng = rec.noEng ? 1 : 0; c.missing = Object.assign({}, rec.missing || {}); c.owned = 1; c.persist = 1; c.ai = { mode: 'parked' }; G.cars.push(c); L.splice(i, 1); Snd.play('door'); msg(c.d.name + ' is parked outside.', '#2ecc71'); doSave(true);
 }
 function storableCar() { const o = G.scene ? G.outPos : G.player; let b = null, bd = 420 * 420; for (const c of G.cars) { if (c.dead || c.driver || c.d.siren && !c.owned) continue; const d = dist2(c.x, c.y, o.x, o.y); if (d < bd) { bd = d; b = c; } } return b; }
 function storeCar(c) { const L = myCars(); if (garUsed() >= garCap()) return toast('Garage is full'); L.push({ type: c.type, mods: Object.assign({}, c.mods || {}, { p: c.color }), trunk: c.trunk || {}, cond: clamp(c.hp / c.st.hp, .05, 1), legit: c.legit ? 1 : 0, noEng: c.noEng ? 1 : 0, missing: Object.assign({}, c.missing || {}) }); if (c.isRide) delete G.save.ride; if (c.spot) c.spot.car = null; const i = G.cars.indexOf(c); if (i >= 0) G.cars.splice(i, 1); Snd.play('door'); doSave(true); }
@@ -293,9 +293,9 @@ PMODES.project = function (H) {
     H.foot.appendChild(H.mk('span', 'pnote', 'Delivered cars are parked on the street outside.'));
   } else {
     const c = H.col('Engines & stock parts'), buy = (id, pr) => { if (!payAny(pr)) return; G.stash.items[id] = (G.stash.items[id] | 0) + 1; Snd.play('cash'); };
-    for (const id of ['eng_i4', 'eng_i4t', 'eng_v6', 'eng_v8', 'eng_sc8', 'eng_ev', 'eng_bike', 'gearbox', 'wheelset', 'exhaustp', 'panels', 'wiring', 'seats']) { const it = ITEMS[id], pr = Math.round(it.v * 1.5 / 10) * 10; H.row(c, it.e, it.n, money(pr) + ' · in stock ' + partHave(id), [H.btn('Buy', () => buy(id, pr), 'y', G.cash < pr)]); }
+    for (const id of ['eng_i4', 'eng_i4t', 'eng_v6', 'eng_v8', 'eng_sc8', 'eng_ev', 'eng_bike', 'gearbox', 'wheelset', 'exhaustp', 'panels', 'wiring', 'seats']) { const it = ITEMS[id], pr = Math.round(it.v * 1.5 / 10) * 10; H.row(c, it.e, it.n, money(pr) + ' · in stock ' + partHave(id), [H.btn('Buy', () => buy(id, pr), 'y', (G.cash + G.bank) < pr)]); }
     const c2 = H.col('Bare shells');
-    for (const t of Object.keys(CAR_TYPES)) { const d = CAR_TYPES[t]; if (d.siren || d.air || t === 'taxi') continue; const pr = Math.round(carValue({ type: t }) * .5 / 10) * 10; H.row(c2, eRow(t), d.name, money(pr) + (S[t] ? ' · you have ' + S[t] : ''), [H.btn('Buy', () => { if (garUsed() >= garCap()) return toast('Garage is full'); if (pay(pr)) { myCars().push(shellRec(t)); Snd.play('cash'); toast('Shell delivered to your garage'); } }, 'y', G.cash < pr)]); }
+    for (const t of Object.keys(CAR_TYPES)) { const d = CAR_TYPES[t]; if (d.siren || d.air || t === 'taxi') continue; const pr = Math.round(carValue({ type: t }) * .5 / 10) * 10; H.row(c2, eRow(t), d.name, money(pr) + (S[t] ? ' · you have ' + S[t] : ''), [H.btn('Buy', () => { if (garUsed() >= garCap()) return toast('Garage is full'); if (pay(pr)) { myCars().push(shellRec(t)); Snd.play('cash'); toast('Shell delivered to your garage'); } }, 'y', (G.cash + G.bank) < pr)]); }
     H.foot.appendChild(H.mk('span', 'pnote', 'Buying new is the expensive way. Stripping stolen cars at a chop shop is free.'));
   }
 };

@@ -37,7 +37,7 @@ function drawLawHUDL(sc) {
 }
 function lawTick(dt) {
   if ((G.lawT = (G.lawT || 0) - dt) > 0) return; G.lawT = 1.5; const p = G.player; if (!p || p.dead || stars() === 0 || G.scene) return;
-  for (const q of G.peds) { if (q.dead || !(q.role === 'cop' || q.role === 'swat') || q.state !== 'chase' || G.surrender) continue; const d2 = dist2(q.x, q.y, p.x, p.y); if (d2 < 360 * 360 && G.t > (q.warnT || 0) && losClear(q.x, q.y, p.x, p.y)) { q.warnT = G.t + rnd(4, 7); pedSay(q, plArmed() ? pick(['Drop the weapon!', 'Put the gun down — NOW!', 'Weapon down or we shoot!']) : pick(['Freeze! Police!', 'Hands where I can see them!', 'Stop right there!', 'Get on the ground!'])); if (!LIFE().surTip) { LIFE().surTip = 1; msg('Tip: tap SURRENDER (or press X) to give yourself up — smaller fine, and you keep your guns.', '#7fdbff'); } break; } }
+  for (const q of G.peds) { if (q.dead || !(q.role === 'cop' || q.role === 'swat') || q.state !== 'chase' || G.surrender) continue; const d2 = dist2(q.x, q.y, p.x, p.y); if (d2 < 360 * 360 && G.t > (q.warnT || 0) && losClear(q.x, q.y, p.x, p.y)) { q.warnT = G.t + rnd(4, 7); pedSay(q, plArmed() ? pick(['Drop the weapon!', 'Put the gun down — NOW!', 'Weapon down or we shoot!']) : pick(['Freeze! Police!', 'Hands where I can see them!', 'Stop right there!', 'Get on the ground!'])); if (!LIFE().surTip) { LIFE().surTip = 1; msg('Tip: tap SURRENDER (or press X) to give yourself up — smaller fine and less time.', '#7fdbff'); } break; } }
 }
 // ---------- getting booked ----------
 function busted() { G.bustInfo = { sur: !!G.surrender, rap: (G.rap || []).slice(), st: stars() }; G.surrender = null; return bustedB(); }
@@ -50,10 +50,10 @@ function respawn() {
   const hrs = clamp(Math.round(total / 1200), 1, 12) * (B.sur ? .5 : 1); G.tod = (G.tod + hrs) % 24;
   if (B.sur) { p.ammo = ammo; p.clip = clip; } // you complied: they hand your gear back
   const lines = B.rap.length ? B.rap.map(e => '• ' + e.k + (e.n > 1 ? ' ×' + e.n : '') + ' — ' + money(chargeFine(e))).join('\n') : '• Evading police — ' + money(250 * Math.max(1, B.st));
-  say('SVPD Booking', `${B.sur ? 'You surrendered peacefully — fines cut by a third and your gear was returned.' : 'You were taken down resisting. Weapons confiscated.'}\n\nCharges:\n${lines}\n\nTotal fine: ${money(total)}${capped ? ' (capped at ' + money(cap) + ' for a ' + Math.max(1, B.st) + '-star bust)' : ''}${B.sur ? ' (after −35%)' : ''}${unpaid > 0 ? '\nCouldn\'t cover ' + money(unpaid) + ' — the court waived the rest. This time.' : ''}\nTime in a cell: ${hrs} hour${hrs === 1 ? '' : 's'}.`);
+  say('SVPD Booking', `${B.sur ? 'You surrendered peacefully — fines cut by a third. Your gear was returned.' : 'You were taken down resisting. Your gear was returned on release.'}\n\nCharges:\n${lines}\n\nTotal fine: ${money(total)}${capped ? ' (capped at ' + money(cap) + ' for a ' + Math.max(1, B.st) + '-star bust)' : ''}${B.sur ? ' (after −35%)' : ''}${unpaid > 0 ? '\nCouldn\'t cover ' + money(unpaid) + ' — the court waived the rest. This time.' : ''}\nTime in a cell: ${hrs} hour${hrs === 1 ? '' : 's'}.`);
   G.bustInfo = null; G.rap = []; doSave(true);
 }
 function callOffCops() { callOffCopsL(); G.rap = []; G.surrender = null; }
 // ---------- titles: honest paperwork through a mechanic (pricey, safe) or forged at a chop shop (cheap, risky) ----------
 function forgeTitle(c) { const M = VMK(), F = M.forges = (M.forges || []).filter(t => M.clock - t < 900), fee = r50(Math.max(100, mktValue(c.type, c.mods, 1, 1) * .07)), risk = Math.min(.9, .2 + .18 * F.length);
-  return { fee, risk, go: () => { if (!pay(fee)) return; F.push(M.clock); if (Math.random() < risk) { crime(1.6, 'Title fraud'); G.heat = Math.max(G.heat, 1.05 + .7 * F.length); G.starFlash = 2; markSeen(); msg('Somebody tipped off the cops about the forgery!', '#ff6b6b'); } else { c.legit = 1; c.forged = 1; msg('Forged papers — the ' + c.d.name + ' now has a "clean" title.', '#2ecc71'); } } }; }
+  return { fee, risk, go: () => { if (!payCash(fee)) return; F.push(M.clock); if (Math.random() < risk) { crime(1.6, 'Title fraud'); G.heat = Math.max(G.heat, 1.05 + .7 * F.length); G.starFlash = 2; markSeen(); msg('Somebody tipped off the cops about the forgery!', '#ff6b6b'); } else { c.legit = 1; c.forged = 1; msg('Forged papers — the ' + c.d.name + ' now has a "clean" title.', '#2ecc71'); } } }; }

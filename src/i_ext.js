@@ -202,9 +202,9 @@ function renderGarage() {
     case 'perf': for (const k of perfKeys(c)) { section(MODOPTS[k].n); buyOpt(k); } break;
     case 'service': {
       const dmg = 1 - c.hp / c.st.hp, rep = shopRepair(c);
-      section('Service'); mkOpt(c.flat ? 'Repair & new tyres' : 'Repair body & engine', dmg < .01 && !c.flat ? 'No damage' : money(rep + (c.flat ? 150 : 0)), '', () => buy(rep + (c.flat ? 150 : 0), () => { shopRepairDo(c); c.hp = c.st.hp; c.fireT = 0; c.flat = 0; }), (dmg < .01 && !c.flat) || G.cash < rep + (c.flat ? 150 : 0));
-      mkOpt('Quick respray (lose the cops)', '$200', '', () => buy(200, () => { G.heat = 0; Snd.play('splash'); }), G.cash < 200);
-      if (m.nos) mkOpt('Refill nitrous (' + nosCap(c) + ' shots)', c.nos >= nosCap(c) ? 'Full' : '$200', '', () => buy(200, () => { c.nos = nosCap(c); }), c.nos >= nosCap(c) || G.cash < 200);
+      section('Service'); mkOpt(c.flat ? 'Repair & new tyres' : 'Repair body & engine', dmg < .01 && !c.flat ? 'No damage' : money(rep + (c.flat ? 150 : 0)), '', () => buy(rep + (c.flat ? 150 : 0), () => { shopRepairDo(c); c.hp = c.st.hp; c.fireT = 0; c.flat = 0; }), (dmg < .01 && !c.flat) || (G.cash + G.bank) < rep + (c.flat ? 150 : 0));
+      mkOpt('Quick respray (lose the cops)', '$200', '', () => buy(200, () => { G.heat = 0; Snd.play('splash'); }), (G.cash + G.bank) < 200);
+      if (m.nos) mkOpt('Refill nitrous (' + nosCap(c) + ' shots)', c.nos >= nosCap(c) ? 'Full' : '$200', '', () => buy(200, () => { c.nos = nosCap(c); }), c.nos >= nosCap(c) || (G.cash + G.bank) < 200);
       mkOpt('Save as my ride', c.isRide ? 'Saved' : 'Free', c.isRide ? 'on' : '', () => { G.save.ride = { type: c.type, mods: c.mods || {}, legit: c.legit ? 1 : 0 }; c.isRide = 1; doSave(true); toast('Saved as your ride'); renderGarage(); });
       shopSellOpt(c, mkOpt, section);
     }
@@ -213,13 +213,12 @@ function renderGarage() {
   const info = document.createElement('div'); info.className = 'ginfo'; foot.appendChild(info);
   if (pv) { const b = document.createElement('b'); b.textContent = pv.label + ' — '; info.append(b, MODDESC[pv.k] || ''); } else info.textContent = GAR.tab === 'service' ? '' : 'Tap any part or color to see it on your car and how it changes the stats. Nothing is bought until you confirm.';
   const row = document.createElement('div'); row.className = 'row'; foot.appendChild(row);
-  if (pv) { const bb = document.createElement('button'); bb.className = 'btn grn'; bb.style.margin = '0'; bb.textContent = pv.price ? 'Buy  ' + money(pv.price) : 'Fit (free)'; if (pv.price > G.cash) bb.disabled = true; bb.onclick = () => { const q = GAR.pv; GAR.pv = null; buy(q.price, () => setMod(q.k, q.v), q.paint && q.k === 'p'); }; row.appendChild(bb); if (!pv.paint && pv.price && MODOPTS[pv.k] && pv.k !== 'swp') { const b2 = document.createElement('button'); b2.className = 'btn alt'; b2.style.margin = '0'; b2.textContent = 'Part only, to my garage  ' + money(pv.part || pv.price); if ((pv.part || pv.price) > G.cash) b2.disabled = true; b2.onclick = () => { const q = GAR.pv, pp = q.part || q.price; if (G.cash < pp) return; G.cash -= pp; partAdd(q.k, q.v); GAR.pv = null; Snd.play('cash'); toast('Sent to your garage parts shelf'); renderGarage(); }; row.appendChild(b2); } }
+  if (pv) { const bb = document.createElement('button'); bb.className = 'btn grn'; bb.style.margin = '0'; bb.textContent = pv.price ? 'Buy  ' + money(pv.price) : 'Fit (free)'; if (pv.price > (G.cash + G.bank)) bb.disabled = true; bb.onclick = () => { const q = GAR.pv; GAR.pv = null; buy(q.price, () => setMod(q.k, q.v), q.paint && q.k === 'p'); }; row.appendChild(bb); if (!pv.paint && pv.price && MODOPTS[pv.k] && pv.k !== 'swp') { const b2 = document.createElement('button'); b2.className = 'btn alt'; b2.style.margin = '0'; b2.textContent = 'Part only, to my garage  ' + money(pv.part || pv.price); if ((pv.part || pv.price) > (G.cash + G.bank)) b2.disabled = true; b2.onclick = () => { const q = GAR.pv, pp = q.part || q.price; if (!payAny(pp)) return; partAdd(q.k, q.v); GAR.pv = null; Snd.play('cash'); toast('Sent to your garage parts shelf'); renderGarage(); }; row.appendChild(b2); } }
   const lb = document.createElement('button'); lb.className = 'btn' + (pv ? ' alt' : ''); lb.style.margin = '0'; lb.textContent = pv ? 'Cancel preview' : 'Drive out'; lb.onclick = () => { Snd.play('ui'); if (GAR.pv) { GAR.pv = null; renderGarage(); } else closeGarage(); }; row.appendChild(lb);
 }
 function setMod(k, v) { const c = GAR.c; c.mods = Object.assign({}, c.mods || {}); c.mods[k] = v; if (k === 'liv' && v === 6) c.mods.num = rint(1, 99); if (k === 'nos' && v) { c.nos = v === 2 ? 5 : 3; } applyMods(c); }
 function buy(price, fn, isPaint) {
-  if (!GAR) return; if (G.cash < price) { Snd.play('bad'); return; }
-  G.cash -= price; GAR.spent += price; fn(); Snd.play(price ? 'cash' : 'ui'); if (price) Snd.play({ paint: 'spray', style: 'ratchet', body: 'ratchet', lights: 'zap', perf: 'rev', service: 'ratchet' }[GAR.tab]);
+  if (!GAR) return; if (!payAny(price)) return; GAR.spent += price; fn(); Snd.play(price ? 'cash' : 'ui'); if (price) Snd.play({ paint: 'spray', style: 'ratchet', body: 'ratchet', lights: 'zap', perf: 'rev', service: 'ratchet' }[GAR.tab]);
   if (isPaint && stars() > 0) { G.heat = 0; msg('Fresh paint — the cops lost track of you.', '#2ecc71'); }
   renderGarage();
 }
@@ -266,11 +265,11 @@ function dealerMenu(q) {
   const opts = [];
   for (const dr of DRUGS) {
     const pb = drugPrice(dr.id, d), ps = Math.round(pb * .86), have = G.drugs[dr.id] || 0, n = Math.min(qty, have);
-    opts.push({ t: `Buy ${qty} ${dr.n} ${money(pb * qty)}`, d: G.cash < pb * qty || invWeight() + qty > invCap(), f: () => { if (pay(pb * qty)) { G.drugs[dr.id] = have + qty; Snd.play('rustle'); } return dealerMenu(q); } });
+    opts.push({ t: `Buy ${qty} ${dr.n} ${money(pb * qty)}`, d: G.cash < pb * qty || invWeight() + qty > invCap(), f: () => { if (payCash(pb * qty)) { G.drugs[dr.id] = have + qty; Snd.play('rustle'); } return dealerMenu(q); } });
     opts.push({ t: `Sell ${dr.n} ${money(ps)}${have ? ' ×' + have : ''}`, c: have ? 'y' : '', d: !have, f: () => { G.drugs[dr.id] = have - n; addCash(ps * n); Snd.play('rustle'); return dealerMenu(q); } });
   }
-  opts.push({ t: `Buy ${qty} leaf seeds ${money(55 * qty)}`, d: G.cash < 55 * qty, f: () => { if (pay(55 * qty)) { G.inv.seed_leaf = (G.inv.seed_leaf | 0) + qty; Snd.play('rustle'); toast('Grow them in a planter or a farm field'); } return dealerMenu(q); } });
-  opts.push({ t: `Buy ${qty} lab supplies ${money(90 * qty)}`, d: G.cash < 90 * qty || invWeight() + qty > invCap(), f: () => { if (pay(90 * qty)) { G.inv.supplies = (G.inv.supplies | 0) + qty; Snd.play('rustle'); toast('Cook with a Home lab (buy one in your apartment\'s furniture catalog)'); } return dealerMenu(q); } });
+  opts.push({ t: `Buy ${qty} leaf seeds ${money(55 * qty)}`, d: G.cash < 55 * qty, f: () => { if (payCash(55 * qty)) { G.inv.seed_leaf = (G.inv.seed_leaf | 0) + qty; Snd.play('rustle'); toast('Grow them in a planter or a farm field'); } return dealerMenu(q); } });
+  opts.push({ t: `Buy ${qty} lab supplies ${money(90 * qty)}`, d: G.cash < 90 * qty || invWeight() + qty > invCap(), f: () => { if (payCash(90 * qty)) { G.inv.supplies = (G.inv.supplies | 0) + qty; Snd.play('rustle'); toast('Cook with a Home lab (buy one in your apartment\'s furniture catalog)'); } return dealerMenu(q); } });
   opts.push({ t: 'Qty: ' + qty, f: () => { G.dealQty = qty === 1 ? 5 : qty === 5 ? 10 : 1; return dealerMenu(q); } });
   opts.push({ t: 'Rob him', c: 'r', f: () => { q.state = 'fight'; q.target = G.player; q.timer = 20; q.talking = 0; pedSay(q, 'Big mistake.'); } });
   opts.push({ t: 'Leave' });
@@ -308,8 +307,8 @@ function perfMenu(q) {
   const first = q.name.split(' ')[0];
   return say(first, `"${pick(PERF_LINES)}"`, [
     { t: 'Chat', f: () => perfMenu(q) },
-    { t: 'Tip $20', c: 'y', d: G.cash < 20, f: () => { if (pay(20)) { bills(q.x, q.y, 6); Snd.voice('laugh', q.vp, q.x, q.y); pedSay(q, pick(['Thanks, hun!', 'Aww, sweet.', 'You\'re a gentleman.'])); } return perfMenu(q); } },
-    { t: 'Make it rain ($500)', c: 'r', d: G.cash < 500, f: () => { if (pay(500)) { bills(q.x, q.y, 60); for (const o of G.scene.peds) if (!o.dead && o !== q) setTimeout(() => Snd.voice('cheer', o.vp, o.x, o.y), Math.random() * 600); for (const o of G.scene.peds) if (!o.dead && o !== q) pedSay(o, pick(['WOOO!', 'Big spender!', 'Yeah!', 'Make it rain!'])); pedSay(q, 'Now THAT\'S a tip!'); G.cam.shake = 3; } } },
+    { t: 'Tip $20', c: 'y', d: G.cash < 20, f: () => { if (payCash(20)) { bills(q.x, q.y, 6); Snd.voice('laugh', q.vp, q.x, q.y); pedSay(q, pick(['Thanks, hun!', 'Aww, sweet.', 'You\'re a gentleman.'])); } return perfMenu(q); } },
+    { t: 'Make it rain ($500)', c: 'r', d: G.cash < 500, f: () => { if (payCash(500)) { bills(q.x, q.y, 60); for (const o of G.scene.peds) if (!o.dead && o !== q) setTimeout(() => Snd.voice('cheer', o.vp, o.x, o.y), Math.random() * 600); for (const o of G.scene.peds) if (!o.dead && o !== q) pedSay(o, pick(['WOOO!', 'Big spender!', 'Yeah!', 'Make it rain!'])); pedSay(q, 'Now THAT\'S a tip!'); G.cam.shake = 3; } } },
     { t: 'Leave' }]);
 }
 function bills(x, y, n) { for (let i = 0; i < n; i++) { const f = spawnFx('bill', x + rnd(-30, 30), y + rnd(-40, 10)); if (f) { f.vy = rnd(-50, 20); f.vx = rnd(-40, 40); } } Snd.play('cash'); }

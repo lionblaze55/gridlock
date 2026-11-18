@@ -52,7 +52,7 @@ const PMODES = {
     const c = H.col(WEAPONS[WI[id]].name + (pv ? ' — preview' : '')); const cv2 = H.mk('canvas', 'pgun'); cv2.width = 360; cv2.height = 150; c.appendChild(cv2); drawGunPreview(cv2, id, pm);
     c.appendChild(barsEl(gunStats(id, m), gunStats(id, pm)));
     const info = H.mk('div', 'pinfo'); c.appendChild(info);
-    if (pv) { const o = WSLOTS[pv.s].o[pv.i], own = pv.i === 0 || G.wown[id + pv.s + pv.i]; info.appendChild(H.mk('b', '', o[0].split(' —')[0])); info.appendChild(H.mk('span', '', ADESC[pv.s][pv.i])); info.appendChild(H.btn(own ? 'Fit it (owned)' : 'Buy & fit  ' + money(o[1]), () => { if (!own) { if (G.cash < o[1]) return Snd.play('bad'); G.cash -= o[1]; G.wown[id + pv.s + pv.i] = 1; Snd.play('cash'); } Snd.play(pv.s === 'skin' ? 'spray' : 'ratchet'); G.wmods[id] = Object.assign({}, G.wmods[id], { [pv.s]: pv.i }); PWC = {}; const wi = WI[id]; p.clip[wi] = Math.min(p.clip[wi], pw(wi).mag || 0); this.pv = null; }, 'y', !own && G.cash < o[1])); }
+    if (pv) { const o = WSLOTS[pv.s].o[pv.i], own = pv.i === 0 || G.wown[id + pv.s + pv.i]; info.appendChild(H.mk('b', '', o[0].split(' —')[0])); info.appendChild(H.mk('span', '', ADESC[pv.s][pv.i])); info.appendChild(H.btn(own ? 'Fit it (owned)' : 'Buy & fit  ' + money(o[1]), () => { if (!own) { if (!payAny(o[1])) return; G.wown[id + pv.s + pv.i] = 1; Snd.play('cash'); } Snd.play(pv.s === 'skin' ? 'spray' : 'ratchet'); G.wmods[id] = Object.assign({}, G.wmods[id], { [pv.s]: pv.i }); PWC = {}; const wi = WI[id]; p.clip[wi] = Math.min(p.clip[wi], pw(wi).mag || 0); this.pv = null; }, 'y', !own && (G.cash + G.bank) < o[1])); }
     else info.appendChild(H.mk('span', '', 'Tap any attachment to see it on the gun and how it changes the stats. Nothing is bought until you confirm.'));
     const c2 = H.col('Attachments — tap to preview');
     for (const s in WSLOTS) { const opts = WSLOTS[s].o.map((o, i) => [o, i]).filter(([o, i]) => i === 0 || o[2].includes(id)); if (opts.length < 2) continue; c2.appendChild(H.mk('div', 'ptitle', WSLOTS[s].n));
@@ -67,10 +67,10 @@ const PMODES = {
     if (w) { const cv2 = H.mk('canvas', 'pgun'); cv2.width = 360; cv2.height = 130; c2.appendChild(cv2); drawGunPreview(cv2, id, G.wmods[id]); }
     const info = H.mk('div', 'pinfo'); c2.appendChild(info); info.appendChild(H.mk('span', '', WDESC[id]));
     if (w) { const own = p.ammo[WI[id]] > 0; info.appendChild(H.mk('span', 'fact', `${w.melee ? 'Close range · silent' : ''}${w.mag ? 'Magazine ' + pw(WI[id]).mag + ' · reload ' + w.reload + 's · ' : ''}comes with ${w.ammo0} ${w.proj ? 'shots' : 'rounds'}`));
-      if (w.melee && own) info.appendChild(H.mk('span', 'fact', 'You have one.')); else info.appendChild(H.btn(own ? `Buy ammo  +${w.ammo0}  ${money(w.ammoPrice)}` : `Buy  ${money(w.price)}`, () => { if (pay(own ? w.ammoPrice : w.price)) { giveWeapon(id); Snd.play('cock'); } }, 'y', G.cash < (own ? w.ammoPrice : w.price)));
+      if (w.melee && own) info.appendChild(H.mk('span', 'fact', 'You have one.')); else info.appendChild(H.btn(own ? `Buy ammo  +${w.ammo0}  ${money(w.ammoPrice)}` : `Buy  ${money(w.price)}`, () => { if (pay(own ? w.ammoPrice : w.price)) { giveWeapon(id); Snd.play('cock'); } }, 'y', (G.cash + G.bank) < (own ? w.ammoPrice : w.price)));
       if (own && id !== 'molotov' && id !== 'knife') info.appendChild(H.btn('🔧 Customize at the workbench', () => { this.mode = 'guns'; this.tab = id; this.pv = null; })); }
     if (w) c2.appendChild(barsEl(gunStats(id)));
-    if (!w) info.appendChild(H.btn(p.armor >= 100 ? 'Armor already full' : 'Buy  $500', () => { if (pay(500)) { p.armor = 100; Snd.play('armor'); } }, 'y', p.armor >= 100 || G.cash < 500));
+    if (!w) info.appendChild(H.btn(p.armor >= 100 ? 'Armor already full' : 'Buy  $500', () => { if (pay(500)) { p.armor = 100; Snd.play('armor'); } }, 'y', p.armor >= 100 || (G.cash + G.bank) < 500));
   },
   pawn(H) {
     this.tab = this.tab || 'sell'; if (this.tab !== 'buy') return false;
@@ -86,7 +86,7 @@ const PMODES = {
     const e = E.find(x => x.k === this.sel), c2 = H.col(e.n);
     if (e.gun) { const cv2 = H.mk('canvas', 'pgun'); cv2.width = 360; cv2.height = 130; c2.appendChild(cv2); drawGunPreview(cv2, e.gun, G.wmods[e.gun]); c2.appendChild(barsEl(gunStats(e.gun))); } else c2.appendChild(H.mk('div', 'pbig', e.e));
     const info = H.mk('div', 'pinfo'); c2.appendChild(info); for (const t of e.d) if (t) info.appendChild(H.mk('span', '', t));
-    info.appendChild(H.btn('Buy  ' + money(e.price), () => { if (pay(e.price)) e.buy(); }, 'y', G.cash < e.price));
+    info.appendChild(H.btn('Buy  ' + money(e.price), () => { if (payCash(e.price)) e.buy(); }, 'y', G.cash < e.price));
   },
   radio(H) {
     H.title.textContent = 'Radio'; const c = H.col('Stations'), car = pCar(), can = car || G.settings.walkman;

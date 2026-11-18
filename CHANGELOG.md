@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.89
+- Bribing cops: at 1–2 stars, wanted only for minor crimes, a 💵 BRIBE button appears next to SURRENDER when a cop is close (you can also offer one when you talk to a cop). Pick a small or a generous offer, each with its odds shown — cash only, and you only pay if he takes it. If he refuses, "Attempted bribery" goes on your sheet, and each cop only hears one offer. Murder, killing a cop, armed robbery, assaulting police and stealing a cop car can't be bought off.
+- You keep your guns: getting wasted or busted, you come back with every gun you were carrying — same guns, same attachments and wear, minus the ammo you fired. Only NPCs drop their guns. (Armor is still lost.)
+- Cops wear their uniforms: they no longer get random civilian jackets thrown over them, and a driver bailing out of a cop car comes out as a cop.
+- Shops take card: buying at a shop, gun store, garage or dealer uses your pocket cash first, then your bank. The pawn shop, street dealers, tips, bribes and the casino are cash only.
+- Tyres: crash damage spread to your car's parts hits the wheels and tyres less, and a badly beaten car you take out of the garage no longer starts with a flat (only a near-wreck does). Getting shot at still pops tyres fast.
+- Pets keep up: a following pet runs to stay with you, slides along walls instead of getting stuck, catches up if it falls behind a building, and hops into your vehicle with you — and back out when you get out.
+- Fort Varro always has its tanks: two in the motor pool and a third out by the parade ground, parked there whenever you show up (they used to spawn at random and were easy to miss).
+
 ## 1.88
 - Gun workbench: no more duplicate slots. Barrel / Barrel length, Action / Trigger and Feed / Magazine are now one tile each. Inside the tile a switch flips between the part itself (wear, grade, pull off, swap, fix) and its upgrade (barrel length, trigger, magazine size); each side shows what's on the gun now. The tile gets a "+UP" badge when an upgrade is fitted.
 - Gun menus work like the car menu on phones: the card for whatever you've selected — a gun, a spare part, or the slot and option on the bench — is pinned at the bottom with its buttons, and only the grids above it scroll. Applies to the home gun workshop and the gun shop's workbench. The grid keeps its scroll position as you tap through options.

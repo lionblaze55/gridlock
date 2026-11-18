@@ -67,6 +67,7 @@ cv.addEventListener('pointerdown', e => {
   if (inRect(x, y, Input.miniBtn)) { G.fullMap = true; return; }
   if (G.placing && !G.dlgOpen) { if (inRect(x, y, Input.bagBtn) || inRect(x, y, Input.menuBtn)) G.placing = null; else { placeTap(x, y); return; } }
   if (inRect(x, y, Input.bagBtn)) { openInv(); return; }
+  if (Input.bribeBtn && inRect(x, y, Input.bribeBtn)) { bribeOffer(); return; }
   if (Input.surBtn && inRect(x, y, Input.surBtn)) { toggleSurrender(); return; }
   if (Input.phoneBtn && inRect(x, y, Input.phoneBtn)) { openPhone(); return; }
   if (Net.chatBtn && inRect(x, y, Net.chatBtn)) { openChat(); return; }

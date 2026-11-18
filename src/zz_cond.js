@@ -1,6 +1,6 @@
 // ================= PART CONDITION: every part has its own wear; the car's condition is made of its parts =================
 const PCOSM = new Set(['liv', 'tint', 'neon', 'hl', 'p', 's', 'swp']);
-const PEXPO = { panels: 1.8, wheelset: 1.3, exhaustp: 1.1, seats: .7, wiring: .8, gearbox: .85, eng: .9, 'm:rim': 1.3, 'm:sp': 1.6, 'm:hd': 1.6, 'm:sk': 1.6 };
+const PEXPO = { panels: 1.8, wheelset: .8, exhaustp: 1.1, seats: .7, wiring: .8, gearbox: .85, eng: .9, 'm:rim': .9, 'm:sp': 1.6, 'm:hd': 1.6, 'm:sk': 1.6 };
 const isPartId = id => id.includes(':') || MECH.includes(id) || id.startsWith('eng_');
 const PLC = () => G.save.lc || (G.save.lc = {});
 const r5 = n => Math.round(n / 5) * 5;

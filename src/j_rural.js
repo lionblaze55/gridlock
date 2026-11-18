@@ -137,7 +137,7 @@ const RUSE = {
   fishspot(pr) { if (!G.inv.rod) return say('Fishing spot', 'The water is full of fish, but you need a fishing rod. Pawn shops and stores sell them.'); if (G.fishing) return; G.fishing = { t: rnd(2.5, 6), x: G.player.x, y: G.player.y, bx: pr.x + (pr.x - G.player.x) * 2.2 + rnd(-20, 20), by: pr.y + (pr.y - G.player.y) * 2.2 + 46 }; Snd.play('whoosh'); setTimeout(() => Snd.play('splash', undefined, undefined, .4), 350); toast('Line cast. Hold still...'); },
   umbrella(pr) { G.sitting = { x: pr.x - 4, y: pr.y + 12 }; G.player.x = pr.x - 4; G.player.y = pr.y + 12; toast('Relaxing on the beach... (move to stand)'); },
   wreck(pr) { if (pr.searched) return toast('Already stripped.'); pr.searched = 1; Snd.play('ratchet', pr.x, pr.y); giveLoot(Math.random() < .5 ? 'carparts' : 'copper'); },
-  stand(pr) { if (pay(4)) { const g = invAdd('apple', 3, 1); if (!g) { heal(20); toast('Ate them on the spot. +20'); } else toast('3 fresh apples'); } },
+  stand(pr) { if (payCash(4)) { const g = invAdd('apple', 3, 1); if (!g) { heal(20); toast('Ate them on the spot. +20'); } else toast('3 fresh apples'); } },
   well(pr) { heal(10); Snd.play('splash', pr.x, pr.y, .4); toast('Cold, clean water. +10'); },
   mailbox(pr) { if (pr.searched) return toast('Empty.'); pr.searched = 1; Snd.play('rustle', pr.x, pr.y); if (Math.random() < .4) { const n = rint(10, 60); addCash(n); crime(.2, 'Mail theft'); toast('A birthday card with ' + money(n) + ' in it. You monster.'); } else toast(pick(['Bills.', 'Seed catalog.', 'A postcard from Aunt Dolores.'])); },
 };
