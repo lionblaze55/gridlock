@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.88
+- Gun workbench: no more duplicate slots. Barrel / Barrel length, Action / Trigger and Feed / Magazine are now one tile each. Inside the tile a switch flips between the part itself (wear, grade, pull off, swap, fix) and its upgrade (barrel length, trigger, magazine size); each side shows what's on the gun now. The tile gets a "+UP" badge when an upgrade is fitted.
+- Gun menus work like the car menu on phones: the card for whatever you've selected — a gun, a spare part, or the slot and option on the bench — is pinned at the bottom with its buttons, and only the grids above it scroll. Applies to the home gun workshop and the gun shop's workbench. The grid keeps its scroll position as you tap through options.
+
 ## 1.87
 - Slow fixes only happen in storage. A gun you're carrying can't be slow-fixed any more: pay for ⚡ Fix now, or store it at your home gun bench first. Guns in your collection get 🐢 Slow fix (clean & oil on the bench — cheap, takes a few minutes of play), shown with a 🧽 CLEANING badge; tap again to stop. Taking a gun off the bench to carry it stops its cleaning. One gun on the bench at a time.
 - Cars work the same way: only garaged cars can be slow-fixed (the garage now says "Slow fix: garage it first" for a car that's out). If you take a car out mid-job, the slow fix pauses and picks back up when you garage it again.
