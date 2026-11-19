@@ -24,13 +24,15 @@ function copCorrupt(q) { if (q.corrupt === undefined) q.corrupt = q.role === 'co
 
 // ---------- HUD: what kind of heat, and who else is hunting you ----------
 { const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); if (G.mode !== 'play' || G.player.dead) return; const [rx, ry] = starRow(sc); let y = ry + 24 * sc; const lines = [];
-  if (stars() > 0) lines.push(heatTac() ? ['TACTICAL · SWAT', STAR_TAC] : ['LOCAL PD', STAR_LOCAL]);
+  if (stars() > 0) lines.push(heatTac() ? ['🛡 SWAT RESPONSE', STAR_TAC] : ['🚓 POLICE', STAR_LOCAL]);
   if (typeof FAC === 'function') { const F = FAC(); for (const g in F) if (F[g].hunt >= 1.5 || (G.gangAggro[g] || 0) > 0) lines.push(['☠ ' + GANGS[g].name, GANGS[g].col === '#111' ? '#ccc' : GANGS[g].col]); }
   if (typeof descLines === 'function') lines.push(...descLines());
   ctx.save(); ctx.font = `700 ${10.5 * sc}px Rubik, sans-serif`; ctx.textAlign = 'center';
   for (const [t, c] of lines.slice(0, 4)) { const w = ctx.measureText(t).width + 14 * sc; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(rx - w / 2, y - 10 * sc, w, 15 * sc, 7 * sc) : ctx.rect(rx - w / 2, y - 10 * sc, w, 15 * sc); ctx.fill(); ctx.fillStyle = c; ctx.fillText(t, rx, y + 1 * sc); y += 18 * sc; }
   ctx.restore(); }; }
 
-// ---------- colour-coded stars: blue = local police, red = tactical; a mix shows both ----------
+// ---------- colour-coded stars ----------
+// One scale: the number of stars is how hard the city is coming for you. The colour of the whole row says who:
+// blue = police only (local heat), red = it's gone tactical and SWAT is cleared to roll.
 const STAR_LOCAL = '#4fa3ff', STAR_TAC = '#ff4d4d';
-function starCol(i, st) { const t = G.heatT || 0, l = G.heatL || 0, tot = t + l; if (tot <= 0) return STAR_LOCAL; const nT = Math.round(st * t / tot); return i < st - nT ? STAR_LOCAL : STAR_TAC; }
+function starCol() { return heatTac() ? STAR_TAC : STAR_LOCAL; }

@@ -6,8 +6,8 @@ android {
         applicationId = "com.gridlock.sanvarro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 93
-        versionName = "1.91"
+        versionCode = 94
+        versionName = "1.92"
     }
     buildTypes {
         release {

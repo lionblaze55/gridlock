@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.92
+- Wanted stars, clearer: one scale again. The number of stars is how hard the city is coming for you; the whole row is one colour for who's coming — blue (🚓 POLICE) for local heat, red (🛡 SWAT RESPONSE) once it's gone tactical (gunfire, killings, armed robbery). No more mixed-colour rows.
+
 ## 1.91
 - Colour-coded wanted stars: blue stars are local police heat (theft, speeding, fights), red stars are tactical heat (gunfire, killings, armed robbery — the kind that brings SWAT). A mix shows both, in proportion.
 - Neighbourhood memory is much shorter: each district forgets one sighting every 2 minutes of play, so a signature ride or outfit wears off within a few minutes of keeping your head down (it used to last hours).
