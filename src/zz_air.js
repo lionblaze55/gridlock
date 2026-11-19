@@ -156,7 +156,7 @@ FINES.unshift([/aircraft theft/i, 3000]);
 
 // ---------- police air support: a chopper joins at 3★, a door gunner at 4★, searchlight after dark ----------
 function copHeliTick(dt) { const st = stars(), H = G.cars.find(c => c.copHeli && !c.gone); if (G.scene || G.inside) return;
-  if (st >= 5 && (!H || H.dead) && (G.chT = (G.chT || 0) - dt) <= 0) { G.chT = 45; const a = Math.random() * TAU, P = pCar() || G.player, c = new Car('heli', P.x + Math.cos(a) * 1400, P.y + Math.sin(a) * 1400, a + Math.PI, '#0d47a1'); c.copHeli = 1; c.alt = .55; c.spin = 1; c.hp = 110; c.ai = null; G.cars.push(c); msg('🚁 Police air support is overhead!', '#4fc3f7'); Snd.play('alarm', c.x, c.y, .4); }
+  if (st >= 5 && heatTac() && (!H || H.dead) && (G.chT = (G.chT || 0) - dt) <= 0) { G.chT = 45; const a = Math.random() * TAU, P = pCar() || G.player, c = new Car('heli', P.x + Math.cos(a) * 1400, P.y + Math.sin(a) * 1400, a + Math.PI, '#0d47a1'); c.copHeli = 1; c.alt = .55; c.spin = 1; c.hp = 110; c.ai = null; G.cars.push(c); msg('🚁 Police air support is overhead!', '#4fc3f7'); Snd.play('alarm', c.x, c.y, .4); }
   if (!H || H.dead) return; if (st < 4) { if (!H.leaving) { H.leaving = 1; msg('The police chopper peels away.', '#9ccc65'); } if (!inView(H.x, H.y, 300) && H.alt >= .6) H.gone = 1; return; } H.leaving = 0;
   const P = pCar() || G.player; if (darkness() > .3) { pushLight('pt', P.x, P.y, 150, 'rgba(240,250,255,1)', .9); H.beam = 1; } else H.beam = 0;
   if (st >= 5 && dist2(H.x, H.y, P.x, P.y) < 700 * 700 && (H.gunT = (H.gunT || 1.5) - dt) <= 0) { H.gunT = .14; H.burst = (H.burst || 0) + 1; if (H.burst > 6) { H.burst = 0; H.gunT = 1.6; }

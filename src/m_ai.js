@@ -134,14 +134,14 @@ function policeResponse(fx, fy) {
     for (let tries = 0; tries < 8; tries++) {
       const ang = rnd(0, TAU), r = rnd(1150, 1550), x = LK.x + Math.cos(ang) * r, y = LK.y + Math.sin(ang) * r, tx = Math.floor(x / T), ty = Math.floor(y / T);
       if (!inMap(tx, ty) || tileAt(tx, ty) !== TILE.ROAD || inView(x, y, 120)) continue;
-      const c = new Car(st >= 4 && Math.random() < .4 ? 'swat' : 'cop', x, y, Math.atan2(LK.y - y, LK.x - x)); c.ai = { mode: 'chase', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; c.siren = 1; c.driver = { role: 'cop' }; G.cars.push(c); G.copCD = [0, 15, 12, 9, 7, 5][st]; break;
+      const c = new Car(Math.random() < swatOdds(st, 1) ? 'swat' : 'cop', x, y, Math.atan2(LK.y - y, LK.x - x)); c.ai = { mode: 'chase', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; c.siren = 1; c.driver = { role: 'cop' }; G.cars.push(c); G.copCD = [0, 15, 12, 9, 7, 5][st]; break;
     }
   }
   if (st >= 3 && hot && !pl.car && !G.scene && foot < st - 2 && footCops() < footCap() && G.footCD <= 0) {
     for (let tries = 0; tries < 8; tries++) {
       const ang = rnd(0, TAU), r = rnd(650, 950), x = LK.x + Math.cos(ang) * r, y = LK.y + Math.sin(ang) * r;
       if (tileAt(Math.floor(x / T), Math.floor(y / T)) !== TILE.WALK || inView(x, y, 40)) continue;
-      const p = new Ped(x, y, { role: st >= 4 && Math.random() < .5 ? 'swat' : 'cop' }); p.state = 'chase'; p.chaseSpawn = 1; G.peds.push(p); G.footCD = 16; break;
+      const p = new Ped(x, y, { role: Math.random() < swatOdds(st, 0) ? 'swat' : 'cop' }); p.state = 'chase'; p.chaseSpawn = 1; G.peds.push(p); G.footCD = 16; break;
     }
   }
 }

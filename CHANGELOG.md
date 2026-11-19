@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.90 — Living world: factions, heat and witnesses
+- Ramming: weight wins. When a heavy vehicle hits a light one, the light one is shoved along with it — its tyres break loose so it slides sideways and spins — and it takes almost all of the damage, while the heavy one keeps its momentum and barely gets scratched. Equal-weight cars still trade equal damage. A tank plows through anything.
+- Living factions: every gang with turf runs an economy that ticks whether you're watching or not.
+  - Supply drains as they arm their people and refills when a contraband convoy reaches their hideout.
+  - Convoys near you are real trucks with an escort (and show on the map). Hit one — wreck it, kill the driver or steal it — and their supply crashes: the escort comes for you, the cargo spills (guns, product, cash), or if you drove off with it you get what's in the back.
+  - Low supply means their soldiers turn up with knives and old pistols and their gun dealer charges more or runs dry; flush gangs carry SMGs and rifles.
+  - Each gang has a hideout with soldiers outside — you'll find it on the map once you've seen it.
+  - On their turf you'll see shakedowns (an extortionist walks into a shop and comes out with the money — stop him and the owner pays you), and street fights with rival gangs they're at war with. Far away, rivals at war jack each other's shipments.
+  - Payback: hitting a gang, or killing their people (especially on their turf), makes them hunt you; push it far enough and they send a car full of shooters after you.
+- Heat that reacts to how you act: behind the stars there are now two kinds of heat.
+  - LOCAL PD (noise, speeding, theft, property damage, fistfights): patrol cars and beat cops — no SWAT, no chopper.
+  - TACTICAL (gunfire, killings, armed robbery, explosives): SWAT vans and teams from 2★, and the chopper only joins at 5★ when it's tactical.
+  - About one cop in four is corrupt: he'll drop hints, "eyes your wallet" in the bribe dialog (gold BRIBE button), takes bribes far more often, and will take one up to 3★ and for things like armed robbery. Straight cops rarely do.
+  - Gangs don't care about the law: violence on their turf in front of their people is what makes them come for you. A tag under the stars shows which gangs are hunting you.
+- Witnesses, disguises and memory:
+  - Witnesses describe your car (colour and model) and your clothes; when the call goes through, dispatch puts the description out — even if you were long gone.
+  - Half of them have no phone and run for the nearest payphone: stop them or get out of sight before they reach it.
+  - While the description is out, cops who spot the hot car or the matching outfit recognise you, even at 0★. Ditch or respray the car and change clothes and you don't match any more — stars also fade faster then, and slower while you're in the hot car. Tags under the stars show 🚗 HOT CAR / 👕 OUTFIT DESCRIBED / 🕶 NO MATCH.
+  - Laying low inside, unseen, cools you off — fast in your own safehouse or home.
+  - Neighbourhoods remember: keep committing crimes in the same ride or outfit in one district and it becomes your signature there — locals and that district's cops know you on sight (👁 KNOWN AROUND HERE). It fades over a few hours.
+
 ## 1.89
 - Bribing cops: at 1–2 stars, wanted only for minor crimes, a 💵 BRIBE button appears next to SURRENDER when a cop is close (you can also offer one when you talk to a cop). Pick a small or a generous offer, each with its odds shown — cash only, and you only pay if he takes it. If he refuses, "Attempted bribery" goes on your sheet, and each cop only hears one offer. Murder, killing a cop, armed robbery, assaulting police and stealing a cop car can't be bought off.
 - You keep your guns: getting wasted or busted, you come back with every gun you were carrying — same guns, same attachments and wear, minus the ammo you fired. Only NPCs drop their guns. (Armor is still lost.)

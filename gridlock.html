@@ -1498,7 +1498,7 @@ function updateCar0(c, dt) {
   else { const f = Math.min(Math.abs(fwd), 70 * dt); fwd -= Math.sign(fwd) * f; }
   if (c.brake) { const f = Math.min(Math.abs(fwd), d.brk * dt); fwd -= Math.sign(fwd) * f; }
   fwd -= fwd * .12 * dt;
-  const grip = c.hand ? 1.4 : d.grip;
+  const grip = (c.hand ? 1.4 : d.grip) * (c.shoveT > 0 ? (c.shoveT -= dt, c.shoveG || .2) : 1);
   if (c.hand) { const f = Math.min(Math.abs(fwd), 280 * dt); fwd -= Math.sign(fwd) * f; }
   const latOld = lat; lat *= Math.exp(-grip * dt);
   c.vx = fx * fwd - fy * lat; c.vy = fy * fwd + fx * lat;
@@ -2345,7 +2345,7 @@ function talkTo0(q) {
     opts.push({ t: 'Insult', c: 'r', f: () => { crime(1.1, 'Insulting an officer'); q.hostile = 1; pedSay(q, 'That\'s it!'); } });
   } else if (role === 'gang') {
     const gi = GANGS[q.gang];
-    { const sl = gi.sells || ['uzi', 80, 500], rp = G.rep[q.gang] | 0, pr = Math.round(sl[2] * (rp >= 30 ? .6 : 1)); opts.push({ t: `Buy ${WEAPONS[WI[sl[0]]].name} (${money(pr)})`, f: () => { if (payCash(pr)) { giveWeapon(sl[0], sl[1]); return say(first, 'No questions asked. Pleasure doing business.'); } } }); if (q.gang === 'reapers') opts.push({ t: 'Buy moonshine ($40)', f: () => { if (payCash(40)) { if (!invAdd('moonshine', 1)) G.cash += 40; } return true; } }); }
+    { const sl = gi.sells || ['uzi', 80, 500], rp = G.rep[q.gang] | 0, pr = Math.round(sl[2] * (rp >= 30 ? .6 : 1) * (typeof facPriceMul === 'function' ? facPriceMul(q.gang) : 1) / 10) * 10, oos = typeof facOut === 'function' && facOut(q.gang); opts.push({ t: oos ? 'Out of guns — "our supply run got hit"' : `Buy ${WEAPONS[WI[sl[0]]].name} (${money(pr)})` + (typeof facPriceMul === 'function' && facPriceMul(q.gang) > 1 ? ' — short supply' : ''), d: oos, f: () => { if (payCash(pr)) { giveWeapon(sl[0], sl[1]); return say(first, 'No questions asked. Pleasure doing business.'); } } }); if (q.gang === 'reapers') opts.push({ t: 'Buy moonshine ($40)', f: () => { if (payCash(40)) { if (!invAdd('moonshine', 1)) G.cash += 40; } return true; } }); }
     opts.push({ t: 'Ask for work', c: 'y', d: !!G.mission, f: () => { offerGangJob(q); return true; } });
     opts.push({ t: 'Run product', d: !!G.mission, f: () => { const m = makeRunMission(q); return say(q.name, `Take this package to our buyer across town. ${m.timer} seconds, and don't get busted. Pays ${money(m.reward)}.`, [{ t: 'Deal', c: 'y', f: () => { startMission(m); } }, { t: 'Pass' }]); } });
     opts.push({ t: 'Diss the ' + gi.name, c: 'r', f: () => { repAdd(q.gang, -10); G.gangAggro[q.gang] = 60; q.state = 'fight'; q.target = p; q.timer = 20; pedSay(q, 'You\'re dead!'); } });
@@ -2968,7 +2968,7 @@ function drawFx() {
       case 'blood': ctx.fillStyle = `rgba(150,10,10,${a})`; ctx.fillRect(f.x, f.y, f.s, f.s); break;
       case 'dust': { const s = f.s * 2; ctx.globalAlpha = a * .5; ctx.drawImage(smoke, f.x - s, f.y - s, s * 2, s * 2); ctx.globalAlpha = 1; break; }
       case 'note': ctx.fillStyle = `rgba(242,194,48,${a})`; ctx.font = 'bold 16px sans-serif'; ctx.fillText('♪', f.x, f.y); break;
-      case 'tracer': { const g2 = ctx.createLinearGradient(f.x, f.y, f.x2, f.y2); g2.addColorStop(0, `rgba(255,240,170,${a * .2})`); g2.addColorStop(1, `rgba(255,250,210,${a})`); ctx.strokeStyle = g2; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x2, f.y2); ctx.stroke(); break; }
+      case 'tracer': { if (!isFinite(f.x + f.y + f.x2 + f.y2)) break; const g2 = ctx.createLinearGradient(f.x, f.y, f.x2, f.y2); g2.addColorStop(0, `rgba(255,240,170,${a * .2})`); g2.addColorStop(1, `rgba(255,250,210,${a})`); ctx.strokeStyle = g2; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x2, f.y2); ctx.stroke(); break; }
       case 'boom': { const r = f.s * (1.3 - a * .7); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a; ctx.drawImage(radialSprite('rgba(255,160,40,1)', 64), f.x - r * 1.2, f.y - r * 1.2, r * 2.4, r * 2.4); ctx.drawImage(radialSprite('rgba(255,250,210,1)', 64), f.x - r * .5, f.y - r * .5, r, r); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = `rgba(255,240,220,${a * .6})`; ctx.lineWidth = 3 * a + 1; ctx.beginPath(); ctx.arc(f.x, f.y, f.s * (1.6 - a * 1.2), 0, TAU); ctx.stroke(); break; }
       case 'deb': ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.a + G.t * 8); ctx.fillStyle = `rgba(40,35,30,${a})`; ctx.fillRect(-f.s / 2, -f.s / 3, f.s, f.s * .66); ctx.restore(); break;
       case 'shell': ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.a + (1 - a) * 20); ctx.fillStyle = `rgba(212,175,55,${Math.min(1, a * 3)})`; ctx.fillRect(-1.5, -.8, 3, 1.6); ctx.restore(); break;
@@ -4475,14 +4475,14 @@ function policeResponse(fx, fy) {
     for (let tries = 0; tries < 8; tries++) {
       const ang = rnd(0, TAU), r = rnd(1150, 1550), x = LK.x + Math.cos(ang) * r, y = LK.y + Math.sin(ang) * r, tx = Math.floor(x / T), ty = Math.floor(y / T);
       if (!inMap(tx, ty) || tileAt(tx, ty) !== TILE.ROAD || inView(x, y, 120)) continue;
-      const c = new Car(st >= 4 && Math.random() < .4 ? 'swat' : 'cop', x, y, Math.atan2(LK.y - y, LK.x - x)); c.ai = { mode: 'chase', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; c.siren = 1; c.driver = { role: 'cop' }; G.cars.push(c); G.copCD = [0, 15, 12, 9, 7, 5][st]; break;
+      const c = new Car(Math.random() < swatOdds(st, 1) ? 'swat' : 'cop', x, y, Math.atan2(LK.y - y, LK.x - x)); c.ai = { mode: 'chase', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; c.siren = 1; c.driver = { role: 'cop' }; G.cars.push(c); G.copCD = [0, 15, 12, 9, 7, 5][st]; break;
     }
   }
   if (st >= 3 && hot && !pl.car && !G.scene && foot < st - 2 && footCops() < footCap() && G.footCD <= 0) {
     for (let tries = 0; tries < 8; tries++) {
       const ang = rnd(0, TAU), r = rnd(650, 950), x = LK.x + Math.cos(ang) * r, y = LK.y + Math.sin(ang) * r;
       if (tileAt(Math.floor(x / T), Math.floor(y / T)) !== TILE.WALK || inView(x, y, 40)) continue;
-      const p = new Ped(x, y, { role: st >= 4 && Math.random() < .5 ? 'swat' : 'cop' }); p.state = 'chase'; p.chaseSpawn = 1; G.peds.push(p); G.footCD = 16; break;
+      const p = new Ped(x, y, { role: Math.random() < swatOdds(st, 0) ? 'swat' : 'cop' }); p.state = 'chase'; p.chaseSpawn = 1; G.peds.push(p); G.footCD = 16; break;
     }
   }
 }
@@ -10619,7 +10619,7 @@ FINES.unshift([/aircraft theft/i, 3000]);
 
 // ---------- police air support: a chopper joins at 3★, a door gunner at 4★, searchlight after dark ----------
 function copHeliTick(dt) { const st = stars(), H = G.cars.find(c => c.copHeli && !c.gone); if (G.scene || G.inside) return;
-  if (st >= 5 && (!H || H.dead) && (G.chT = (G.chT || 0) - dt) <= 0) { G.chT = 45; const a = Math.random() * TAU, P = pCar() || G.player, c = new Car('heli', P.x + Math.cos(a) * 1400, P.y + Math.sin(a) * 1400, a + Math.PI, '#0d47a1'); c.copHeli = 1; c.alt = .55; c.spin = 1; c.hp = 110; c.ai = null; G.cars.push(c); msg('🚁 Police air support is overhead!', '#4fc3f7'); Snd.play('alarm', c.x, c.y, .4); }
+  if (st >= 5 && heatTac() && (!H || H.dead) && (G.chT = (G.chT || 0) - dt) <= 0) { G.chT = 45; const a = Math.random() * TAU, P = pCar() || G.player, c = new Car('heli', P.x + Math.cos(a) * 1400, P.y + Math.sin(a) * 1400, a + Math.PI, '#0d47a1'); c.copHeli = 1; c.alt = .55; c.spin = 1; c.hp = 110; c.ai = null; G.cars.push(c); msg('🚁 Police air support is overhead!', '#4fc3f7'); Snd.play('alarm', c.x, c.y, .4); }
   if (!H || H.dead) return; if (st < 4) { if (!H.leaving) { H.leaving = 1; msg('The police chopper peels away.', '#9ccc65'); } if (!inView(H.x, H.y, 300) && H.alt >= .6) H.gone = 1; return; } H.leaving = 0;
   const P = pCar() || G.player; if (darkness() > .3) { pushLight('pt', P.x, P.y, 150, 'rgba(240,250,255,1)', .9); H.beam = 1; } else H.beam = 0;
   if (st >= 5 && dist2(H.x, H.y, P.x, P.y) < 700 * 700 && (H.gunT = (H.gunT || 1.5) - dt) <= 0) { H.gunT = .14; H.burst = (H.burst || 0) + 1; if (H.burst > 6) { H.burst = 0; H.gunT = 1.6; }
@@ -12224,24 +12224,279 @@ function baseTick() { if (!W.base || G.scene) return; const p = G.player;
 // cop only hears one offer. Murder, cop-killing, armed robbery, assaulting police and stealing a cop car can't be bought off.
 const BRIBE_NO = /killing a cop|murder|armed robbery|assaulting police|stealing a police|jacking a cop|kidnap|explos/i;
 const r50b = n => Math.round(n / 50) * 50;
-function bribeable() { if (stars() < 1 || stars() > 2) return false; const R = G.rap || []; if (R.some(e => BRIBE_NO.test(e.k))) return false; return R.reduce((s, e) => s + chargeFine(e), 0) <= 3000; }
-function bribeCop() { const p = G.player; let best = null, bd = 230 * 230; for (const q of G.peds) { if (q.dead || q.role !== 'cop' || q.swat || q.army || q.bribeTried || q.lawJob) continue; const d = dist2(q.x, q.y, p.x, p.y); if (d < bd && losClear(q.x, q.y, p.x, p.y)) { bd = d; best = q; } } return best; }
+const BRIBE_NO_CORRUPT = /killing a cop|murder|kidnap/i;
+function bribeable(q) { const c = q && copCorrupt(q), R = G.rap || []; if (stars() < 1 || stars() > (c ? 3 : 2)) return false; if (R.some(e => (c ? BRIBE_NO_CORRUPT : BRIBE_NO).test(e.k))) return false; return R.reduce((s, e) => s + chargeFine(e), 0) <= (c ? 8000 : 3000); }
+function bribeCop() { const p = G.player; let best = null, bd = 1e12; for (const q of G.peds) { if (q.dead || q.role !== 'cop' || q.swat || q.army || q.bribeTried || q.lawJob) continue; const d = dist2(q.x, q.y, p.x, p.y); if (d > 230 * 230 || !losClear(q.x, q.y, p.x, p.y) || !bribeable(q)) continue; const sc = d - (copCorrupt(q) ? 4e4 : 0); if (sc < bd) { bd = sc; best = q; } } return best; }
 function bribeOffer(q) { q = q || bribeCop(); if (!q) return toast('No cop close enough to talk to');
-  if (!bribeable()) return say(q.name + ' — SVPD', stars() > 2 ? '"Too late for that. Hands where I can see them!"' : '"Not a chance. Not for what you did."');
+  if (!bribeable(q)) return say(q.name + ' — SVPD', stars() > 2 ? '"Too late for that. Hands where I can see them!"' : '"Not a chance. Not for what you did."');
   const st = Math.max(1, stars()), R = G.rap || [], fine = Math.max(250 * st, R.reduce((s, e) => s + chargeFine(e), 0)), lo = Math.max(100, r50b(fine * .4)), hi = Math.max(250, r50b(fine * .9));
-  const ch = b => clamp(b - (st - 1) * .15 - (plArmed() ? .1 : 0), .05, .9), c1 = ch(.35), c2 = ch(.72); G.talkPed = q; q.talking = 1; q.state = 'idle';
+  const cor = copCorrupt(q), ch = b => clamp(b - (st - 1) * (cor ? .08 : .15) - (plArmed() ? .1 : 0), .05, .95), c1 = ch(cor ? .62 : .2), c2 = ch(cor ? .92 : .45); G.talkPed = q; q.talking = 1; q.state = 'idle';
   const tryB = (amt, chance) => { closeDialog(); q.bribeTried = 1; q.talking = 0;
     if (Math.random() < chance && payCash(amt)) { callOffCops(); G.heat = 0; G.reports = []; for (const c of G.peds) if (c.role === 'cop' && !c.dead && c.target === G.player) { c.state = 'walk'; c.target = null; }
       pedSay(q, pick(['I didn\'t see anything. Beat it.', 'Get out of here before I change my mind.', 'Pleasure doing business. Drive safe.'])); msg('💵 He pockets it — the cops back off.', '#2ecc71'); }
     else { crime(1, 'Attempted bribery'); q.state = 'chase'; q.target = G.player; pedSay(q, pick(['Are you trying to bribe me?!', 'That\'s a felony, pal!', 'Nice try. Hands behind your back!'])); msg('🚔 He didn\'t bite — attempted bribery added to your sheet.', '#ff6b6b'); } };
-  say(q.name + ' — SVPD', '"' + pick(['You know why I stopped you?', 'Make it quick.', 'Let\'s hear it.']) + '"\nWanted for: ' + (R.map(e => e.k).join(', ') || 'disorderly conduct') + ' · cash on you ' + money(G.cash), [
+  say(q.name + ' — SVPD', '"' + pick(['You know why I stopped you?', 'Make it quick.', 'Let\'s hear it.']) + '" ' + (cor ? '(He\'s eyeing your wallet.)' : '(He looks straight-laced.)') + '\nWanted for: ' + (R.map(e => e.k).join(', ') || 'disorderly conduct') + ' · cash on you ' + money(G.cash), [
     { t: '💵 Slip him ' + money(lo) + ' — ~' + Math.round(c1 * 100) + '% he takes it', c: 'y', d: G.cash < lo, f: () => tryB(lo, c1) },
     { t: '💵 Make it worth his while: ' + money(hi) + ' — ~' + Math.round(c2 * 100) + '%', c: 'y', d: G.cash < hi, f: () => tryB(hi, c2) },
     { t: 'Never mind', f: () => { q.talking = 0; closeDialog(); } }]); }
 // the HUD button, next to SURRENDER
-{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); Input.bribeBtn = null; if (G.surrender || !canSurrender() || !bribeable() || !bribeCop()) return;
-  const w = 104 * sc, h = 34 * sc, x = VW / 2 - 60 * sc - w - 10 * sc, y = VH - h - 18 * sc; ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 8) : ctx.rect(x, y, w, h); ctx.fill(); ctx.strokeStyle = '#57e389'; ctx.lineWidth = 2; ctx.stroke();
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); Input.bribeBtn = null; if (G.surrender || !canSurrender()) return; const bq = bribeCop(); if (!bq) return;
+  const w = 104 * sc, h = 34 * sc, x = VW / 2 - 60 * sc - w - 10 * sc, y = VH - h - 18 * sc; ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 8) : ctx.rect(x, y, w, h); ctx.fill(); ctx.strokeStyle = copCorrupt(bq) ? '#f2c230' : '#57e389'; ctx.lineWidth = 2; ctx.stroke();
   txt('💵 BRIBE', x + w / 2, y + h * .66, 13 * sc, '#fff', 'center'); Input.bribeBtn = [x, y, w, h]; }; }
+
+// corrupt cops drop hints when you're wanted and close
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || stars() < 1 || stars() > 3 || (G.corHintT = (G.corHintT || 0) - dt) > 0) return; G.corHintT = 2; const p = G.player;
+  for (const q of G.peds) if (q.role === 'cop' && !q.dead && !q.corHint && copCorrupt(q) && dist2(q.x, q.y, p.x, p.y) < 260 * 260 && losClear(q.x, q.y, p.x, p.y) && bribeable(q)) { q.corHint = 1; pedSay(q, pick(['Maybe we can work something out…', 'Ticket\'s expensive. Unless…', 'You look like a reasonable person.'])); break; } }; }
+
+// ================= ramming: weight wins =================
+// When a heavy vehicle hits a light one, the light one doesn't just bounce: it's shoved along with the heavy one,
+// its tyres break loose so it slides sideways and spins, and it takes the lion's share of the damage. The heavy one
+// keeps most of its momentum and barely gets scratched. A tank plows through anything.
+const RAM_MIN_RATIO = 1.3;
+{ const _cc = carCarCollide; carCarCollide = function (a, b) {
+  if (!a || !b || a.dead && b.dead || dist2(a.x, a.y, b.x, b.y) > (a.L / 2 + b.L / 2 + 6) ** 2) return _cc(a, b);
+  const va = [a.vx, a.vy], vb = [b.vx, b.vy], ha = a.hp, hb = b.hp; _cc(a, b); if (a.remote || b.remote) return;
+  const hit = a.vx !== va[0] || a.vy !== va[1] || b.vx !== vb[0] || b.vy !== vb[1]; if (!hit) return;
+  const ma = a.mass || 1, mb = b.mass || 1, heavyA = ma >= mb, H = heavyA ? a : b, Lt = heavyA ? b : a, mH = Math.max(ma, mb), mL = Math.min(ma, mb), ratio = mH / Math.max(.05, mL);
+  const vH0 = heavyA ? va : vb, vL0 = heavyA ? vb : va; let nx = Lt.x - H.x, ny = Lt.y - H.y; const nd = Math.hypot(nx, ny) || 1; nx /= nd; ny /= nd;
+  const closing = (vH0[0] - vL0[0]) * nx + (vH0[1] - vL0[1]) * ny; if (closing < 60 || ratio < RAM_MIN_RATIO) return;
+  const k = clamp((ratio - 1) / ratio, 0, .9);
+  // the heavy one keeps going
+  H.vx = H.vx + (vH0[0] - H.vx) * .55 * k; H.vy = H.vy + (vH0[1] - H.vy) * .55 * k;
+  // the light one is carried along the push direction at (nearly) the heavy one's speed
+  const pushV = (vH0[0] * nx + vH0[1] * ny) * (.75 + .2 * k), cur = Lt.vx * nx + Lt.vy * ny; if (cur < pushV) { Lt.vx += nx * (pushV - cur); Lt.vy += ny * (pushV - cur); }
+  // its tyres break loose and it spins around the contact point
+  Lt.shoveT = clamp(.3 + closing / 500 * Math.min(ratio, 4) * .35, .35, 1.6); Lt.shoveG = clamp(.45 / ratio, .05, .3);
+  const fx = Math.cos(Lt.a), fy = Math.sin(Lt.a), lever = (H.x - Lt.x) * fx + (H.y - Lt.y) * fy, side = fx * ny - fy * nx;
+  Lt.av = (Lt.av || 0) + clamp(-Math.sign(lever * side || 1) * (closing / 160) * Math.min(ratio, 3) * .6, -6, 6);
+  // damage follows weight: the light one takes almost all of it
+  const dA = Math.max(0, ha - a.hp), dB = Math.max(0, hb - b.hp), tot = dA + dB; if (tot > 0) { const share = 1 / (1 + Math.pow(ratio, 1.6)), wantH = tot * share, gotH = heavyA ? dA : dB, extraL = Math.max(0, gotH - wantH);
+    if (!H.dead) H.hp = Math.min(H.st ? H.st.hp : H.hp + extraL, H.hp + extraL); if (!Lt.dead && extraL > 0) Lt.damage(extraL * 1.15, H.driver); }
+  if (ratio >= 2.2 && closing > 160) { if (Lt === pCar() || H === pCar()) G.cam.shake = Math.min(14, (G.cam.shake || 0) + closing / 60); if (Lt.d && Lt.d.two) crashEject(Lt, closing * 3, H); }
+}; }
+
+// ================= LIVING FACTIONS: supply, convoys, turf, extortion, wars, payback =================
+// Every gang with turf runs a small economy that ticks whether you're watching or not:
+//  • Supply (0–100) drains as they arm their people and refills when a contraband convoy reaches their hideout.
+//  • Convoys are real trucks (with an escort) when they run near you — hit one and their supply crashes, their
+//    soldiers turn up with knives and old pistols, their gun dealer runs dry, and they send a crew after you.
+//    Far away they're simulated: they arrive, or a rival at war with them jacks the load.
+//  • Soldiers hang around each gang's hideout; patrols, shakedowns of local shops and street fights with rivals at
+//    war happen around you on their turf. Kill an extortionist before he's done and the owner pays you for it.
+//  • "Hunt" is how badly a gang wants you: it rises when you hit them, decays over time, and spawns hit squads.
+const FAC_SHOPS = new Set(['store', 'liquor', 'diner', 'bar', 'pawn', 'barber', 'clothes', 'pharmacy', 'gunshop', 'arcade', 'club', 'strip', 'tattoo', 'cafe', 'pizza', 'burger', 'laundry', 'florist', 'hardware']);
+const facTurfGangs = () => [...new Set(W.blocks.map(b => DISTRICTS[b.d] && DISTRICTS[b.d].gang).filter(g => g && GANGS[g]))];
+const facGangAt = (x, y) => { const d = DISTRICTS[districtAt(x, y)]; return d && d.gang && GANGS[d.gang] ? d.gang : null; };
+function FAC() { const S = G.save; if (!S.fac) S.fac = {}; const L = facTurfGangs();
+  for (const g of L) if (!S.fac[g]) S.fac[g] = { sup: rnd(45, 80), cash: 0, hunt: 0, convCD: rnd(25, 120), hitCD: 0, war: {} };
+  if (!S.facWars) { const pairs = [['kings', 'syndicate'], ['vipers', 'saints'], ['reapers', 'hounds'], ['reapers', 'vultures'], ['kings', 'vipers']]; S.facWars = pairs.filter(([a, b]) => L.includes(a) && L.includes(b)).slice(0, 3); if (!S.facWars.length && L.length > 1) S.facWars = [[L[0], L[1]]]; }
+  return S.fac; }
+const facSup = g => { const F = FAC()[g]; return F ? F.sup : 60; };
+const facRivals = g => (G.save.facWars || []).filter(p => p.includes(g)).map(p => p[0] === g ? p[1] : p[0]);
+const facPriceMul = g => { const s = facSup(g); return s < 25 ? 1.8 : s < 45 ? 1.25 : s > 80 ? .9 : 1; };
+const facOut = g => facSup(g) < 12;
+const facSupWord = s => s < 12 ? 'dry' : s < 30 ? 'short' : s < 60 ? 'steady' : s < 85 ? 'well stocked' : 'flush';
+
+// ---------- hideouts ----------
+const HIDE = {};
+function facHideouts() { if (HIDE._done) return; HIDE._done = 1; for (const g of facTurfGangs()) { const C = W.blocks.filter(b => DISTRICTS[b.d] && DISTRICTS[b.d].gang === g); if (!C.length) continue;
+    const cx = C.reduce((s, b) => s + b.bx, 0) / C.length * T + 6 * T, cy = C.reduce((s, b) => s + b.by, 0) / C.length * T + 6 * T;
+    const cand = W.buildings.filter(b => b.door && !b.realty && !b.hideout && !FAC_SHOPS.has(b.type) && !['police', 'hospital', 'bank', 'casino', 'safehouse', 'mil', 'factory'].includes(b.type) && facGangAt(b.door.x, b.door.y) === g).sort((a, b) => dist2(a.door.x, a.door.y, cx, cy) - dist2(b.door.x, b.door.y, cx, cy));
+    const b = cand[0]; if (b) { b.hideout = g; HIDE[g] = b; } } }
+const facSeen = () => G.save.facSeen || (G.save.facSeen = {});
+
+// ---------- arming people by supply ----------
+function facArm(q) { if (!q.gang || q.facArmed || !FAC()[q.gang]) return; q.facArmed = 1; const s = facSup(q.gang);
+  if (s < 25) { if (q.weapon > 0 && Math.random() < .6) { q.weapon = Math.random() < .5 ? 0 : (WI.knife ?? 0); q.gunI = null; } }
+  else if (s > 75 && Math.random() < .35) { const id = pick(['uzi', 'rifle', 'shotgun']); if (WI[id] !== undefined) { q.weapon = WI[id]; q.gunI = null; } } }
+function facPed(g, x, y, armed) { const q = new Ped(x, y, { gang: g }); q.persist = 1; if (armed && !(q.weapon > 0)) { const s = facSup(g), id = s < 25 ? pick(['pistol', 'knife', 'knife']) : s > 75 ? pick(['uzi', 'rifle', 'shotgun', 'pistol']) : pick(['pistol', 'pistol', 'uzi', 'shotgun']); if (WI[id] !== undefined) q.weapon = WI[id]; } q.facArmed = 1; G.peds.push(q); return q; }
+const facFree = (x, y) => !sceneSolid(Math.floor(x / T), Math.floor(y / T));
+function facSpotNear(x, y, r0, r1, off) { for (let k = 0; k < 30; k++) { const a = rnd(0, TAU), r = rnd(r0, r1), px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (facFree(px, py) && !(off && inView(px, py, 40))) return { x: px, y: py }; } return null; }
+
+// ---------- cars on faction business drive with the same routing the police jobs use ----------
+{ const _u = updateCarAI; updateCarAI = function (c, dt) { if (!c.ai || c.ai.mode !== 'fac') return _u(c, dt); if (c.dead) return; const g = c.facGoal ? c.facGoal(c) : null;
+  if (!g) { c.throttle = 0; c.brake = 1; return; } const [gx, gy, stopR] = g, d = dist(c.x, c.y, gx, gy); if (d < stopR) { c.throttle = 0; c.brake = 1; c.steer = 0; return; }
+  const [nx, ny] = lawNav(c, gx, gy), ob = obstacleAhead(c, 70); driveToward(c, nx, ny, ob ? 120 : Math.min(c.facMax || 460, Math.max(90, (d - stopR) * 1.5)), dt); }; }
+function facCar(type, pt, g) { const c = new Car(type, pt.x, pt.y, pt.a); c.color = GANGS[g].col; c.driver = { gang: g, name: randName() }; c.ai = { mode: 'fac', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; c.persist = 1; c.facG = g; G.cars.push(c); return c; }
+function facUnloadCar(c, n, armed, target) { const out = []; if (target === G.player) G.gangAggro[c.facG] = Math.max(G.gangAggro[c.facG] || 0, 75); for (let i = 0; i < n; i++) { const s = facSpotNear(c.x, c.y, 26, 60) || c; const q = facPed(c.facG, s.x, s.y, armed); if (target) { q.state = 'fight'; q.target = target; q.timer = 40; if (target === G.player) q.hostile = 1; } out.push(q); } c.driver = null; c.ai = { mode: 'parked' }; c.abandoned = G.t; c.persist = 0; return out; }
+
+// ---------- convoys ----------
+const FACX = { conv: [], ext: [], fights: [], squads: [] };
+function convoyDue(g) { const F = FAC()[g], H = HIDE[g], p = G.player, px = G.scene ? G.outPos.x : p.x, py = G.scene ? G.outPos.y : p.y;
+  F.convCD = rnd(120, 240);
+  const near = H && !G.scene && (dist2(px, py, H.door.x, H.door.y) < 2400 * 2400 || facGangAt(px, py) === g);
+  if (near && FACX.conv.length < 2) { const to = roadNear(H.door.x, H.door.y, 40, 260, false), from = roadNear(H.door.x, H.door.y, 1100, 1700, true);
+    if (to && from) { const tr = facCar(pick(['boxtruck', 'van', 'panelvan']), from, g); tr.convoy = 1; tr.facMax = 360; tr.facGoal = () => [to.x, to.y, 120];
+      const eb = { x: from.x - Math.cos(from.a) * 90, y: from.y - Math.sin(from.a) * 90, a: from.a }, es = facCar(pick(['suv', 'bruiser', 'sedan']), eb, g); es.escort = 1; es.facMax = 420; es.facGoal = () => tr.dead ? null : [tr.x - Math.cos(tr.a) * 80, tr.y - Math.sin(tr.a) * 80, 50];
+      FACX.conv.push({ g, tr, es, to, t0: G.t, cargo: pick(['guns', 'guns', 'drugs']) });
+      if (facGangAt(px, py) === g || dist2(px, py, from.x, from.y) < 1800 * 1800) msg('🚚 A ' + GANGS[g].name + ' supply truck is on its way to their hideout. Hit it and they\'ll feel it.', GANGS[g].col); return; } }
+  // simulated far away
+  const R = facRivals(g).filter(r => FAC()[r]), jack = R.length && Math.random() < .2 ? pick(R) : null;
+  if (jack) { FAC()[jack].sup = Math.min(100, FAC()[jack].sup + 15); const w = F.war; w[jack] = (w[jack] || 0) + 1; if (facGangAt(px, py) === g || facGangAt(px, py) === jack) msg('📰 Word on the street: the ' + GANGS[jack].name + ' jacked a ' + GANGS[g].name + ' shipment.', '#9fc5e8'); }
+  else F.sup = Math.min(100, F.sup + rnd(25, 35)); }
+function convoyHit(C, how) { if (C.hit) return; C.hit = 1; const g = C.g, F = FAC()[g], p = G.player; F.sup = Math.max(0, F.sup - 25); F.hunt = Math.min(6, F.hunt + 2.2); repAdd(g, -20); G.gangAggro[g] = Math.max(G.gangAggro[g] || 0, 90);
+  const tr = C.tr; if (C.es && !C.es.dead && C.es.driver) facUnloadCar(C.es, 3, 1, p);
+  if (p.car === tr) { const cash = rint(400, 900); addCash(cash); if (C.cargo === 'guns') { const id = pick(['uzi', 'shotgun', 'rifle', 'pistol']); giveWeapon(id, 40); msg('📦 The back is full of ' + GANGS[g].name + ' hardware — you grab a ' + WEAPONS[WI[id]].name + ', ammo and ' + money(cash) + '.', '#2ecc71'); } else { invAdd('leaf', 6); invAdd('glint', 3); msg('📦 The back is packed with product — and ' + money(cash) + ' in a gym bag.', '#2ecc71'); } }
+  else { for (let i = 0; i < 4; i++) G.drops.push({ x: tr.x + rnd(-30, 30), y: tr.y + rnd(-30, 30), t: i === 0 ? 'cash' : C.cargo === 'guns' ? pick(['uzi', 'shotgun', 'pistol', 'rifle']) : 'item', v: rint(150, 400), id: C.cargo === 'drugs' ? pick(['leaf', 'glint', 'haze']) : undefined, life: 120 }); }
+  msg('💥 You hit the ' + GANGS[g].name + ' supply run — their soldiers will be short on guns. Expect payback.', '#ff9f43'); }
+function convoyTick() { for (const C of FACX.conv.slice()) { const tr = C.tr, p = G.player;
+    if (!C.hit && (tr.dead || tr.hp <= 0 || p.car === tr || !tr.driver)) convoyHit(C, 'hit');
+    if (!C.hit && dist(tr.x, tr.y, C.to.x, C.to.y) < 170) { FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); C.done = 1; tr.ai = { mode: 'parked' }; tr.persist = 0; if (C.es && !C.es.dead) { C.es.ai = { mode: 'parked' }; C.es.persist = 0; } }
+    if (!C.hit && !C.done && G.t - C.t0 > 200) { C.done = 1; FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); tr.persist = 0; if (C.es) C.es.persist = 0; }
+    if (C.hit || C.done) FACX.conv.splice(FACX.conv.indexOf(C), 1); } }
+
+// ---------- hideout guards ----------
+function hideTick() { const p = G.player; if (G.scene) return; for (const g in HIDE) { if (g === '_done') continue; const H = HIDE[g], d2 = dist2(p.x, p.y, H.door.x, H.door.y);
+    if (d2 < 500 * 500 && !facSeen()[g]) { facSeen()[g] = 1; msg('📍 You found the ' + GANGS[g].name + ' hideout — ' + H.name + '. Their soldiers hang around here.', GANGS[g].col); }
+    H.guards = (H.guards || []).filter(q => !q.dead && G.peds.includes(q));
+    if (d2 < 900 * 900) { const want = 2 + (facSup(g) > 60 ? 2 : facSup(g) > 30 ? 1 : 0); while (H.guards.length < want) { const s = facSpotNear(H.door.x, H.door.y + 30, 30, 150, true); if (!s) break; const q = facPed(g, s.x, s.y, Math.random() < .8); q.state = 'idle'; q.hideG = g; H.guards.push(q); } }
+    else if (d2 > 1500 * 1500 && H.guards.length) { for (const q of H.guards) { q.persist = 0; if (!inView(q.x, q.y, 40)) removePed(q); } H.guards = []; } } }
+
+// ---------- shakedowns ----------
+function extortTick() { const p = G.player; for (const E of FACX.ext.slice()) { const q = E.q, b = E.b;
+    if (q.dead) { FACX.ext.splice(FACX.ext.indexOf(E), 1); if (E.by === p || q.killedBy === p) { const cash = rint(120, 300); addCash(cash); repAdd(E.g, -6); FAC()[E.g].hunt += .6; msg('🙏 The owner of ' + b.name + ' slips you ' + money(cash) + ' for running off the ' + GANGS[E.g].name + '.', '#2ecc71'); } continue; }
+    if (E.ph === 'in') { if (dist(q.x, q.y, b.door.x, b.door.y) < 34) { E.ph = 'inside'; E.t = G.t; removePed(q); } else walkTo(q, b.door.x, b.door.y + 6, 100); }
+    else if (E.ph === 'inside' && G.t - E.t > 8) { E.ph = 'out'; q.x = b.door.x; q.y = b.door.y + 26; G.peds.push(q); pedSay(q, pick(['Same time next week.', 'Pleasure doing business.', 'Don\'t make me come back.'])); FAC()[E.g].cash += 150; b.extorted = { g: E.g, t: G.t }; E.away = facSpotNear(q.x, q.y, 380, 520) || { x: q.x + 400, y: q.y }; }
+    else if (E.ph === 'out') { walkTo(q, E.away.x, E.away.y, 85); if (dist(q.x, q.y, E.away.x, E.away.y) < 60 || G.t - E.t > 40) { q.persist = 0; q.state = 'walk'; FACX.ext.splice(FACX.ext.indexOf(E), 1); } } } }
+function extortStart(g) { const p = G.player; const shops = W.buildings.filter(b => b.door && FAC_SHOPS.has(b.type) && !owned(b) && facGangAt(b.door.x, b.door.y) === g && dist2(b.door.x, b.door.y, p.x, p.y) < 700 * 700 && dist2(b.door.x, b.door.y, p.x, p.y) > 120 * 120);
+  const b = pick(shops); if (!b) return; const s = facSpotNear(b.door.x, b.door.y + 30, 220, 340, true); if (!s) return; const q = facPed(g, s.x, s.y, 1); q.extort = b; FACX.ext.push({ g, b, q, ph: 'in', t: G.t });
+  setTimeout(() => { if (!q.dead && FACX.ext.some(e => e.q === q)) pedSay(q, pick(['Time to pay up.', 'Protection money. Now.', 'Nice shop. Shame if it burned.'])); }, 2500); }
+
+// ---------- street fights between gangs at war ----------
+function fightStart(a, b) { const p = G.player; let home = G.peds.filter(q => !q.dead && q.gang === a && dist2(q.x, q.y, p.x, p.y) < 650 * 650 && !q.cuffed);
+  if (home.length < 2) for (let i = home.length; i < 2; i++) { const s = facSpotNear(p.x, p.y, 260, 480, true); if (s) home.push(facPed(a, s.x, s.y, 1)); }
+  const s0 = facSpotNear(p.x, p.y, 560, 760, true); if (!s0 || !home.length) return; const att = []; for (let i = 0; i < 3; i++) { const s = facSpotNear(s0.x, s0.y, 0, 60) || s0; att.push(facPed(b, s.x, s.y, 1)); }
+  const tgt = (q, L) => L.filter(x => !x.dead).sort((x, y) => dist2(x.x, x.y, q.x, q.y) - dist2(y.x, y.y, q.x, q.y))[0];
+  for (const q of att) { q.state = 'fight'; q.target = tgt(q, home); q.timer = 45; } for (const q of home) { q.state = 'fight'; q.target = tgt(q, att); q.timer = 45; }
+  FACX.fights.push({ a, b, home, att, t: G.t }); if (Math.random() < .7) pedSay(att[0], pick(['This is ' + GANGS[b].name + ' turf now!', 'Run, ' + GANGS[a].name + '!', 'Light \'em up!'])); }
+function fightTick() { for (const Fi of FACX.fights.slice()) { const aL = Fi.home.filter(q => !q.dead), bL = Fi.att.filter(q => !q.dead);
+    for (const q of aL) if (!q.target || q.target.dead) { const t = bL[0]; if (t) { q.state = 'fight'; q.target = t; q.timer = 30; } }
+    for (const q of bL) if (!q.target || q.target.dead) { const t = aL[0]; if (t) { q.state = 'fight'; q.target = t; q.timer = 30; } }
+    if (!aL.length || !bL.length || G.t - Fi.t > 70) { const win = !bL.length ? Fi.a : !aL.length ? Fi.b : null; if (win) { const lose = win === Fi.a ? Fi.b : Fi.a; FAC()[win].sup = Math.min(100, FAC()[win].sup + 5); FAC()[lose].sup = Math.max(0, FAC()[lose].sup - 5); }
+      for (const q of aL.concat(bL)) { q.persist = 0; if (q.state === 'fight' && q.target !== G.player) { q.state = 'walk'; q.target = null; } } FACX.fights.splice(FACX.fights.indexOf(Fi), 1); } } }
+
+// ---------- payback: hit squads ----------
+function squadStart(g) { const p = G.player, F = FAC()[g], pt = roadNear(p.x, p.y, 700, 1050, true); if (!pt) return; const c = facCar(pick(['suv', 'bruiser', 'sedan', 'luxsuv']), pt, g); c.facMax = 560; c.facGoal = () => { const P = pCar() || p; return [P.x, P.y, 150]; };
+  FACX.squads.push({ g, c, t: G.t }); F.hunt = Math.max(0, F.hunt - 1.6); F.hitCD = 100; msg('☠ The ' + GANGS[g].name + ' sent a crew after you.', '#ff6b6b'); Snd.play('alarm'); }
+function squadTick() { const p = G.player; for (const S of FACX.squads.slice()) { const c = S.c; if (c.dead || !c.driver) { FACX.squads.splice(FACX.squads.indexOf(S), 1); continue; }
+    const P = pCar() || p, d = dist(c.x, c.y, P.x, P.y), stuck = G.t - S.t > 35;
+    if (d < 190 || stuck || (G.scene && G.t - S.t > 10)) { if (!G.scene && d < 500) { const L = facUnloadCar(c, 3, 1, p); pedSay(L[0], pick(['That\'s them! Light \'em up!', 'You hit the wrong crew!', 'Payback time!'])); } else { c.ai = { mode: 'parked' }; c.persist = 0; } FACX.squads.splice(FACX.squads.indexOf(S), 1); } } }
+
+// ---------- the clock ----------
+function facTick(dt) { const F = FAC(); facHideouts(); const p = G.player, here = G.scene ? null : facGangAt(p.x, p.y), safe = G.scene || (typeof nearSafe === 'function' && nearSafe(p.x, p.y));
+  for (const g in F) { const f = F[g]; f.sup = clamp(f.sup - dt * .035, 0, 100); f.hunt = Math.max(0, f.hunt - dt * .006); f.convCD -= dt; f.hitCD = Math.max(0, (f.hitCD || 0) - dt); if (f.convCD <= 0) convoyDue(g);
+    if (f.hunt >= 2 && f.hitCD <= 0 && !safe && !p.dead && stars() < 3 && !FACX.squads.some(s => s.g === g)) squadStart(g); }
+  for (const q of G.peds) if (q.gang && !q.facArmed) facArm(q);
+  if (here && !p.dead && !safe) { G.facExtCD = (G.facExtCD ?? rnd(30, 60)) - dt; if (G.facExtCD <= 0 && FACX.ext.length < 1) { G.facExtCD = rnd(55, 100); extortStart(here); }
+    const R = facRivals(here); G.facFightCD = (G.facFightCD ?? rnd(40, 80)) - dt; if (R.length && G.facFightCD <= 0 && !FACX.fights.length && stars() < 2) { G.facFightCD = rnd(70, 130); fightStart(here, pick(R)); } } }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !W.blocks) return; G.facT = (G.facT || 0) - dt; if (G.facT > 0) return; G.facT = .5;
+  try { facTick(.5); convoyTick(); hideTick(); extortTick(); fightTick(); squadTick(); } catch (e) { console.error(e); } }; }
+// killing a gang's people makes them hunt you (more so on their own turf)
+{ const _d = Ped.prototype.die; Ped.prototype.die = function (by, kind) { const was = this.dead, r = _d.apply(this, arguments); if (!was && this.dead && this.gang && by === G.player && FAC()[this.gang]) { const F = FAC()[this.gang]; F.hunt = Math.min(6, F.hunt + (facGangAt(this.x, this.y) === this.gang ? .4 : .25)); } return r; }; }
+
+// ---------- the map shows hideouts you've found and convoys on the move ----------
+{ const _mp = mapPOIs; mapPOIs = function () { const out = _mp(); try { for (const g in HIDE) if (g !== '_done' && facSeen()[g]) out.push({ x: HIDE[g].door.x, y: HIDE[g].door.y, c: GANGS[g].col, ic: '☠', r: 5.5, n: GANGS[g].name + ' hideout', pr: 7 });
+    for (const C of FACX.conv) if (!C.tr.dead) out.push({ x: C.tr.x, y: C.tr.y, c: GANGS[C.g].col, ic: '🚚', r: 5, n: GANGS[C.g].name + ' supply truck', pr: 8 }); } catch (e) { } return out; }; }
+
+// ================= heat that reacts to how you act =================
+// The stars still say how hard the city wants you, but now there are two kinds of heat behind them:
+//  • LOCAL PD — noise, speeding, theft, property damage, fistfights. Patrol cars and beat cops, no SWAT, no chopper.
+//  • TACTICAL — gunfire, killings, armed robbery, explosives, heavy weapons. SWAT vans and teams roll from 2★,
+//    and the police chopper only joins at 5★ when it's tactical.
+// Gangs don't care about the law: they care about what happens on their turf in front of their people.
+const TAC_RE = /gunfire|shots|murder|killing|armed robbery|explos|rocket|grenade|tank|heavy weapon|assaulting an officer|cop/i;
+const heatTac = () => (G.heatT || 0) >= 1 && (G.heatT || 0) >= G.heat * .4;
+function swatOdds(st, car) { if (!heatTac()) return st >= 5 ? .1 : 0; return st >= 4 ? (car ? .5 : .55) : st >= 2 ? (car ? .3 : .35) : 0; }
+{ const _c = crime; crime = function (sev, label) { const h0 = G.heat, p = G.player; const r = _c(sev, label); const dh = Math.max(0, G.heat - h0);
+  if (dh > 0) { if (TAC_RE.test(label || '') || (!label && sev >= 1.5)) G.heatT = Math.min(5.99, (G.heatT || 0) + dh); else G.heatL = Math.min(5.99, (G.heatL || 0) + dh); }
+  // gangs: violence on their turf, seen by their own people, is personal
+  if (p && !G.scene && /gunfire|shots|murder|assault|killing/i.test(label || '') && typeof facGangAt === 'function') { const g = facGangAt(p.x, p.y);
+    if (g && G.peds.some(q => q.gang === g && !q.dead && dist2(q.x, q.y, p.x, p.y) < 520 * 520 && losClear(q.x, q.y, p.x, p.y))) { const F = FAC()[g]; if (F) { F.hunt = Math.min(6, F.hunt + (/murder|killing/i.test(label) ? .5 : .2)); if (!G.facWarnT || G.t - G.facWarnT > 30) { G.facWarnT = G.t; toast('The ' + GANGS[g].name + ' saw that — this is their turf.'); } } } }
+  return r; }; }
+{ const _u = update; update = function (dt) { _u(dt); if (stars() === 0) { G.heatT = Math.max(0, (G.heatT || 0) - dt * .1); G.heatL = Math.max(0, (G.heatL || 0) - dt * .1); } else { const k = G.heat / Math.max(.01, (G.heatT || 0) + (G.heatL || 0)); if (k < 1) { G.heatT *= k; G.heatL *= k; } } }; }
+// callOffCops wipes both kinds
+{ const _co = callOffCops; callOffCops = function () { G.heatT = 0; G.heatL = 0; return _co.apply(this, arguments); }; }
+
+// ---------- corrupt officers ----------
+// About one cop in four is on the take. They're the ones eyeing your wallet: they'll take a bribe up to 3★ and for
+// most things short of murder, and they take it far more often. A straight cop rarely does.
+function copCorrupt(q) { if (q.corrupt === undefined) q.corrupt = q.role === 'cop' && !q.swat && ((q.uid * 2654435761) >>> 0) % 100 < 26 ? 1 : 0; return q.corrupt; }
+
+// ---------- HUD: what kind of heat, and who else is hunting you ----------
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); if (G.mode !== 'play' || G.player.dead) return; const [rx, ry] = starRow(sc); let y = ry + 24 * sc; const lines = [];
+  if (stars() > 0) lines.push(heatTac() ? ['TACTICAL · SWAT', '#ff6b6b'] : ['LOCAL PD', '#7fdbff']);
+  if (typeof FAC === 'function') { const F = FAC(); for (const g in F) if (F[g].hunt >= 1.5 || (G.gangAggro[g] || 0) > 0) lines.push(['☠ ' + GANGS[g].name, GANGS[g].col === '#111' ? '#ccc' : GANGS[g].col]); }
+  if (typeof descLines === 'function') lines.push(...descLines());
+  ctx.save(); ctx.font = `700 ${10.5 * sc}px Rubik, sans-serif`; ctx.textAlign = 'center';
+  for (const [t, c] of lines.slice(0, 4)) { const w = ctx.measureText(t).width + 14 * sc; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(rx - w / 2, y - 10 * sc, w, 15 * sc, 7 * sc) : ctx.rect(rx - w / 2, y - 10 * sc, w, 15 * sc); ctx.fill(); ctx.fillStyle = c; ctx.fillText(t, rx, y + 1 * sc); y += 18 * sc; }
+  ctx.restore(); }; }
+
+// ================= WITNESSES, DESCRIPTIONS, DISGUISES & MEMORY =================
+// • Witnesses describe what they saw: your car (make and colour) and your clothes. When the call goes through, dispatch
+//   puts out that description — even if you were long gone.
+// • Half the witnesses don't carry a phone: they run for the nearest payphone. Stop them before they get there (or
+//   just get out of sight) and the call never happens.
+// • While the description is out, cops who spot the hot car or the matching outfit recognise you — even at 0★. Ditch
+//   or respray the car, change clothes, and you're a stranger again; stars also fade faster when you don't match.
+// • Laying low inside, unseen, cools you off; in your own safehouse, fast.
+// • Neighbourhoods remember: keep doing crimes in the same ride or outfit in one district and it becomes your
+//   signature there — locals and that district's cops will know you on sight.
+const NAMED = [['black', '#111111'], ['white', '#f2f2f2'], ['grey', '#808080'], ['silver', '#bfc5cc'], ['red', '#c0392b'], ['maroon', '#7b1e1e'], ['orange', '#e67e22'], ['yellow', '#f1c40f'], ['gold', '#c9a23a'], ['green', '#27ae60'], ['dark green', '#1e4d2b'], ['olive', '#556b2f'], ['teal', '#16a085'], ['blue', '#2471a3'], ['navy', '#1b2a4a'], ['light blue', '#5dade2'], ['purple', '#8e44ad'], ['pink', '#ff6fae'], ['brown', '#6e4b2a'], ['beige', '#d8c3a5']];
+function colName(hex) { if (typeof hex !== 'string' || hex[0] !== '#') return ''; const h = hex.length === 4 ? '#' + [...hex.slice(1)].map(c => c + c).join('') : hex, v = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); let best = '', bd = 1e9;
+  for (const [n, c] of NAMED) { const w = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)), d = (v[0] - w[0]) ** 2 * .3 + (v[1] - w[1]) ** 2 * .59 + (v[2] - w[2]) ** 2 * .11; if (d < bd) { bd = d; best = n; } } return best; }
+const carDesc = c => c ? colName(c.color) + ' ' + (c.d && c.d.name ? c.d.name : c.type) : '';
+const carKey = c => c ? c.type + ':' + c.color : null;
+function lookNow() { const p = G.player, c = pCar(); return { car: c || null, carKey: carKey(c), carTxt: carDesc(c), shirt: p.shirt, shirtTxt: colName(p.shirt) }; }
+const DESC_LIFE = 480;
+const descLive = () => G.desc && (stars() > 0 || G.t - G.desc.t < DESC_LIFE);
+const matchCar = () => { const D = G.desc, c = pCar(); return !!(D && D.car && c && c === D.car && c.color === D.carColor); };
+const matchShirt = () => !!(G.desc && G.desc.shirt && G.player.shirt === G.desc.shirt);
+function fileDesc(look, how) { if (!look) return; const old = G.desc; G.desc = { car: look.car, carColor: look.car && look.car.color, carTxt: look.carTxt, shirt: look.shirt, shirtTxt: look.shirtTxt, t: G.t };
+  const bits = []; if (look.car) bits.push('in a ' + look.carTxt); if (look.shirtTxt) bits.push('wearing ' + look.shirtTxt); if (bits.length && !(old && old.carTxt === G.desc.carTxt && old.shirt === G.desc.shirt && G.t - old.t < 30)) msg('📻 Dispatch: suspect ' + bits.join(', ') + '.', '#7fdbff'); }
+
+// ---------- witnesses carry a description, and some run for a payphone ----------
+{ const _rc = reportCrime; reportCrime = function (st, label, how, forcedWho) { const n0 = G.reports.length, r = _rc(st, label, how, forcedWho); const R = G.reports[G.reports.length - 1];
+  if (G.reports.length > n0 && R) { R.look = lookNow(); memAdd(R.look);
+    const w = R.who; if (w instanceof Ped && !G.scene && !w.inside && W.phones.length && Math.random() < .5) { const ph = W.phones.slice().sort((a, b) => dist2(a.x, a.y, w.x, w.y) - dist2(b.x, b.y, w.x, w.y))[0];
+      if (ph && dist2(ph.x, ph.y, w.x, w.y) < 750 * 750) { R.phone = ph; R.t = G.t + 999; w.toPhone = ph; w.persist = 1; pedSay(w, pick(['Where\'s a phone?!', 'I need a phone!', 'Somebody call the cops — I\'ll find a phone!'])); } } }
+  return r; }; }
+{ const _rt = reportTick; reportTick = function () { const before = G.reports.slice(); _rt(); for (const r of before) if (!G.reports.includes(r) && !(r.who && r.who.dead) && r.look && !G.player.dead) fileDesc(r.look, 'witness');
+  for (const r of G.reports) if (r.phone && r.who) { const w = r.who; if (w.dead) continue; const d = dist(w.x, w.y, r.phone.x, r.phone.y);
+    if (d < 34) { if (!r.calling) { r.calling = 1; r.t = G.t + 3; w.state = 'idle'; w.still = 1; pedSay(w, pick(['Police? I need to report a crime!', '911? Yes — I saw everything!', 'Hello, police? Hurry!'])); } }
+    else if (G.t - r.t0 > 45) { r.t = G.t + 1; } else walkTo(w, r.phone.x, r.phone.y + 10, 150); } }; }
+// a cop seeing it himself files the description on the spot
+{ const _ct = crimeT; crimeT = function (sev, label) { const cop = G.sil ? G.sil.cop : copSees(); const r = _ct(sev, label); if (cop && sev >= .3) { const L = lookNow(); fileDesc(L, 'cop'); memAdd(L); } return r; }; }
+
+// ---------- neighbourhood memory ----------
+const MEM = () => G.save.mem || (G.save.mem = {});
+function memAdd(look) { const p = G.player, x = G.scene ? G.outPos.x : p.x, y = G.scene ? G.outPos.y : p.y, d = districtAt(x, y), M = MEM(), m = M[d] || (M[d] = { car: {}, shirt: {}, t: 0 }); m.t = Date.now();
+  if (look.carKey) m.car[look.carKey] = (m.car[look.carKey] || 0) + 1; if (look.shirt) m.shirt[look.shirt] = (m.shirt[look.shirt] || 0) + 1; }
+function knownHere() { const p = G.player; if (G.scene) return null; const m = MEM()[districtAt(p.x, p.y)]; if (!m) return null; const c = pCar(), ck = carKey(c);
+  if (ck && (m.car[ck] || 0) >= 3) return 'car'; if ((m.shirt[p.shirt] || 0) >= 3 && !c) return 'shirt'; return null; }
+
+// ---------- the tick: recognition, cooling off, laying low ----------
+function copLooking(r) { const p = G.player, P = pCar() || p; for (const q of G.peds) if (q.role === 'cop' && !q.dead && !q.lawJob && dist2(q.x, q.y, P.x, P.y) < r * r && losClear(q.x, q.y, P.x, P.y)) return q;
+  for (const c of G.cars) if ((c.type === 'cop' || c.type === 'swat') && c.driver && !c.dead && !c.lawJob && dist2(c.x, c.y, P.x, P.y) < (r + 60) ** 2 && losClear(c.x, c.y, P.x, P.y)) return c; return null; }
+function witnessTick(dt) { const p = G.player; if (p.dead) return; const st = stars(), live = descLive(), mc = live && matchCar(), ms = live && matchShirt();
+  // changed your look?
+  if (G.desc && live) { const lookOK = !mc && !ms; if (lookOK && !G.desc.lostMsg && (G.desc.car || G.desc.shirt)) { G.desc.lostMsg = 1; if (st > 0 || G.t - G.desc.t < 60) msg('🕶 You don\'t match the description anymore.', '#2ecc71'); } if (!lookOK) G.desc.lostMsg = 0; }
+  if (G.desc && !live) G.desc = null;
+  // stars: hot car slows the search down, a new look speeds it up, hiding inside cools you off
+  if (st > 0) { const un = G.t - G.lastSeen; if (un > 1) { if (mc) G.lastSeen += dt * .5; else if (G.desc && !ms) G.lastSeen -= dt * .8;
+      if (G.scene) { const safe = G.scene.b && (G.scene.b.type === 'safehouse' || (owned(G.scene.b) && G.scene.b.realty && G.scene.b.realty.kind !== 'biz')); G.lastSeen -= dt * (safe ? 2.5 : 1); } } }
+  // recognition when you're not wanted (or between stars)
+  if ((G.recT = (G.recT || 0) - dt) > 0 || G.scene) return; G.recT = 1;
+  if (st === 0 && live && (mc || ms)) { const q = copLooking(mc ? 380 : 220); if (q && Math.random() < (mc ? .45 : .2)) { G.heat = Math.max(G.heat, 1.2); G.heatL = Math.max(G.heatL || 0, 1.2); markSeen(); G.starFlash = 1.5; Snd.play('starup'); msg(mc ? '🚔 "That\'s the ' + G.desc.carTxt + ' from the call!"' : '🚔 "Hey — you match the description!"', '#ff6b6b'); if (q instanceof Ped) { pedSay(q, mc ? 'That\'s the car!' : 'Hold it right there!'); q.state = 'chase'; } } }
+  const kh = knownHere(); if (kh && (G.knownT = (G.knownT || 0) - 1) <= 0) { G.knownT = rnd(25, 45); const near = G.peds.find(q => !q.dead && !q.gang && q.role !== 'cop' && dist2(q.x, q.y, p.x, p.y) < 200 * 200); if (near) pedSay(near, kh === 'car' ? pick(['That car again…', 'Isn\'t that the car from the news?', 'Not this guy again.']) : pick(['Hey… I know you.', 'You\'re the one from before…', 'Keep walking, trouble.']));
+    if (st === 0) { const q = copLooking(300); if (q && Math.random() < .3) { G.heat = Math.max(G.heat, .7); toast('A cop around here knows your ' + (kh === 'car' ? 'ride' : 'face') + ' — he\'s watching you.'); } } } }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') try { witnessTick(dt); } catch (e) { console.error(e); } }; }
+// neighbourhood memory fades over real days
+{ const _u = update; update = function (dt) { _u(dt); if ((G.memT = (G.memT || 0) - dt) > 0) return; G.memT = 60; const M = MEM(), now = Date.now(); for (const d in M) { const m = M[d]; if (now - m.t > 36e5 * 6) { for (const k in m.car) if (--m.car[k] <= 0) delete m.car[k]; for (const k in m.shirt) if (--m.shirt[k] <= 0) delete m.shirt[k]; m.t = now - 36e5 * 5; } } }; }
+
+// ---------- HUD tags (drawn under the stars) ----------
+function descLines() { const out = []; if (!descLive()) { const kh = knownHere(); if (kh) out.push(['👁 KNOWN AROUND HERE', '#f2c230']); return out; }
+  if (matchCar()) out.push(['🚗 HOT CAR', '#ff6b6b']); if (matchShirt()) out.push(['👕 OUTFIT DESCRIBED', '#ff9f43']); if (!matchCar() && !matchShirt()) out.push(['🕶 NO MATCH', '#2ecc71']);
+  const kh = knownHere(); if (kh) out.push(['👁 KNOWN AROUND HERE', '#f2c230']); return out; }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with
