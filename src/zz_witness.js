@@ -57,8 +57,9 @@ function witnessTick(dt) { const p = G.player; if (p.dead) return; const st = st
   const kh = knownHere(); if (kh && (G.knownT = (G.knownT || 0) - 1) <= 0) { G.knownT = rnd(25, 45); const near = G.peds.find(q => !q.dead && !q.gang && q.role !== 'cop' && dist2(q.x, q.y, p.x, p.y) < 200 * 200); if (near) pedSay(near, kh === 'car' ? pick(['That car again…', 'Isn\'t that the car from the news?', 'Not this guy again.']) : pick(['Hey… I know you.', 'You\'re the one from before…', 'Keep walking, trouble.']));
     if (st === 0) { const q = copLooking(300); if (q && Math.random() < .3) { G.heat = Math.max(G.heat, .7); toast('A cop around here knows your ' + (kh === 'car' ? 'ride' : 'face') + ' — he\'s watching you.'); } } } }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') try { witnessTick(dt); } catch (e) { console.error(e); } }; }
-// neighbourhood memory fades over real days
-{ const _u = update; update = function (dt) { _u(dt); if ((G.memT = (G.memT || 0) - dt) > 0) return; G.memT = 60; const M = MEM(), now = Date.now(); for (const d in M) { const m = M[d]; if (now - m.t > 36e5 * 6) { for (const k in m.car) if (--m.car[k] <= 0) delete m.car[k]; for (const k in m.shirt) if (--m.shirt[k] <= 0) delete m.shirt[k]; m.t = now - 36e5 * 5; } } }; }
+// neighbourhood memory fades with play time: every 2 minutes each district forgets one sighting, so a signature
+// look wears off within a few minutes of keeping your head down
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || (G.memT = (G.memT ?? 120) - dt) > 0) return; G.memT = 120; const M = MEM(); for (const d in M) { const m = M[d]; for (const k in m.car) if (--m.car[k] <= 0) delete m.car[k]; for (const k in m.shirt) if (--m.shirt[k] <= 0) delete m.shirt[k]; if (!Object.keys(m.car).length && !Object.keys(m.shirt).length) delete M[d]; } }; }
 
 // ---------- HUD tags (drawn under the stars) ----------
 function descLines() { const out = []; if (!descLive()) { const kh = knownHere(); if (kh) out.push(['👁 KNOWN AROUND HERE', '#f2c230']); return out; }

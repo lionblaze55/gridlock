@@ -471,7 +471,7 @@ function renderHUD() {
   if (st > 0) { const [rx, ry] = starRow(sc), gap = 21 * sc, x0 = rx - gap * 2;
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0 - 14 * sc, ry - 13 * sc, gap * 4 + 28 * sc, 26 * sc, 13 * sc) : ctx.rect(x0 - 14 * sc, ry - 13 * sc, gap * 4 + 28 * sc, 26 * sc); ctx.fill();
     for (let i = 0; i < 5; i++) { const on = i < st, flash = on && (G.starFlash > 0 || (G.t - G.lastSeen < 1.5 && Math.floor(G.t * 5) % 2));
-      drawStar(x0 + i * gap, ry, sr, on ? (flash ? '#fff' : '#f2c230') : 'rgba(255,255,255,.12)', on ? '#000' : 'rgba(255,255,255,.3)'); } }
+      drawStar(x0 + i * gap, ry, sr, on ? (flash ? '#fff' : (typeof starCol === 'function' ? starCol(i, st) : '#f2c230')) : 'rgba(255,255,255,.12)', on ? '#000' : 'rgba(255,255,255,.3)'); } }
   // clock
   { const hh = Math.floor(G.tod), mm = Math.floor((G.tod - hh) * 60), night = darkness() > .5; txt((night ? '☾ ' : '☀ ') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + (G.weather.rain > .3 ? ' ☂' : ''), VW - 14 * sc, 28 * sc, 12 * sc, night ? '#9fc5e8' : '#ffe082', 'right', 'Rubik, sans-serif'); }
   // product bag

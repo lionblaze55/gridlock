@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.91
+- Colour-coded wanted stars: blue stars are local police heat (theft, speeding, fights), red stars are tactical heat (gunfire, killings, armed robbery — the kind that brings SWAT). A mix shows both, in proportion.
+- Neighbourhood memory is much shorter: each district forgets one sighting every 2 minutes of play, so a signature ride or outfit wears off within a few minutes of keeping your head down (it used to last hours).
+
 ## 1.90 — Living world: factions, heat and witnesses
 - Ramming: weight wins. When a heavy vehicle hits a light one, the light one is shoved along with it — its tyres break loose so it slides sideways and spins — and it takes almost all of the damage, while the heavy one keeps its momentum and barely gets scratched. Equal-weight cars still trade equal damage. A tank plows through anything.
 - Living factions: every gang with turf runs an economy that ticks whether you're watching or not.

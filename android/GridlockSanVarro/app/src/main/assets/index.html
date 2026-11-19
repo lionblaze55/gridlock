@@ -3153,7 +3153,7 @@ function renderHUD() {
   if (st > 0) { const [rx, ry] = starRow(sc), gap = 21 * sc, x0 = rx - gap * 2;
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x0 - 14 * sc, ry - 13 * sc, gap * 4 + 28 * sc, 26 * sc, 13 * sc) : ctx.rect(x0 - 14 * sc, ry - 13 * sc, gap * 4 + 28 * sc, 26 * sc); ctx.fill();
     for (let i = 0; i < 5; i++) { const on = i < st, flash = on && (G.starFlash > 0 || (G.t - G.lastSeen < 1.5 && Math.floor(G.t * 5) % 2));
-      drawStar(x0 + i * gap, ry, sr, on ? (flash ? '#fff' : '#f2c230') : 'rgba(255,255,255,.12)', on ? '#000' : 'rgba(255,255,255,.3)'); } }
+      drawStar(x0 + i * gap, ry, sr, on ? (flash ? '#fff' : (typeof starCol === 'function' ? starCol(i, st) : '#f2c230')) : 'rgba(255,255,255,.12)', on ? '#000' : 'rgba(255,255,255,.3)'); } }
   // clock
   { const hh = Math.floor(G.tod), mm = Math.floor((G.tod - hh) * 60), night = darkness() > .5; txt((night ? '☾ ' : '☀ ') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + (G.weather.rain > .3 ? ' ☂' : ''), VW - 14 * sc, 28 * sc, 12 * sc, night ? '#9fc5e8' : '#ffe082', 'right', 'Rubik, sans-serif'); }
   // product bag
@@ -12424,12 +12424,16 @@ function copCorrupt(q) { if (q.corrupt === undefined) q.corrupt = q.role === 'co
 
 // ---------- HUD: what kind of heat, and who else is hunting you ----------
 { const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); if (G.mode !== 'play' || G.player.dead) return; const [rx, ry] = starRow(sc); let y = ry + 24 * sc; const lines = [];
-  if (stars() > 0) lines.push(heatTac() ? ['TACTICAL · SWAT', '#ff6b6b'] : ['LOCAL PD', '#7fdbff']);
+  if (stars() > 0) lines.push(heatTac() ? ['TACTICAL · SWAT', STAR_TAC] : ['LOCAL PD', STAR_LOCAL]);
   if (typeof FAC === 'function') { const F = FAC(); for (const g in F) if (F[g].hunt >= 1.5 || (G.gangAggro[g] || 0) > 0) lines.push(['☠ ' + GANGS[g].name, GANGS[g].col === '#111' ? '#ccc' : GANGS[g].col]); }
   if (typeof descLines === 'function') lines.push(...descLines());
   ctx.save(); ctx.font = `700 ${10.5 * sc}px Rubik, sans-serif`; ctx.textAlign = 'center';
   for (const [t, c] of lines.slice(0, 4)) { const w = ctx.measureText(t).width + 14 * sc; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(rx - w / 2, y - 10 * sc, w, 15 * sc, 7 * sc) : ctx.rect(rx - w / 2, y - 10 * sc, w, 15 * sc); ctx.fill(); ctx.fillStyle = c; ctx.fillText(t, rx, y + 1 * sc); y += 18 * sc; }
   ctx.restore(); }; }
+
+// ---------- colour-coded stars: blue = local police, red = tactical; a mix shows both ----------
+const STAR_LOCAL = '#4fa3ff', STAR_TAC = '#ff4d4d';
+function starCol(i, st) { const t = G.heatT || 0, l = G.heatL || 0, tot = t + l; if (tot <= 0) return STAR_LOCAL; const nT = Math.round(st * t / tot); return i < st - nT ? STAR_LOCAL : STAR_TAC; }
 
 // ================= WITNESSES, DESCRIPTIONS, DISGUISES & MEMORY =================
 // • Witnesses describe what they saw: your car (make and colour) and your clothes. When the call goes through, dispatch
@@ -12490,8 +12494,9 @@ function witnessTick(dt) { const p = G.player; if (p.dead) return; const st = st
   const kh = knownHere(); if (kh && (G.knownT = (G.knownT || 0) - 1) <= 0) { G.knownT = rnd(25, 45); const near = G.peds.find(q => !q.dead && !q.gang && q.role !== 'cop' && dist2(q.x, q.y, p.x, p.y) < 200 * 200); if (near) pedSay(near, kh === 'car' ? pick(['That car again…', 'Isn\'t that the car from the news?', 'Not this guy again.']) : pick(['Hey… I know you.', 'You\'re the one from before…', 'Keep walking, trouble.']));
     if (st === 0) { const q = copLooking(300); if (q && Math.random() < .3) { G.heat = Math.max(G.heat, .7); toast('A cop around here knows your ' + (kh === 'car' ? 'ride' : 'face') + ' — he\'s watching you.'); } } } }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') try { witnessTick(dt); } catch (e) { console.error(e); } }; }
-// neighbourhood memory fades over real days
-{ const _u = update; update = function (dt) { _u(dt); if ((G.memT = (G.memT || 0) - dt) > 0) return; G.memT = 60; const M = MEM(), now = Date.now(); for (const d in M) { const m = M[d]; if (now - m.t > 36e5 * 6) { for (const k in m.car) if (--m.car[k] <= 0) delete m.car[k]; for (const k in m.shirt) if (--m.shirt[k] <= 0) delete m.shirt[k]; m.t = now - 36e5 * 5; } } }; }
+// neighbourhood memory fades with play time: every 2 minutes each district forgets one sighting, so a signature
+// look wears off within a few minutes of keeping your head down
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || (G.memT = (G.memT ?? 120) - dt) > 0) return; G.memT = 120; const M = MEM(); for (const d in M) { const m = M[d]; for (const k in m.car) if (--m.car[k] <= 0) delete m.car[k]; for (const k in m.shirt) if (--m.shirt[k] <= 0) delete m.shirt[k]; if (!Object.keys(m.car).length && !Object.keys(m.shirt).length) delete M[d]; } }; }
 
 // ---------- HUD tags (drawn under the stars) ----------
 function descLines() { const out = []; if (!descLive()) { const kh = knownHere(); if (kh) out.push(['👁 KNOWN AROUND HERE', '#f2c230']); return out; }
