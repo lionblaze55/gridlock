@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.94 — A home office in every home
+- Every home you own, including your starting apartment, the safehouse and the bunker, now has a home office: a computer desk, an electronics bench and a server rack. They're set up automatically in a free spot the first time you walk in. You can rearrange them from Decorate, but you can't sell them.
+- Your office resources are shared everywhere. Every home and office you own is on the same home network:
+  - Every computer you own works from the desk in any of your places. There's no more moving PCs between home and office.
+  - Your parts bin is at every electronics bench.
+  - The server rack's 25% trace reduction applies whichever of your places you work from.
+  - Laptops still come with you anywhere.
+
 ## 1.93 — Stealth, hacking and electronics
 - Stealth: 🥷 SNEAK (or Z) to move quietly. How visible you are depends on light (streetlights, headlights, day or night), cover (bushes, trees) and whether you're moving. An eye meter shows hidden / dim / exposed. Witnesses only spot you if they're facing you, and guards fill a ? meter before they react.
 - Silent takedowns: sneak up behind someone and press ✋ TAKEDOWN (or K) to knock them out. They wake up a minute later. If someone sees it, it's assault.

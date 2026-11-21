@@ -3,13 +3,13 @@
 // then a bench with its core parts and add-on bays. At your office bench parts go to and come from your parts bin;
 // at Byte Depot's Tech Bar you buy new parts and add-ons and they fit them on the spot (old parts go to your bin).
 const devStatBars = d => { const s = devStats(d), pc = s.f === 'pc'; return [['Speed', s.speed / 9], pc ? ['Cracking', s.crack / 7] : ['Hack range', (s.range - 260) / 700], pc ? ['Storage', s.store / 6] : ['Charges', s.charges / 10], ['Cooling headroom', clamp(1.4 - s.heat, 0, 1)]]; };
-const locName = l => l === 'carry' ? 'on you' : l === 'office' ? 'at your office' : 'at home';
+const locName = l => l === 'carry' ? 'on you' : 'on your home network';
 const myOffice = () => W.buildings.find(b => b.office && owned(b));
 function devHome(H, P, shop) { const D = DEV(), L = D.list;
   H.title.textContent = shop ? '🔧 Byte Depot Tech Bar' : '🖥 Electronics bench';
   const c = H.col('Your devices · ' + L.length); let sel = L.find(d => 'd' + d.uid === P.dwSel) || null; if (!sel) P.dwSel = null;
   if (sel) c.appendChild(devCard(H, P, sel, shop)); const g = gGrid(H, c, 'dw'); g.style.gridTemplateColumns = 'repeat(auto-fill,minmax(96px,1fr))';
-  for (const d of L) { const t = gTile(H, g, 'dw', 'd' + d.uid, '📱', d.name || devName(d), null, { canvas: devIcon(d), cond: devCond(d) }); if (D.active === d.uid) t.appendChild(H.mk('span', 'gfx car', 'ACTIVE')); else t.appendChild(H.mk('span', 'gfx own', d.loc === 'carry' ? 'ON YOU' : d.loc === 'office' ? 'OFFICE' : 'HOME'));
+  for (const d of L) { const t = gTile(H, g, 'dw', 'd' + d.uid, '📱', d.name || devName(d), null, { canvas: devIcon(d), cond: devCond(d) }); if (D.active === d.uid) t.appendChild(H.mk('span', 'gfx car', 'ACTIVE')); else t.appendChild(H.mk('span', 'gfx own', d.loc === 'carry' ? 'ON YOU' : 'NETWORK'));
     if (sel === d) t.classList.add('sel'); t.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.dwSel = P.dwSel === 'd' + d.uid ? null : 'd' + d.uid; P.dpSel = null; P.dwConf = null; Panel.render(); }; }
   if (!sel) c.appendChild(H.mk('div', 'gwnote', 'Tap a device to work on it, ' + (shop ? 'sell it' : 'move it or scrap it') + '. Buy new ones in the store.'));
   if (shop) return; const B = BIN(), A = D.adds, aks = Object.keys(A).filter(k => A[k] > 0), c2 = H.col('Parts bin · ' + (B.length + aks.reduce((s, k) => s + A[k], 0)));
@@ -22,7 +22,7 @@ function devCard(H, P, d, shop) { const M = DEV_MODELS[d.m], st = devStats(d), D
   K.bar(devCond(d)); K.hint((st.heat > 1 ? '🔥 Running hot — throttled to ' + Math.round(st.thr * 100) + '%. Add cooling. · ' : '') + (addCount(d) ? 'Add-ons: ' + Object.keys(d.adds).filter(k => d.adds[k]).map(k => ADDONS[k].n).join(', ') : 'No add-ons') + ' (' + addCount(d) + '/' + M.add + ' bays)');
   const B = K.B; B('🔧 Work on it', 'Parts, add-ons and specs', () => { P.dvSel = d.uid; P.dslot = 'c:cpu'; P.dopt = null; P.dwSel = null; }, 'y', false, true);
   if (M.f === 'phone') B('📱 Use this phone', D.active === d.uid ? 'It\'s your phone right now' : 'Swap your SIM into it', () => { D.active = d.uid; d.loc = 'carry'; Snd.play('beep'); }, '', D.active === d.uid);
-  else if (!shop) { const off = myOffice(); B(M.port ? '🎒 ' + (d.loc === 'carry' ? 'Leave it at home' : 'Take it with you') : '📍 Move to ' + (d.loc === 'office' ? 'home' : 'your office'), M.port ? 'Laptops work anywhere' : 'Computers are used where they sit', () => { d.loc = M.port ? (d.loc === 'carry' ? 'home' : 'carry') : (d.loc === 'office' ? 'home' : 'office'); }, '', !M.port && !off && d.loc !== 'office'); }
+  else if (!shop && M.port) B('🎒 ' + (d.loc === 'carry' ? 'Leave it at home' : 'Take it with you'), d.loc === 'carry' ? 'Use it from any desk you own' : 'Laptops work anywhere', () => { d.loc = d.loc === 'carry' ? 'home' : 'carry'; });
   const fix = Object.entries(d.parts).reduce((s, [k, p]) => s + (p ? partFixCost(M.f, k, p) : 0), 0); B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); for (const k in d.parts) if (d.parts[k]) d.parts[k].c = 1; Snd.play('ratchet'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
   const last = M.f === 'phone' && D.list.filter(x => DEV_MODELS[x.m].f === 'phone').length <= 1, conf = P.dwConf === d.uid;
   if (shop) { const v = devValue(d); B('💲 Sell it', last ? 'You need at least one phone' : conf ? 'Tap again to sell for ' + money(v) : money(v) + ' · parts and add-ons included', () => { if (!conf) { P.dwConf = d.uid; return; } D.list.splice(D.list.indexOf(d), 1); addCash(v); Snd.play('cash'); P.dwSel = null; P.dwConf = null; activePhone(); doSave(true); }, 'r', last); }
