@@ -3322,6 +3322,8 @@ cv.addEventListener('pointerdown', e => {
   if (inRect(x, y, Input.miniBtn)) { G.fullMap = true; return; }
   if (G.placing && !G.dlgOpen) { if (inRect(x, y, Input.bagBtn) || inRect(x, y, Input.menuBtn)) G.placing = null; else { placeTap(x, y); return; } }
   if (inRect(x, y, Input.bagBtn)) { openInv(); return; }
+  for (const xb of (Input.xBtns || [])) if (inRect(x, y, xb.r)) { xb.fn(); return; }
+  if (typeof hackTap === 'function' && hackTap(x, y)) return;
   if (Input.bribeBtn && inRect(x, y, Input.bribeBtn)) { bribeOffer(); return; }
   if (Input.surBtn && inRect(x, y, Input.surBtn)) { toggleSurrender(); return; }
   if (Input.phoneBtn && inRect(x, y, Input.phoneBtn)) { openPhone(); return; }
@@ -3372,6 +3374,9 @@ window.addEventListener('keydown', e => {
   if (k === 'r') Input.edge.radio = true;
   if (k === 'n') Input.edge.nos = true;
   if (k === 'x') toggleSurrender();
+  if (k === 'z' && typeof toggleSneak === 'function') toggleSneak();
+  if (k === 'j' && typeof toggleHack === 'function') toggleHack();
+  if (k === 'k' && typeof takedownNow === 'function') takedownNow();
   if (k === 'm') G.fullMap = !G.fullMap;
   if (k === 'g') openGoto();
   if (k === 'i' || k === 'b') Input.edge.inv = true;
@@ -5046,7 +5051,7 @@ function worldTick(dt) {
   G.wtT = (G.wtT || 0) - dt; if (G.wtT <= 0) { G.wtT = .4;
     for (const s of W.lifeSpots) { const d2 = dist2(s.x, s.y, px, py); const on = !s.cond || s.cond(); if (!s.ped && on && d2 < 1000 * 1000 && !inView(s.x, s.y, 40) && G.t > (s.next || 0)) { s.ped = makeSpotPed(s); s.ped.persist = 1; G.peds.push(s.ped); } else if (s.ped && (d2 > 1900 * 1900 || s.ped.dead && s.ped.deadT > 20 || !on && !s.ped.dead && s.ped.state === 'idle') && !inView(s.ped.x, s.ped.y, 60)) { const i = G.peds.indexOf(s.ped); if (i >= 0) G.peds.splice(i, 1); if (s.ped.dead) s.next = G.t + 180; s.ped = null; } }
     for (const c of G.cars) if (c.spot && c.spot.mil && !c.milSet) { c.milSet = 1; c.color = '#4b5320'; c.mil = 1; } else if (c.spot && c.spot.gangCol && !c.milSet) { c.milSet = 1; c.color = '#111111'; }
-    if (!G.scene && inBase(px, py)) { if (!G.inBase) { G.inBase = 1; msg('RESTRICTED AREA — Fort Varro. Soldiers will shoot on sight.', '#ff6b6b'); Snd.play('alarm'); } if (G.heat < 3.2) { G.heat = 3.2; G.wantedSince = G.t - 60; G.starFlash = 1.5; } for (const q of G.peds) if (q.army && !q.dead && dist2(q.x, q.y, px, py) < 520 * 520 && losClear(q.x, q.y, px, py)) { markSeen(); break; } } else G.inBase = 0;
+    if (!G.scene && inBase(px, py)) { const quiet = !pCar() && p.sneak && !G.baseSpotted; if (!G.inBase) { G.inBase = 1; if (quiet) msg('RESTRICTED AREA — Fort Varro. Stay low and out of sight: if a soldier\'s ? fills, they open fire.', '#ffd23f'); else { msg('RESTRICTED AREA — Fort Varro. Soldiers will shoot on sight.', '#ff6b6b'); Snd.play('alarm'); } } if (!quiet) G.baseSpotted = 1; if (!quiet && G.heat < 3.2) { G.heat = 3.2; G.wantedSince = G.t - 60; G.starFlash = 1.5; } for (const q of G.peds) if (q.army && !q.dead && dist2(q.x, q.y, px, py) < 520 * 520 && losClear(q.x, q.y, px, py)) { markSeen(); break; } } else { G.inBase = 0; if (stars() === 0) G.baseSpotted = 0; }
   }
   const c = pCar(); if (c && c.d.tank && !G.dlgOpen && (Input.fire || Input.keys[' ']) && G.t > (c.gunT || 0)) { c.gunT = G.t + 1.5; const ox = c.x + Math.cos(c.a) * (c.L / 2 + 14), oy = c.y + Math.sin(c.a) * (c.L / 2 + 14); G.projs.push({ k: 'rocket', x: ox, y: oy, a: c.a, t: 0, owner: p, blast: 1.4 }); Snd.play('rocket', ox, oy); Snd.play('boom', ox, oy, .4); G.cam.shake = 9; c.vx -= Math.cos(c.a) * 60; c.vy -= Math.sin(c.a) * 60; for (let i = 0; i < 5; i++) spawnFx('exh', ox + rnd(-6, 6), oy + rnd(-6, 6)); crime(1.2, 'Tank fire'); }
   // biker packs out on the road
@@ -5138,7 +5143,7 @@ const KINDN = { home: 'Home', biz: 'Business', club: 'Nightclub', lab: 'Drug lab
 function buyProperty(r) { if (LIFE().own[r.id]) return false; { const ro = remoteOwner(r); if (ro) { toast(ro + ' already owns this farm'); return false; } } if (!payAny(r.price)) return false; LIFE().own[r.id] = { safe: 0, pop: 40, stock: 60, up: {}, sup: 50, prod: 0, lvl: 1, price: r.price, name: r.name }; const b = W.buildings[r.id]; G.big = { text: 'PROPERTY ACQUIRED', col: '#2ecc71', t: 3, sub: b.name, small: 1 }; Snd.play('mission'); msg('You now own ' + b.name + '. Manage it from your phone.', '#2ecc71'); doSave(true); return true; }
 function enterBuildingQ0(b) {
   if (b.type === 'mil') return toast('Locked. Military personnel only.');
-  if (b.locked && !owned(b) && b.realty) { const r = b.realty; return say(b.name, `For sale — ${KINDN[r.kind]} — ${money(r.price)}.\n${r.kind === 'home' ? 'A place of your own: bed, stash, and you can decorate it.' : r.kind === 'farm' ? 'Fields to plant, a coop and pasture for animals, a roadside stand, and a farmhouse with a kitchen.' : r.kind === 'bunker' ? 'A hardened hideout out in the woods: bunks, a stash, an ammo locker, a gun bench, a police scanner and a 10-vehicle garage. Cops lose your trail once you\'re inside.' : r.kind === 'lab' ? 'Produces ' + DRUGS.find(d => d.id === r.drug).n + ' around the clock once it has supplies.' : 'Earns while you are out doing other things.'}`, [{ t: 'Buy it for ' + money(r.price), c: 'y', d: !canPay(r.price), f: () => { if (buyProperty(r)) enterBuilding(b); } }, { t: 'Not now' }]); }
+  if (b.locked && !owned(b) && b.realty) { const r = b.realty; return say(b.name, `For sale — ${KINDN[r.kind]} — ${money(r.price)}.\n${r.kind === 'home' ? 'A place of your own: bed, stash, and you can decorate it.' : r.kind === 'farm' ? 'Fields to plant, a coop and pasture for animals, a roadside stand, and a farmhouse with a kitchen.' : r.kind === 'bunker' ? 'A hardened hideout out in the woods: bunks, a stash, an ammo locker, a gun bench, a police scanner and a 10-vehicle garage. Cops lose your trail once you\'re inside.' : r.kind === 'office' ? 'A private office suite: three computer workstations, a server rack that makes you harder to trace, an electronics bench with your parts bin, and a stash.' : r.kind === 'lab' ? 'Produces ' + DRUGS.find(d => d.id === r.drug).n + ' around the clock once it has supplies.' : 'Earns while you are out doing other things.'}`, [{ t: 'Buy it for ' + money(r.price), c: 'y', d: !canPay(r.price), f: () => { if (buyProperty(r)) enterBuilding(b); } }, { t: 'Not now' }]); }
   enterBuilding0(b); const s = G.scene; if (!s || s.b !== b) return;
   if (owned(b) && (b.realty.kind === 'home' || b.realty.kind === 'farm') && !s.homeSet) { s.homeSet = 1; s.peds = (s.peds || []).filter(q => q.role !== 'resident'); if (!s.items.some(it => it.t === 'stash')) s.items.push({ t: 'stash', x: 4.05, y: 2.95, w: .74, h: .59, used: 0, small: 1 }); }
   applyDecor(s);
@@ -5228,15 +5233,16 @@ PMODES.phone = function (H) {
     const c2 = H.col('Other work'); if (G.mission) H.row(c2, '📋', 'On the clock: ' + G.mission.title, G.mission.hud ? G.mission.hud() : '', [H.btn('Quit', () => failMission('You quit.'), 'r')]); H.row(c2, '☎', 'Ringing payphones', 'Less honest jobs. Blue dots on the map.'); H.row(c2, '🌿', 'Run your own operation', 'Buy a lab under Property, then sell shipments from My empire.'); H.row(c2, '📈', 'Every third shift of a job earns a raise', 'Up to +60% pay.');
   } else if (tab === 'realty') {
     const here = herePos(), list = W.realty.filter(r => !L.own[r.id]).sort((a, b) => a.price - b.price), half = Math.ceil(list.length / 2); if (!list.length) H.empty(H.col('For sale'), 'You own everything on the market.');
-    [list.slice(0, half), list.slice(half)].forEach((ls, i) => { if (!ls.length) return; const c = H.col(i ? 'More listings' : 'For sale'); for (const r of ls) { const b = W.buildings[r.id]; H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡' }[r.kind], b.name, `${KINDN[r.kind]} · ${DISTRICTS[b.d].name} · ${(dist(here.x, here.y, b.door.x, b.door.y) / T * .012).toFixed(1)} mi · ${money(r.price)}` + (r.kind === 'biz' ? ' · earns ~' + money(r.price * .18) + '/day' : '') + (r.kind === 'farm' ? ' · fields, pasture, farmhouse' : ''), [gps(b), H.btn('Buy', () => buyProperty(r), 'y', !canPay(r.price))]); } });
+    [list.slice(0, half), list.slice(half)].forEach((ls, i) => { if (!ls.length) return; const c = H.col(i ? 'More listings' : 'For sale'); for (const r of ls) { const b = W.buildings[r.id]; H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡', office: '💼' }[r.kind], b.name, `${KINDN[r.kind]} · ${DISTRICTS[b.d].name} · ${(dist(here.x, here.y, b.door.x, b.door.y) / T * .012).toFixed(1)} mi · ${money(r.price)}` + (r.kind === 'biz' ? ' · earns ~' + money(r.price * .18) + '/day' : '') + (r.kind === 'farm' ? ' · fields, pasture, farmhouse' : ''), [gps(b), H.btn('Buy', () => buyProperty(r), 'y', !canPay(r.price))]); } });
     H.foot.appendChild(H.mk('span', 'pnote', 'Homes give you a bed, a stash and rooms to decorate — country homes and farms add a yard. Businesses fill a safe you empty in person.'));
   } else if (tab === 'empire') {
     const ids = Object.keys(L.own).filter(id => W.buildings[id] && W.buildings[id].realty), c = H.col('Your properties'); if (!ids.length) { H.empty(c, 'You do not own anything yet. Homes, shops, bars, two nightclubs and four drug labs are for sale under Property.'); return; }
     if (!ids.includes(String(this.sel))) this.sel = ids[0];
-    for (const id of ids) { const b = W.buildings[id], r = b.realty, O = L.own[id]; const row = H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡' }[r.kind], b.name, r.kind === 'home' ? 'Home' : r.kind === 'bunker' ? 'Bunker · hideout' : r.kind === 'farm' ? 'Farm · ' + (farmData(farmOf(b)) ? farmData(farmOf(b)).animals.length + ' animals' : '') : r.kind === 'lab' ? `${Math.floor(O.prod)} units · supplies ${Math.round(O.sup)}%` : 'Safe: ' + money(O.safe), [H.btn(String(this.sel) === id ? 'Open' : 'Manage', () => { this.sel = id; }, String(this.sel) === id ? 'on' : '')]); if (String(this.sel) === id) row.classList.add('sel'); }
+    for (const id of ids) { const b = W.buildings[id], r = b.realty, O = L.own[id]; const row = H.row(c, { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡', office: '💼' }[r.kind], b.name, r.kind === 'home' ? 'Home' : r.kind === 'bunker' ? 'Bunker · hideout' : r.kind === 'office' ? 'Office · workstations, server rack, bench' : r.kind === 'farm' ? 'Farm · ' + (farmData(farmOf(b)) ? farmData(farmOf(b)).animals.length + ' animals' : '') : r.kind === 'lab' ? `${Math.floor(O.prod)} units · supplies ${Math.round(O.sup)}%` : 'Safe: ' + money(O.safe), [H.btn(String(this.sel) === id ? 'Open' : 'Manage', () => { this.sel = id; }, String(this.sel) === id ? 'on' : '')]); if (String(this.sel) === id) row.classList.add('sel'); }
     const b = W.buildings[this.sel], r = b.realty, O = L.own[this.sel], c2 = H.col(b.name), at = atProperty(b), collect = () => H.row(c2, '💰', 'Safe: ' + money(O.safe), at ? 'You are here' : 'Collect in person', [at ? H.btn('Collect', () => { const n = Math.floor(O.safe); O.safe -= n; addCash(n); L.earned += n; }, 'y', O.safe < 1) : gps(b)]);
     const upg = (key, n, d, pr) => H.row(c2, O.up[key] ? '✓' : '⬆', n, O.up[key] ? 'Installed' : d + ' · ' + money(pr), [H.btn(O.up[key] ? 'Owned' : 'Buy', () => { if (payAny(pr)) O.up[key] = 1; }, O.up[key] ? 'on' : 'y', !!O.up[key] || !canPay(pr))]);
     if (r.kind === 'home') { H.row(c2, '🛏', 'Your place', 'Sleep to save, use the stash, and decorate from the stash screen.', [gps(b)]); }
+    else if (r.kind === 'office') { H.row(c2, '💼', 'Your office', 'Workstations, a server rack (−25% trace) and your electronics bench with the parts bin.', [gps(b)]); }
     else if (r.kind === 'biz') { collect(); H.row(c2, '📈', 'Earns about ' + money(r.price * .18) + ' a day', 'The safe holds one day of takings — empty it regularly.'); }
     else if (r.kind === 'club') {
       collect(); H.row(c2, clubOpen() ? '🟢' : '⚪', clubOpen() ? 'Open now' : 'Closed — doors open 20:00 to 04:00', `Popularity ${Math.round(O.pop)}%  ·  bar stock ${Math.round(O.stock)}%`);
@@ -12178,7 +12184,7 @@ const PAIRSUB = { 'c:barrel': ['barrel', 'Barrel', 'Length'], 'c:action': ['trig
 #panel .gunsheet .ldet{margin:0;border:0;background:transparent;padding:2px}#panel .gunsheet .ldet .lx{display:none}#panel .gunsheet .ldet .lbtns .pb{min-height:48px}}`; document.head.appendChild(st); })();
 { const _r = Panel.render; Panel.render = function () { const pe = pEl(), old = pe && pe.querySelector('.pbody > .gtop'), sc = old && this._gsMode === this.mode + ':' + (this.wbGun || '') ? old.scrollTop : null;
   const r = _r.apply(this, arguments);
-  try { if ((this.mode !== 'gunws' && this.mode !== 'guns') || !matchMedia('(orientation:portrait)').matches) return r; const body = pEl().querySelector('.pbody'); if (!body || body.classList.contains('gsheet')) return r;
+  try { if ((this.mode !== 'gunws' && this.mode !== 'guns' && this.mode !== 'devws') || !matchMedia('(orientation:portrait)').matches) return r; const body = pEl().querySelector('.pbody'); if (!body || body.classList.contains('gsheet')) return r;
     const d = body.querySelector(this.wbGun ? '.gdet2' : '.ldet'); if (!d) { this._gsMode = null; return r; }
     const cols = body.querySelectorAll(':scope > .pcol'), top = document.createElement('div'); top.className = 'gtop'; body.insertBefore(top, cols[0]); cols.forEach(c => top.appendChild(c));
     const sh = document.createElement('div'); sh.className = 'pcol gsheetc gunsheet'; const h = document.createElement('div'); h.className = 'gsheetx'; sh.appendChild(h);
@@ -12505,13 +12511,596 @@ function descLines() { const out = []; if (!descLive()) { const kh = knownHere()
   if (matchCar()) out.push(['🚗 HOT CAR', '#ff6b6b']); if (matchShirt()) out.push(['👕 OUTFIT DESCRIBED', '#ff9f43']); if (!matchCar() && !matchShirt()) out.push(['🕶 NO MATCH', '#2ecc71']);
   const kh = knownHere(); if (kh) out.push(['👁 KNOWN AROUND HERE', '#f2c230']); return out; }
 
+// ================= STEALTH II: sneaking, light, noise, suspicion and takedowns =================
+// • SNEAK (button, or Z) on foot: you move at about half speed and quietly; you can't sprint.
+// • How visible you are depends on light and what you're doing: darkness away from street lamps and headlights hides
+//   you, bushes/trees/dumpsters next to you hide you more, standing still helps, sprinting doesn't. The eye meter by
+//   the SNEAK button shows it. Witnesses (and cops looking for you) only see you within a range scaled by that, and
+//   past arm's length they have to be facing you.
+// • Guards who care about trespassers — soldiers on the base and gang hideout guards — fill a suspicion meter (?)
+//   while they can see you; when it fills (!) they come for you. Break line of sight and it drains.
+// • Sneak up behind someone who hasn't noticed you and TAKEDOWN (button, or K) knocks them out cold for a while —
+//   silently, if nobody else saw it.
+const SNEAK_SPEED = .55;
+const lampOff = pr => pr.hackOff && G.t < pr.hackOff;
+function playerLit() { const p = G.player; if (G.scene) return 1; const dk = darkness(); if (dk < .12) return 1;
+  for (const pr of propsNear(p.x, p.y, 175)) if (pr.t === 'lamp' && !pr.down && !lampOff(pr)) return 1 - dk * .15;
+  for (const c of G.cars) if (c.driver && !c.dead && dist2(c.x, c.y, p.x, p.y) < 160 * 160) return 1 - dk * .25;
+  return 1 - dk * .62; }
+function playerVis() { const p = G.player; if (!p || p.car) return 1; let v = playerLit(); if (p.sneak) v *= .6;
+  const mv = Math.hypot(Input.mx || 0, Input.my || 0); if (mv < .1) v *= .85; else if (Input.sprint && !p.sneak) v *= 1.12;
+  if (!G.scene && propsNear(p.x, p.y, 42).some(pr => (pr.t === 'bush' || pr.t === 'tree' || pr.t === 'palm' || pr.t === 'dumpster') && !pr.down)) v *= .68;
+  return clamp(v, .18, 1.15); }
+const behindOf = (q, p) => Math.abs(angDiff(q.a, Math.atan2(p.y - q.y, p.x - q.x))) > 1.5;
+// eye contact now depends on visibility; sneaking up behind someone doesn't get you "felt" until you're touching
+seesPlayer = function (q, range) { const p = G.player, v = playerVis(), R = (range || 380) * v, d2 = dist2(q.x, q.y, p.x, p.y); if (d2 > R * R) return false;
+  if (d2 < 56 * 56) { if (!(p.sneak && behindOf(q, p) && d2 > 20 * 20)) return true; return false; }
+  if (Math.abs(angDiff(q.a, Math.atan2(p.y - q.y, p.x - q.x))) > 1.15) return false; return losClear(q.x, q.y, p.x, p.y); };
+// witnesses to ordinary crimes: close ones notice anyway (noise), further ones must see you
+function pickWitness(p) { const C = [], peds = G.scene ? G.scene.peds : G.peds, v = playerVis(), near = 110 * v;
+  for (const q of peds) { if (q.dead || q.gang || q.dealer || q.role === 'cop' || q.isPlayer || q.hostile || q.state === 'fight' || q.ko) continue; const d2 = dist2(q.x, q.y, p.x, p.y);
+    if (d2 > 380 * 380 * v * v || !losClear(q.x, q.y, p.x, p.y)) continue; if (d2 > near * near && Math.abs(angDiff(q.a, Math.atan2(p.y - q.y, p.x - q.x))) > 1.3) continue; C.push([q, d2, .6]); }
+  if (!G.scene) for (const c of G.cars) { const dr = c.driver; if (!dr || dr === p || c.dead || dr.gang || dr.role === 'cop' || c.remote) continue; const d2 = dist2(c.x, c.y, p.x, p.y); if (d2 < 460 * 460 * v * v && losClear(c.x, c.y, p.x, p.y)) C.push([c, d2, .35]); }
+  C.sort((a, b) => a[1] - b[1]); for (const [o, , pr] of C) if (Math.random() < pr) return o; return null; }
+function sceneWitness(p) { const s = G.scene; if (!s) return null; const v = playerVis(); let best = null, bd = 1e12; for (const q of s.peds) { if (q === p || q.dead || q.isPlayer || q.cuffed || q.gang || q.ko) continue; const d = dist2(q.x, q.y, p.x, p.y); if (d < 900 * 900 * v * v && losClear(q.x, q.y, p.x, p.y) && d < bd) { bd = d; best = q; } } return best; }
+// cops searching for you: in the dark, sneaking, they have to be closer to actually spot you
+{ const _ms = markSeen; markSeen = function () { const p = G.player; if (p && !p.car && !p.dead && stars() > 0 && G.t - (G.crimeAt || -9) > 1) { const v = playerVis(); if (v < .9) { if (G._msF !== G.frameN) { G._msF = G.frameN; G._msOK = false; const R = 520 * v;
+        for (const q of G.peds) if (q.role === 'cop' && !q.dead && dist2(q.x, q.y, p.x, p.y) < R * R && losClear(q.x, q.y, p.x, p.y)) { G._msOK = true; break; }
+        if (!G._msOK) for (const c of G.cars) if ((c.type === 'cop' || c.type === 'swat') && c.driver && !c.dead && dist2(c.x, c.y, p.x, p.y) < R * R && losClear(c.x, c.y, p.x, p.y)) { G._msOK = true; break; } }
+      if (!G._msOK) return; } } return _ms(); }; }
+{ const _c = crime; crime = function (sev, label) { G.crimeAt = G.t; return _c(sev, label); }; }
+
+// ---------- sneak mode ----------
+function toggleSneak() { const p = G.player; if (!p || p.car || p.dead) return; p.sneak = !p.sneak; Snd.play('ui'); toast(p.sneak ? '🥷 Sneaking — slow and quiet' : 'Walking'); }
+{ const _u = update; update = function (dt) { G.frameN = (G.frameN || 0) + 1; const p = G.player; if (G.mode === 'play' && p && p.sneak) { if (p.car || p.dead) p.sneak = false; else { Input.mx = (Input.mx || 0) * SNEAK_SPEED; Input.my = (Input.my || 0) * SNEAK_SPEED; Input.sprint = false; } }
+  _u(dt); if (G.mode === 'play') try { susTick(dt); koTick(dt); } catch (e) { console.error(e); } }; }
+
+// ---------- suspicion: guards who care about trespassers ----------
+function watcher(q) { if (q.dead || q.ko || q.state === 'fight' || q.cuffed) return false; if (q.army) return true; if (q.hideG && (G.rep[q.hideG] | 0) < 30) return true; return false; }
+function susTick(dt) { const p = G.player; if (!p || p.dead || p.car) return; const peds = G.scene ? G.scene.peds : G.peds;
+  for (const q of peds) { if (!watcher(q)) { if (q.sus) q.sus = Math.max(0, q.sus - dt); continue; }
+    if (seesPlayer(q, 340)) { const d = dist(q.x, q.y, p.x, p.y); q.sus = (q.sus || 0) + dt * (p.weapon > 0 ? 1.4 : .8) * clamp(1.6 - d / 300, .35, 1.6); if (!q.susSaid && q.sus > .35) { q.susSaid = 1; pedSay(q, pick(['Hey… who\'s there?', 'Did you hear that?', 'Hold on…'])); q.a = Math.atan2(p.y - q.y, p.x - q.x); }
+      if (q.sus >= 1) { q.sus = 0; q.susSaid = 0; if (q.army) { crime(1.2, 'Trespassing on a military base'); G.baseSpotted = 1; G.heat = Math.max(G.heat, 3.2); G.starFlash = 1.5; Snd.play('alarm'); q.state = 'fight'; q.target = p; q.timer = 25; q.hostile = 1; pedSay(q, 'Intruder! Weapons free!'); }
+        else { G.gangAggro[q.hideG] = Math.max(G.gangAggro[q.hideG] || 0, 60); q.state = 'fight'; q.target = p; q.timer = 25; pedSay(q, pick(['Who sent you?!', 'Light him up!', 'You picked the wrong door!'])); } Snd.play('alert'); } }
+    else if (q.sus) { q.sus = Math.max(0, q.sus - dt * .35); if (!q.sus) q.susSaid = 0; } } }
+{ const _dp = drawPed; drawPed = function (q) { if (q.ko && !q.dead) return drawKO(q); _dp(q); if (q.sus > .02 && !q.dead) { const g = ctx, a = clamp(q.sus, 0, 1); g.save(); g.translate(q.x, q.y - 30); g.lineWidth = 3.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.arc(0, 0, 9, 0, TAU); g.stroke();
+    g.strokeStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.beginPath(); g.arc(0, 0, 9, -Math.PI / 2, -Math.PI / 2 + TAU * a); g.stroke(); g.fillStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.font = '800 12px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText('?', 0, 4.5); g.restore(); } }; }
+
+// ---------- takedowns ----------
+function drawKO(q) { const g = ctx; g.save(); g.translate(q.x, q.y); g.rotate(q.koA || 0); g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(2, 2, 15, 8, 0, 0, TAU); g.fill();
+  g.fillStyle = q.shirt || '#888'; g.beginPath(); g.ellipse(-2, 0, 11, 7, 0, 0, TAU); g.fill(); g.fillStyle = q.pants || '#333'; g.fillRect(-16, -5, 8, 10); g.fillStyle = q.skin || '#d9a07a'; g.beginPath(); g.arc(11, 0, 5, 0, TAU); g.fill(); g.restore();
+  g.save(); g.fillStyle = 'rgba(200,220,255,' + (.6 + .4 * Math.sin(G.t * 3)) + ')'; g.font = '700 11px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText('z z', q.x + 6, q.y - 16 - (G.t * 6 % 6)); g.restore(); }
+function takedownTarget() { const p = G.player; if (!p || p.car || p.dead || !p.sneak) return null; const peds = G.scene ? G.scene.peds : G.peds; let best = null, bd = 48 * 48;
+  for (const q of peds) { if (q === p || q.dead || q.ko || q.isPlayer || q.state === 'fight' || q.boss || q.lie || q.sit || q.remote) continue; const d = dist2(q.x, q.y, p.x, p.y); if (d < bd && behindOf(q, p) && (q.sus || 0) < .7) { bd = d; best = q; } } return best; }
+function takedownNow() { const q = takedownTarget(); if (!q) return toast('Sneak up behind someone who hasn\'t noticed you'); const p = G.player, peds = G.scene ? G.scene.peds : G.peds;
+  const seen = peds.filter(o => o !== q && !o.dead && !o.ko && !o.isPlayer && seesPlayer(o, 360));
+  q.ko = G.t + rnd(50, 80); q.koA = p.a + rnd(-.4, .4); q.state = 'idle'; q.still = 1; q.sus = 0; q.target = null; q.mvx = q.mvy = 0; Snd.play('punch', q.x, q.y); G.cam.shake = Math.max(G.cam.shake || 0, 3);
+  if (q.weapon > 0 && Math.random() < .5 && typeof takeGun === 'function') { /* their gun stays on them — loot it from the body later */ }
+  if (seen.length) { const cop = seen.find(o => o.role === 'cop'); crime(cop ? 1 : .6, q.role === 'cop' ? 'Assaulting an officer' : 'Assault'); for (const o of seen) if (CIVR.has(o.role)) { o.state = 'flee'; o.threat = p; o.timer = 8; } }
+  else if (q.role === 'cop' || q.army || q.hideG) toast('Out cold. Nobody saw a thing.'); }
+function koTick() { const peds = G.scene ? G.scene.peds : G.peds; for (const q of peds) if (q.ko && !q.dead && G.t > q.ko) { q.ko = 0; q.still = 0; q.state = 'walk'; pedSay(q, pick(['Ugh… my head…', 'What hit me?', 'Where…?'])); if (q.army || q.hideG || q.role === 'cop') q.sus = .6; } }
+// knocked-out people can't see, talk or call anyone
+{ const _ai = updatePedAI; updatePedAI = function (q, dt) { if (q.ko && !q.dead) { q.mvx = q.mvy = 0; return; } return _ai(q, dt); }; }
+
+// ---------- HUD: SNEAK, TAKEDOWN and the eye meter ----------
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); const p = G.player; Input.xBtns = (Input.xBtns || []).filter(b => b.k !== 'stealth'); if (G.mode !== 'play' || !p || p.dead || p.car || G.surrender) return;
+  const w = 86 * sc, h = 30 * sc, x = 14 * sc, y = VH - 250 * sc, g = ctx; const btn = (bx, by, bw, label, on, col, fn) => { g.fillStyle = on ? 'rgba(20,30,40,.85)' : 'rgba(0,0,0,.55)'; g.beginPath(); g.roundRect ? g.roundRect(bx, by, bw, h, 8) : g.rect(bx, by, bw, h); g.fill(); g.strokeStyle = col; g.lineWidth = on ? 2.5 : 1.5; g.stroke(); txt(label, bx + bw / 2, by + h * .67, 12 * sc, on ? col : '#ddd', 'center'); Input.xBtns.push({ k: 'stealth', r: [bx, by, bw, h], fn }); };
+  btn(x, y, w, '🥷 SNEAK', !!p.sneak, '#9b8cff', toggleSneak);
+  if (p.sneak) { const v = playerVis(), lv = v < .45 ? 0 : v < .75 ? 1 : 2; g.save(); g.font = `${16 * sc}px sans-serif`; g.textAlign = 'left'; g.globalAlpha = [.45, .75, 1][lv]; g.fillText('👁', x + w + 8 * sc, y + h * .72); g.restore(); txt(['hidden', 'dim', 'exposed'][lv], x + w + 30 * sc, y + h * .68, 10.5 * sc, ['#7fff9f', '#ffd23f', '#ff6b6b'][lv], 'left'); }
+  const tq = takedownTarget(); if (tq) { btn(x, y - h - 8 * sc, w + 20 * sc, '✋ TAKEDOWN', true, '#ff9f43', takedownNow); } }; }
+
+// ================= DEVICES: phones and computers built like cars and guns =================
+// Every phone and computer is an individual device with its own core parts (each with a tier and wear) and add-on
+// slots. Models range from budget to performance, but nothing is capped: any part fits any device of its kind — a
+// budget phone with elite parts is a monster, as long as it has the cooling to keep up (or it throttles and cooks
+// its parts). Loose parts and add-ons are stockpiled in your parts bin (kept at your office); pull, fit, swap, fix
+// and scrap them at a bench, exactly like car parts and gun parts.
+const DEV_MODELS = {
+  // phones
+  kestrel: { f: 'phone', n: 'Kestrel A1', tag: 'budget', price: 250, base: { cpu: 1, ram: 1, pwr: 1, sig: 1, cool: 0 }, add: 1, col: '#5d6d7e' },
+  nova: { f: 'phone', n: 'Nova 5', tag: 'mid-range', price: 700, base: { cpu: 2, ram: 2, pwr: 2, sig: 2, cool: 1 }, add: 2, col: '#2e86c1' },
+  pulse: { f: 'phone', n: 'Pulse Pro', tag: 'flagship', price: 1500, base: { cpu: 3, ram: 3, pwr: 3, sig: 3, cool: 1 }, add: 3, col: '#1c2833' },
+  cipher: { f: 'phone', n: 'Cipher X', tag: 'performance', price: 3400, base: { cpu: 4, ram: 4, pwr: 4, sig: 4, cool: 2 }, add: 4, col: '#7d3c98' },
+  // computers
+  lumen: { f: 'pc', n: 'Lumen 14 laptop', tag: 'budget · portable', price: 650, base: { cpu: 1, ram: 1, gpu: 1, sto: 1, pwr: 1, sig: 1, cool: 1 }, add: 1, port: 1, col: '#aab7b8' },
+  officemate: { f: 'pc', n: 'Officemate desktop', tag: 'budget', price: 900, base: { cpu: 2, ram: 1, gpu: 1, sto: 2, pwr: 2, sig: 2, cool: 1 }, add: 2, col: '#616a6b' },
+  vista: { f: 'pc', n: 'Vista 27 all-in-one', tag: 'mid-range', price: 1900, base: { cpu: 2, ram: 2, gpu: 2, sto: 2, pwr: 2, sig: 2, cool: 2 }, add: 2, col: '#d5d8dc' },
+  forge: { f: 'pc', n: 'Forge RTX tower', tag: 'performance', price: 4200, base: { cpu: 4, ram: 3, gpu: 4, sto: 3, pwr: 3, sig: 3, cool: 3 }, add: 3, col: '#c0392b' },
+  atlas: { f: 'pc', n: 'Atlas workstation', tag: 'workstation', price: 7800, base: { cpu: 5, ram: 5, gpu: 4, sto: 4, pwr: 4, sig: 4, cool: 4 }, add: 4, col: '#17202a' },
+};
+const DEV_SLOTS = { phone: ['cpu', 'ram', 'pwr', 'sig', 'cool'], pc: ['cpu', 'gpu', 'ram', 'sto', 'pwr', 'sig', 'cool'] };
+const SLOTN = { cpu: 'Processor', gpu: 'Graphics', ram: 'Memory', sto: 'Storage', pwr: 'Battery', sig: 'Radio', cool: 'Cooling' };
+const SLOTN_PC = { pwr: 'Power supply', sig: 'Network card' };
+const devSlotName = (f, k) => (f === 'pc' && SLOTN_PC[k]) || SLOTN[k];
+const SLOTE = { cpu: '🧠', gpu: '🎮', ram: '💾', sto: '🗄', pwr: '🔋', sig: '📡', cool: '❄' };
+const TIERN = ['None', 'Basic', 'Standard', 'Advanced', 'Pro', 'Elite', 'Quantum'];
+const TIERC = ['#555', '#95a5a6', '#2ecc71', '#3498db', '#9b59b6', '#f39c12', '#ff4d6d'];
+const PART_PRICE = (f, k, t) => Math.round((f === 'pc' ? 1.4 : 1) * ({ cpu: 160, gpu: 190, ram: 70, sto: 60, pwr: 80, sig: 90, cool: 70 }[k]) * Math.pow(2.05, t - 1) / 10) * 10;
+// add-ons (stack in the bin like gun attachments)
+const ADDONS = {
+  vpn: { n: 'VPN chip', e: '🛡', f: 'both', price: 900, d: 'Routes everything through a chain of proxies: −40% trace from online crime and hacks.' },
+  exploit: { n: 'Exploit suite', e: '🧨', f: 'both', price: 2400, d: 'Zero-days for cars, ATMs, cop radios and traffic signals. Needed for the serious hacks.' },
+  amp: { n: 'Signal amplifier', e: '📶', f: 'phone', price: 650, d: '+40% hacking range in the field.' },
+  oc: { n: 'Overclock firmware', e: '⚡', f: 'both', price: 800, d: '+30% speed — and a lot more heat. Bring cooling.' },
+  scanner: { n: 'Police scanner', e: '🚨', f: 'phone', price: 1200, d: 'Listens to dispatch: police show on your minimap while it\'s your active phone.' },
+  ghost: { n: 'Ghost mode', e: '👻', f: 'phone', price: 1500, d: 'People nearby don\'t notice you hacking them.' },
+  rig: { n: 'Cracking rig', e: '🔓', f: 'pc', price: 1600, d: 'GPU-accelerated password cracking: big boost to online crime and network hacks.' },
+  farm: { n: 'Crypto miner', e: '🪙', f: 'pc', price: 1100, d: 'Mines while the computer sits idle. Pays per hour of play — more with a strong GPU — but runs hot.' },
+};
+const DEV = () => { const S = G.save; if (!S.dev) S.dev = { list: [], bin: [], adds: {}, active: null, trace: 0, xp: 0, uid: 1 }; const D = S.dev;
+  if (!D.list.some(d => DEV_MODELS[d.m].f === 'phone')) { const d = newDevice('kestrel', .8); d.loc = 'carry'; D.list.push(d); D.active = d.uid; } return D; };
+function newDevice(m, cond) { const M = DEV_MODELS[m], D = G.save.dev || { uid: 1 }, parts = {}; for (const k of DEV_SLOTS[M.f]) if (M.base[k] !== undefined) parts[k] = M.base[k] ? { t: M.base[k], c: cond ?? 1 } : null;
+  return { uid: (G.save.dev ? G.save.dev.uid++ : Date.now() % 1e6), m, parts, adds: {}, loc: M.f === 'phone' || M.port ? 'carry' : 'home', name: M.n }; }
+const devName = d => DEV_MODELS[d.m].n;
+const devOf = uid => DEV().list.find(d => d.uid === uid);
+const activePhone = () => { const D = DEV(); let d = devOf(D.active); if (!d || DEV_MODELS[d.m].f !== 'phone') { d = D.list.find(x => DEV_MODELS[x.m].f === 'phone'); D.active = d ? d.uid : null; } return d || null; };
+const addCount = d => Object.keys(d.adds).filter(k => d.adds[k]).length;
+// ---------- stats: parts × condition, throttled by heat ----------
+function partT(d, k) { const p = d.parts[k]; return p ? p.t * (.45 + .55 * p.c) : 0; }
+function devStats(d) { const f = DEV_MODELS[d.m].f, A = d.adds, oc = A.oc ? 1.3 : 1;
+  const load = partT(d, 'cpu') * oc + partT(d, 'gpu') * .8 * (A.farm ? 1.3 : 1) + (A.oc ? 1.2 : 0), cap = 1.6 + partT(d, 'cool') * 1.35 + (f === 'pc' ? 1.5 : 0), heat = load / cap, thr = heat > 1 ? 1 / Math.pow(heat, .8) : 1;
+  const speed = (partT(d, 'cpu') * 1 + partT(d, 'ram') * .45 + (f === 'pc' ? partT(d, 'gpu') * .25 : 0)) * oc * thr;
+  return { f, speed, heat, thr, crack: (f === 'pc' ? partT(d, 'gpu') * (A.rig ? 1.6 : 1) + partT(d, 'cpu') * .4 : 0) * thr,
+    range: Math.round((260 + partT(d, 'sig') * 95) * (A.amp ? 1.4 : 1)), charges: Math.max(1, Math.round(1 + partT(d, 'pwr') * 1.6)), store: partT(d, 'sto'),
+    power: Math.round((speed * 10 + (f === 'pc' ? partT(d, 'gpu') * 4 + partT(d, 'sto') * 2 : partT(d, 'sig') * 3 + partT(d, 'pwr') * 2))) }; }
+const devPower = d => devStats(d).power;
+// heat cooks parts: every bit of use wears the hottest parts a little, more when throttling
+function devWear(d, amt) { const st = devStats(d); const k = 1 + Math.max(0, st.heat - 1) * 3; for (const s of ['cpu', 'gpu', 'pwr']) { const p = d.parts[s]; if (p) p.c = Math.max(.05, p.c - amt * k * (s === 'cpu' ? 1 : .6) * rnd(.6, 1.2)); } }
+const devCond = d => { const ps = Object.values(d.parts).filter(Boolean); return ps.length ? ps.reduce((a, p) => a + p.c, 0) / ps.length : 1; };
+function devValue(d) { const M = DEV_MODELS[d.m]; let v = M.price * .45 * (.5 + .5 * devCond(d)); for (const k in d.parts) { const p = d.parts[k]; if (p && p.t > (M.base[k] || 0)) v += PART_PRICE(M.f, k, p.t) * .35 * p.c; } for (const k in d.adds) if (d.adds[k]) v += ADDONS[k].price * .3; return Math.round(v / 10) * 10; }
+const partFixCost = (f, k, p) => p.c >= .95 ? 0 : Math.max(20, Math.round(PART_PRICE(f, k, p.t) * .45 * (1 - p.c) / 5) * 5);
+const partScrap = (f, k, p) => Math.max(5, Math.round(PART_PRICE(f, k, p.t) * .08 * p.c / 5) * 5);
+// ---------- phone charges for field hacking ----------
+function phoneCharge() { const d = activePhone(); if (!d) return { n: 0, max: 0 }; const st = devStats(d); if (d.chg === undefined) d.chg = st.charges; d.chg = Math.min(d.chg, st.charges); return { n: d.chg, max: st.charges }; }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play') return; const d = G.save.dev && activePhone(); if (!d) return; const st = devStats(d); if (d.chg === undefined) d.chg = st.charges;
+  const home = G.scene && G.scene.b && (owned(G.scene.b) || G.scene.b.type === 'safehouse'), car = !!pCar(); if (d.chg < st.charges) { d.chgT = (d.chgT || 0) + dt * (home ? 4 : car ? 2 : 1); if (d.chgT >= 13) { d.chgT = 0; d.chg++; } } }; }
+// ---------- trace: how close the cyber unit is to finding you ----------
+function traceAdd(n, d) { const D = DEV(); const vpn = d && d.adds.vpn ? .6 : 1, office = G.scene && G.scene.b && G.scene.b.office && owned(G.scene.b) ? .75 : 1; D.trace = clamp(D.trace + n * vpn * office, 0, 100);
+  if (D.trace >= 100) { D.trace = 45; const at = G.scene ? G.outPos : G.player; G.heat = Math.max(G.heat, 2.2); G.heatT = Math.max(G.heatT || 0, 1.2); markSeen(); G.lastKnown = { x: at.x, y: at.y }; G.starFlash = 2; Snd.play('starup');
+    const seized = Math.min(G.bank, Math.round(G.bank * .1)); G.bank -= seized; msg('🚨 The Cyber Crimes Unit traced you!' + (seized ? ' They froze ' + money(seized) + ' of your bank account.' : '') + ' Units are on the way.', '#ff4d4d'); } }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save.dev) G.save.dev.trace = Math.max(0, G.save.dev.trace - dt * .05); }; }
+// ---------- the bin ----------
+const BIN = () => DEV().bin;
+function binAdd(f, k, t, c) { BIN().push({ f, k, t, c: c ?? 1 }); }
+function addonAdd(k, n) { const A = DEV().adds; A[k] = (A[k] || 0) + (n || 1); }
+// drawing a device icon
+function devIcon(d, px) { const M = DEV_MODELS[d.m], c = document.createElement('canvas'); c.width = 132; c.height = 90; const g = c.getContext('2d'); g.translate(66, 45);
+  if (M.f === 'phone') { const w = 30 + ['kestrel', 'nova', 'pulse', 'cipher'].indexOf(d.m) * 2, h = w * 1.95; g.fillStyle = '#0d0f12'; g.beginPath(); g.roundRect(-w / 2 - 2, -h / 2 - 2, w + 4, h + 4, 8); g.fill(); g.fillStyle = M.col; g.beginPath(); g.roundRect(-w / 2, -h / 2, w, h, 7); g.fill();
+    const sg = g.createLinearGradient(0, -h / 2, 0, h / 2); sg.addColorStop(0, '#1e3c72'); sg.addColorStop(1, '#2a5298'); g.fillStyle = sg; g.beginPath(); g.roundRect(-w / 2 + 3, -h / 2 + 6, w - 6, h - 12, 4); g.fill(); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(-w / 2 + 3, -h / 2 + 6, w - 6, 8); g.fillStyle = '#111'; g.beginPath(); g.arc(0, -h / 2 + 3.4, 1.4, 0, TAU); g.fill(); }
+  else if (M.port) { g.fillStyle = '#2c3e50'; g.beginPath(); g.roundRect(-40, -30, 80, 46, 4); g.fill(); g.fillStyle = '#5dade2'; g.fillRect(-36, -26, 72, 38); g.fillStyle = M.col; g.beginPath(); g.moveTo(-48, 18); g.lineTo(48, 18); g.lineTo(42, 28); g.lineTo(-42, 28); g.closePath(); g.fill(); }
+  else if (d.m === 'vista') { g.fillStyle = '#ecf0f1'; g.beginPath(); g.roundRect(-46, -36, 92, 58, 5); g.fill(); g.fillStyle = '#1b4f72'; g.fillRect(-42, -32, 84, 46); g.fillStyle = '#bdc3c7'; g.fillRect(-6, 22, 12, 10); g.fillRect(-20, 30, 40, 4); }
+  else { const tw = d.m === 'atlas' ? 42 : 36; g.fillStyle = '#151a20'; g.beginPath(); g.roundRect(-14, -38, tw, 76, 4); g.fill(); g.fillStyle = M.col; g.fillRect(-12, -34, 4, 68); if (d.m === 'forge' || d.m === 'atlas') { const rg = g.createLinearGradient(0, -30, 0, 30); rg.addColorStop(0, '#ff4d6d'); rg.addColorStop(.5, '#7b2ff7'); rg.addColorStop(1, '#00d2ff'); g.fillStyle = rg; g.fillRect(-4, -30, tw - 14, 60); g.fillStyle = 'rgba(0,0,0,.55)'; for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(-4 + (tw - 14) / 2, -18 + i * 18, 7, 0, TAU); g.fill(); } }
+    g.fillStyle = '#2c3e50'; g.beginPath(); g.roundRect(-52, -30, 34, 26, 2); g.fill(); g.fillStyle = '#5dade2'; g.fillRect(-50, -28, 30, 20); }
+  const pw = devPower(d); g.fillStyle = 'rgba(0,0,0,.6)'; g.beginPath(); g.roundRect(18, 22, 46, 18, 6); g.fill(); g.fillStyle = pw > 60 ? '#ff4d6d' : pw > 40 ? '#f39c12' : pw > 22 ? '#3498db' : '#95a5a6'; g.font = '800 13px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText('⚡' + pw, 41, 36);
+  if (px) c.style.width = px + 'px'; return c; }
+function partIcon(f, k, t, px) { const c = document.createElement('canvas'); c.width = 132; c.height = 90; const g = c.getContext('2d'); g.translate(66, 45);
+  g.fillStyle = '#0b3d2e'; g.beginPath(); g.roundRect(-38, -26, 76, 52, 5); g.fill(); g.strokeStyle = '#1abc9c'; g.lineWidth = 1; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(-34, -18 + i * 9); g.lineTo(34, -14 + i * 7); g.stroke(); }
+  g.fillStyle = TIERC[t] || '#888'; g.beginPath(); g.roundRect(-16, -16, 32, 32, 4); g.fill(); g.font = '20px sans-serif'; g.textAlign = 'center'; g.fillText(SLOTE[k], 0, 7); g.fillStyle = '#fff'; g.font = '800 12px Rubik, sans-serif'; g.fillText('T' + t, 30, -14);
+  if (px) c.style.width = px + 'px'; return c; }
+
+// ================= DEVICE WORKSHOP: the bench for phones and computers =================
+// Same layout as the gun workshop: a grid of every device you own (each its own tile), a card for the one you tap,
+// then a bench with its core parts and add-on bays. At your office bench parts go to and come from your parts bin;
+// at Byte Depot's Tech Bar you buy new parts and add-ons and they fit them on the spot (old parts go to your bin).
+const devStatBars = d => { const s = devStats(d), pc = s.f === 'pc'; return [['Speed', s.speed / 9], pc ? ['Cracking', s.crack / 7] : ['Hack range', (s.range - 260) / 700], pc ? ['Storage', s.store / 6] : ['Charges', s.charges / 10], ['Cooling headroom', clamp(1.4 - s.heat, 0, 1)]]; };
+const locName = l => l === 'carry' ? 'on you' : l === 'office' ? 'at your office' : 'at home';
+const myOffice = () => W.buildings.find(b => b.office && owned(b));
+function devHome(H, P, shop) { const D = DEV(), L = D.list;
+  H.title.textContent = shop ? '🔧 Byte Depot Tech Bar' : '🖥 Electronics bench';
+  const c = H.col('Your devices · ' + L.length); let sel = L.find(d => 'd' + d.uid === P.dwSel) || null; if (!sel) P.dwSel = null;
+  if (sel) c.appendChild(devCard(H, P, sel, shop)); const g = gGrid(H, c, 'dw'); g.style.gridTemplateColumns = 'repeat(auto-fill,minmax(96px,1fr))';
+  for (const d of L) { const t = gTile(H, g, 'dw', 'd' + d.uid, '📱', d.name || devName(d), null, { canvas: devIcon(d), cond: devCond(d) }); if (D.active === d.uid) t.appendChild(H.mk('span', 'gfx car', 'ACTIVE')); else t.appendChild(H.mk('span', 'gfx own', d.loc === 'carry' ? 'ON YOU' : d.loc === 'office' ? 'OFFICE' : 'HOME'));
+    if (sel === d) t.classList.add('sel'); t.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.dwSel = P.dwSel === 'd' + d.uid ? null : 'd' + d.uid; P.dpSel = null; P.dwConf = null; Panel.render(); }; }
+  if (!sel) c.appendChild(H.mk('div', 'gwnote', 'Tap a device to work on it, ' + (shop ? 'sell it' : 'move it or scrap it') + '. Buy new ones in the store.'));
+  if (shop) return; const B = BIN(), A = D.adds, aks = Object.keys(A).filter(k => A[k] > 0), c2 = H.col('Parts bin · ' + (B.length + aks.reduce((s, k) => s + A[k], 0)));
+  if (!B.length && !aks.length) { H.empty(c2, 'Parts you pull off devices or buy at Byte Depot land here.'); return; } let card = null; const g2 = gGrid(H, c2, 'dp');
+  B.forEach((r, i) => { const key = 'p' + i, t = gTile(H, g2, 'dp', key, SLOTE[r.k], TIERN[r.t] + ' ' + devSlotName(r.f, r.k).toLowerCase(), null, { canvas: partIcon(r.f, r.k, r.t), cond: r.c }); t.appendChild(H.mk('span', 'gfx own', r.f === 'pc' ? 'PC' : 'PHONE')); if (P.dpSel === key) { t.classList.add('sel'); card = binPartCard(H, P, r); } t.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.dpSel = P.dpSel === key ? null : key; P.dwSel = null; Panel.render(); }; });
+  for (const k of aks) { const key = 'a' + k, t = gTile(H, g2, 'dp', key, ADDONS[k].e, ADDONS[k].n, A[k] > 1 ? A[k] : null, {}); if (P.dpSel === key) { t.classList.add('sel'); card = binAddCard(H, P, k); } t.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.dpSel = P.dpSel === key ? null : key; P.dwSel = null; Panel.render(); }; }
+  if (P.dpSel && !card) P.dpSel = null; if (card) c2.insertBefore(card, g2); }
+function devCard(H, P, d, shop) { const M = DEV_MODELS[d.m], st = devStats(d), D = DEV(), ic = devIcon(d, 64); ic.classList.add('gbig');
+  const K = gCardShell(H, P, ic, (d.name || M.n) + ' · ' + M.tag, '⚡ power ' + st.power + ' · ' + DEV_SLOTS[M.f].map(k => SLOTE[k] + (d.parts[k] ? TIERN[d.parts[k].t][0] : '–')).join(' ') + ' · ' + locName(d.loc), () => { P.dwSel = null; P.dwConf = null; });
+  K.bar(devCond(d)); K.hint((st.heat > 1 ? '🔥 Running hot — throttled to ' + Math.round(st.thr * 100) + '%. Add cooling. · ' : '') + (addCount(d) ? 'Add-ons: ' + Object.keys(d.adds).filter(k => d.adds[k]).map(k => ADDONS[k].n).join(', ') : 'No add-ons') + ' (' + addCount(d) + '/' + M.add + ' bays)');
+  const B = K.B; B('🔧 Work on it', 'Parts, add-ons and specs', () => { P.dvSel = d.uid; P.dslot = 'c:cpu'; P.dopt = null; P.dwSel = null; }, 'y', false, true);
+  if (M.f === 'phone') B('📱 Use this phone', D.active === d.uid ? 'It\'s your phone right now' : 'Swap your SIM into it', () => { D.active = d.uid; d.loc = 'carry'; Snd.play('beep'); }, '', D.active === d.uid);
+  else if (!shop) { const off = myOffice(); B(M.port ? '🎒 ' + (d.loc === 'carry' ? 'Leave it at home' : 'Take it with you') : '📍 Move to ' + (d.loc === 'office' ? 'home' : 'your office'), M.port ? 'Laptops work anywhere' : 'Computers are used where they sit', () => { d.loc = M.port ? (d.loc === 'carry' ? 'home' : 'carry') : (d.loc === 'office' ? 'home' : 'office'); }, '', !M.port && !off && d.loc !== 'office'); }
+  const fix = Object.entries(d.parts).reduce((s, [k, p]) => s + (p ? partFixCost(M.f, k, p) : 0), 0); B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); for (const k in d.parts) if (d.parts[k]) d.parts[k].c = 1; Snd.play('ratchet'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
+  const last = M.f === 'phone' && D.list.filter(x => DEV_MODELS[x.m].f === 'phone').length <= 1, conf = P.dwConf === d.uid;
+  if (shop) { const v = devValue(d); B('💲 Sell it', last ? 'You need at least one phone' : conf ? 'Tap again to sell for ' + money(v) : money(v) + ' · parts and add-ons included', () => { if (!conf) { P.dwConf = d.uid; return; } D.list.splice(D.list.indexOf(d), 1); addCash(v); Snd.play('cash'); P.dwSel = null; P.dwConf = null; activePhone(); doSave(true); }, 'r', last); }
+  else { const v = Math.max(10, Math.round(devValue(d) * .15 / 5) * 5); B('🗑 Scrap', last ? 'You need at least one phone' : conf ? 'Tap again — add-ons go to the bin' : '+' + money(v) + ' · add-ons → bin', () => { if (!conf) { P.dwConf = d.uid; return; } for (const k in d.adds) if (d.adds[k]) addonAdd(k); D.list.splice(D.list.indexOf(d), 1); addCash(v); Snd.play('grinder'); P.dwSel = null; P.dwConf = null; activePhone(); doSave(true); }, 'r', last); }
+  return K.done(); }
+function binPartCard(H, P, r) { const fix = partFixCost(r.f, r.k, r, 1), sv = partScrap(r.f, r.k, r), B = BIN();
+  const K = gCardShell(H, P, partIcon(r.f, r.k, r.t, 64), TIERN[r.t] + ' ' + devSlotName(r.f, r.k).toLowerCase(), 'For ' + (r.f === 'pc' ? 'computers' : 'phones') + ' · ' + condWord2(r.c) + ' ' + pct(r.c), () => { P.dpSel = null; });
+  K.bar(r.c); K.hint('Open a device on the bench and tap its ' + devSlotName(r.f, r.k) + ' slot to fit it.');
+  K.B('⚡ Fix now', fix ? '→ 100% · ' + money(fix) : 'Nothing to fix', () => { if (!payAny(fix)) return Snd.play('bad'); r.c = 1; Snd.play('ratchet'); doSave(true); }, fix ? 'r' : '', !fix || !canPay(fix));
+  K.B('🗑 Scrap', '+' + money(sv), () => { B.splice(B.indexOf(r), 1); addCash(sv); Snd.play('grinder'); P.dpSel = null; doSave(true); }, 'r'); return K.done(); }
+function binAddCard(H, P, k) { const A = DEV().adds, a = ADDONS[k], sv = Math.round(a.price * .1 / 5) * 5, ic = document.createElement('div'); ic.style.cssText = 'font-size:40px;width:64px;text-align:center'; ic.textContent = a.e;
+  const K = gCardShell(H, P, ic, a.n + (A[k] > 1 ? '  ×' + A[k] : ''), 'Add-on · ' + (a.f === 'both' ? 'phones & computers' : a.f === 'pc' ? 'computers' : 'phones'), () => { P.dpSel = null; }); K.hint(a.d);
+  K.B('🗑 Scrap one', '+' + money(sv), () => { A[k]--; if (A[k] <= 0) { delete A[k]; P.dpSel = null; } addCash(sv); Snd.play('grinder'); doSave(true); }, 'r'); return K.done(); }
+// ---------- the bench ----------
+function devBench(H, P, d, shop) { const M = DEV_MODELS[d.m], f = M.f, D = DEV(), B = BIN(), A = D.adds;
+  const slots = DEV_SLOTS[f].map(k => { const p = d.parts[k]; return p ? { key: 'c:' + k, name: devSlotName(f, k), cv: partIcon(f, k, p.t), cond: p.c, badge: TIERN[p.t].toUpperCase().slice(0, 5) } : { key: 'c:' + k, name: devSlotName(f, k), e: SLOTE[k], empty: 1, badge: 'NONE' }; });
+  const aks = Object.keys(ADDONS).filter(k => ADDONS[k].f === 'both' || ADDONS[k].f === f); for (const k of aks) slots.push({ key: 'a:' + k, name: ADDONS[k].n, e: ADDONS[k].e, badge: d.adds[k] ? 'ON' : (A[k] ? 'BIN' : ''), badgeCls: 'own', empty: !d.adds[k] });
+  if (!slots.some(s => s.key === P.dslot)) P.dslot = slots[0].key; const sk = P.dslot, isCore = sk.startsWith('c:'), k = sk.slice(2); let opts = [], card, sel;
+  const back = () => { Snd.play('ratchet'); P.dopt = null; doSave(true); };
+  if (isCore) { const p = d.parts[k], loose = B.filter(r => r.f === f && r.k === k);
+    opts.push(p ? { key: 'cur', name: 'Fitted', cv: partIcon(f, k, p.t), cond: p.c, badge: 'FITTED' } : { key: 'cur', name: 'Empty slot', e: '✕', badge: 'NONE' });
+    loose.forEach(r => opts.push({ key: 'l' + B.indexOf(r), name: TIERN[r.t] + ' · ' + pct(r.c), cv: partIcon(f, k, r.t), cond: r.c, badge: 'BIN', badgeCls: 'own' }));
+    if (shop) for (let t = 1; t <= 6; t++) opts.push({ key: 'n' + t, name: TIERN[t], cv: partIcon(f, k, t), cond: 1, price: money(PART_PRICE(f, k, t)), badge: 'T' + t, badgeCls: 'own' });
+    if (!opts.some(o => o.key === P.dopt)) P.dopt = 'cur'; sel = P.dopt;
+    const trial = (t, c) => { const keep = d.parts[k]; d.parts[k] = t ? { t, c } : null; const s = devStats(d); d.parts[k] = keep; return s; }, cmp = s => '⚡ ' + devPower(d) + ' → ' + s.power + (s.heat > 1 ? ' · 🔥 would throttle to ' + Math.round(s.thr * 100) + '%' : '');
+    if (sel === 'cur') { const btns = []; if (p) { btns.push(H.btn('🔧 Pull it off → bin', () => { binAdd(f, k, p.t, p.c); d.parts[k] = null; back(); }, 'y')); const fc = partFixCost(f, k, p); btns.push(H.btn(fc ? '⚡ Fix now · ' + money(fc) : 'No repair needed', () => { if (!payAny(fc)) return Snd.play('bad'); p.c = 1; back(); }, '', !fc || !canPay(fc))); }
+      else btns.push(H.btn(loose.length ? 'Tap a part from your bin to fit it' : shop ? 'Pick a new part above' : 'No ' + devSlotName(f, k).toLowerCase() + ' in your bin', () => { }, '', true));
+      card = { cv: p ? partIcon(f, k, p.t, 60) : null, e: '✕', name: p ? TIERN[p.t] + ' ' + devSlotName(f, k).toLowerCase() + ' · ' + condWord2(p.c) + ' ' + pct(p.c) : devSlotName(f, k) + ' · empty', sub: p ? (loose.length ? loose.length + ' in your bin fit — tap one above to swap it in' : 'Higher tiers: faster, more range, more charges — and more heat') : (k === 'cool' ? 'No cooling: high-tier parts will throttle and cook.' : 'This device can\'t work without one.'), desc: k === 'cool' ? 'Cooling lets hot parts run at full speed and stops them wearing out.' : '', btns }; }
+    else if (sel.startsWith('n')) { const t = +sel.slice(1), pr = PART_PRICE(f, k, t), s = trial(t, 1);
+      card = { cv: partIcon(f, k, t, 60), name: 'New ' + TIERN[t].toLowerCase() + ' ' + devSlotName(f, k).toLowerCase(), sub: cmp(s), desc: p ? 'Your old one (' + TIERN[p.t] + ', ' + pct(p.c) + ') goes to your parts bin.' : 'Fitted on the spot.',
+        btns: [H.btn((p ? 'Buy & swap in · ' : 'Buy & fit · ') + money(pr), () => { if (!payAny(pr)) return; if (p) binAdd(f, k, p.t, p.c); d.parts[k] = { t, c: 1 }; back(); }, 'y', !canPay(pr)), H.btn('Buy for your bin · ' + money(pr), () => { if (!payAny(pr)) return; binAdd(f, k, t, 1); Snd.play('cash'); doSave(true); }, '', !canPay(pr))] }; }
+    else { const r = B[+sel.slice(1)], s = trial(r.t, r.c), fc = partFixCost(f, k, r), sv = partScrap(f, k, r);
+      card = { cv: partIcon(f, k, r.t, 60), name: TIERN[r.t] + ' ' + devSlotName(f, k).toLowerCase() + ' · ' + pct(r.c), sub: cmp(s), desc: p ? 'Swapping puts the fitted one (' + TIERN[p.t] + ') in your bin.' : 'Fit it to bring the device back to life.',
+        btns: [H.btn(p ? '🔁 Swap it in' : '🔧 Fit it', () => { B.splice(B.indexOf(r), 1); if (p) binAdd(f, k, p.t, p.c); d.parts[k] = { t: r.t, c: r.c }; back(); }, 'y'), H.btn(fc ? '⚡ Fix · ' + money(fc) : 'Fix — not needed', () => { if (!payAny(fc)) return; r.c = 1; doSave(true); }, '', !fc || !canPay(fc)), H.btn('🗑 Scrap · +' + money(sv), () => { B.splice(B.indexOf(r), 1); addCash(sv); Snd.play('grinder'); back(); }, 'r')] }; } }
+  else { const a = ADDONS[k], on = !!d.adds[k], have = A[k] | 0, full = addCount(d) >= M.add && !on; sel = 'cur'; opts = [{ key: 'cur', name: on ? 'Installed' : 'Not installed', e: a.e, badge: on ? 'ON' : have ? 'BIN ×' + have : '', badgeCls: 'own' }];
+    const btns = []; if (on) btns.push(H.btn('🔧 Pull it → bin', () => { delete d.adds[k]; addonAdd(k); back(); }, 'y'));
+    else { if (have) btns.push(H.btn(full ? 'All ' + M.add + ' bays are full' : '🔧 Install from your bin', () => { A[k]--; if (A[k] <= 0) delete A[k]; d.adds[k] = 1; back(); }, 'y', full)); if (shop) btns.push(H.btn(full ? 'All ' + M.add + ' bays are full' : 'Buy & install · ' + money(a.price), () => { if (!payAny(a.price)) return; d.adds[k] = 1; back(); }, have ? '' : 'y', full || !canPay(a.price))); if (shop) btns.push(H.btn('Buy for your bin · ' + money(a.price), () => { if (!payAny(a.price)) return; addonAdd(k); Snd.play('cash'); doSave(true); }, '', !canPay(a.price))); if (!btns.length) btns.push(H.btn('Buy it at Byte Depot', () => { }, '', true)); }
+    card = { e: a.e, name: a.n + (on ? ' · installed' : ''), sub: addCount(d) + '/' + M.add + ' add-on bays used', desc: a.d, btns }; }
+  const cv = H.mk('canvas', 'cfgpv'); cv.width = 360; cv.height = 150; { const g = cv.getContext('2d'), bg = g.createLinearGradient(0, 0, 0, 150); bg.addColorStop(0, '#1d2633'); bg.addColorStop(1, '#0c1016'); g.fillStyle = bg; g.fillRect(0, 0, 360, 150); const ic = devIcon(d); g.drawImage(ic, 50, 5, 200, 136); const s = devStats(d); g.fillStyle = s.heat > 1 ? '#ff6b6b' : '#7fdbff'; g.font = '700 13px Rubik, sans-serif'; g.fillText((s.heat > 1 ? '🔥 ' : '❄ ') + 'heat ' + Math.round(s.heat * 100) + '%', 250, 40); g.fillStyle = '#ddd'; g.fillText('⚡ power ' + s.power, 250, 62); }
+  cfgRender(H, { title: (d.name || M.n) + ' · ⚡ ' + devPower(d) + (devStats(d).heat > 1 ? ' · 🔥 throttling' : ''), top: cv, bars: barsEl(devStatBars(d)), slotTitle: 'Core parts & add-on bays (' + addCount(d) + '/' + M.add + ')', selSlot: P.dslot, onSlot: s => { P.dslot = s; P.dopt = null; }, slots, opts, selOpt: sel, onOpt: o => { P.dopt = o; }, card }); }
+PMODES.devws = function (H) { const P = this, shop = !!(this.opt && this.opt.shop); if (P.dvSel) { const d = devOf(P.dvSel); if (d) { devBench(H, P, d, shop); const t = H.title, b = document.createElement('button'); b.className = 'gtback'; b.textContent = '‹ Devices'; b.onclick = ev => { ev.stopPropagation(); Snd.play('ui'); P.dvSel = null; Panel.render(); }; t.insertBefore(b, t.firstChild); return; } P.dvSel = null; } devHome(H, P, shop); };
+{ const _o = Panel.open; Panel.open = function (mode) { if (mode === 'devws') { this.dvSel = null; this.dwSel = null; this.dpSel = null; this.dwConf = null; } return _o.apply(this, arguments); }; }
+
+// ================= BYTE DEPOT, OFFICES, COMPUTERS =================
+// Byte Depot: a big-box electronics store downtown — phones, computers, parts, consoles, and a Tech Bar that mods and
+// repairs on the spot. Offices: a suite you can buy, with workstations, a server rack (harder to trace) and an
+// electronics bench with your parts bin. Computers run apps: the Marketplace, freelance gigs, the darknet, network
+// hacks and games. Consoles and computer desks go in your home.
+(() => { const st = document.createElement('style'); st.textContent = `#panel .pcscr{background:linear-gradient(180deg,#0e1a24,#0a1118);border:1px solid #20435a;border-radius:12px;padding:8px}#panel .trbar{height:8px;border-radius:5px;background:#222;overflow:hidden;margin:4px 0 2px}#panel .trbar b{display:block;height:100%;background:linear-gradient(90deg,#2ecc71,#f1c40f,#e74c3c)}#panel .gamecv{width:100%;max-width:520px;aspect-ratio:3/2;display:block;margin:0 auto;border-radius:12px;background:#000;touch-action:none}
+#hackov{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,10,20,.55);touch-action:none}#hackov.show{display:flex}#hackov canvas{width:min(78vw,78vh,420px);height:min(78vw,78vh,420px)}`; document.head.appendChild(st); })();
+const TECHF = { pcdesk: ['Computer desk', 1.6, .8, 450, '🖥', 'Your best home computer sits here'], gconsole: ['Orbit 5 console & TV', 1.6, .6, 1100, '🎮', 'Couch gaming, 4K'], gconsole2: ['Vertex X console & TV', 1.6, .6, 950, '🎮', 'The other big console'], arcadecab: ['Retro arcade cabinet', .9, .8, 1800, '🕹', 'Neon Drift, coin-op classic'] };
+for (const t in TECHF) { const [n, w, h, pr, e] = TECHF[t]; DECOR.push([t, n, w, h, pr, e]); }
+Object.assign(IT, { td_phones: { s: 1, act: 'Browse phones' }, td_pcs: { s: 1, act: 'Browse computers' }, td_parts: { s: 1, act: 'Parts & add-ons' }, td_games: { s: 1, act: 'Consoles & home tech' }, td_tv: { s: 1 }, techbar: { s: 1, act: 'Tech Bar — mods & repairs' },
+  pcdesk: { s: 1, act: 'Use computer' }, srack: { s: 1, act: 'Server rack' }, ebench: { s: 1, act: 'Electronics bench' }, gconsole: { s: 1, act: 'Play games' }, gconsole2: { s: 1, act: 'Play games' }, arcadecab: { s: 1, act: 'Play Neon Drift' } });
+KINDN.office = 'Office';
+// ---------- world: one Byte Depot, two offices for sale ----------
+function techGen() { const cx = W.cityCX || (NR * RSP * T) / 2, cy = W.cityCY || (NR * RSP * T) / 2;
+  const S = W.buildings.filter(b => b.type === 'store' && b.door && !b.sub && !b.realty && (b.kind2 === 'conv' || !b.kind2) && (b.d === 'downtown' || b.d === 'midtown')); const S2 = S.length ? S : W.buildings.filter(b => b.type === 'store' && b.door && !b.sub && !b.realty);
+  S2.sort((a, b) => dist2(a.door.x, a.door.y, cx, cy) - dist2(b.door.x, b.door.y, cx, cy)); const st = S2[0]; if (st) { st.kind2 = 'tech'; st.name = 'Byte Depot'; W.byteDepot = st; }
+  const bank = W.buildings.find(b => b.type === 'office' && b.door && b.d === 'downtown' && !b.realty && !b.sub);
+  const O = W.buildings.filter(b => b.type === 'office' && b.door && b !== bank && !b.realty && !b.sub && !b.claimed && (b.d === 'downtown' || b.d === 'midtown')); O.sort((a, b) => dist2(a.door.x, a.door.y, cx, cy) - dist2(b.door.x, b.door.y, cx, cy));
+  [['Lattice Point Suites', 48000], ['Copperline Lofts', 70000]].forEach(([n, pr], i) => { const b = O[i * 3]; if (!b) return; b.name = n; b.office = 1; b.locked = 1; b.realty = { id: b.id, name: n, kind: 'office', price: pr }; W.realty.push(b.realty); }); }
+{ const _sg = storeGen; storeGen = function () { _sg(); try { techGen(); } catch (e) { console.error('techGen', e); } }; }
+{ const _ms = makeShop; makeShop = function (b) { if (b.kind2 !== 'tech') return _ms(b); const s = _ms(Object.assign({}, b, { kind2: 'none' })); s.b = b; s.floor = 'marble'; s.npcDefs = []; s.items = [];
+  const I = (t, x, y, w, h) => s.items.push({ t, x, y, w, h, used: 0, small: 1 }), P = (role, x, y, ex) => s.npcDefs.push(Object.assign({ role, x, y }, ex || {}));
+  for (let x = 1; x < 10.4; x += 2.4) I('td_tv', x, .3, 2.2, .55); I('techbar', 10.8, .4, 2.8, 1); P('worker', 12.2, 1.75, { still: 1, techbar: 1 });
+  I('td_phones', 1.4, 2.4, 2.6, 1); I('td_phones', 1.4, 4.4, 2.6, 1); I('td_pcs', 5.2, 2.4, 2.8, 1.1); I('td_pcs', 5.2, 4.5, 2.8, 1.1); I('td_parts', 9.2, 2.4, .8, 3.4); I('td_games', 11.2, 3, 2.2, 1.1);
+  I('counter', 9.8, 7, 3, .75); I('register', 10.2, 6.95, .7, .6); P('clerk', 11.4, 6.35, { shop: 'store', still: 1 }); P('patron', 3.6, 3.6); P('patron', 7.4, 3.6); if (Math.random() < .5) P('patron', 12, 4.6); return s; }; }
+// ---------- devices you can use here ----------
+const atHome = () => { const s = G.scene; return !!(s && !s.b.office && canDecorate()); };
+const atOffice = () => { const s = G.scene; return !!(s && s.b.office && owned(s.b)); };
+function pcsHere() { return DEV().list.filter(d => DEV_MODELS[d.m].f === 'pc' && (d.loc === 'carry' || (d.loc === 'office' && atOffice()) || (d.loc === 'home' && atHome()))).sort((a, b) => devPower(b) - devPower(a)); }
+// ---------- drawing ----------
+{ const _di = drawItem; drawItem = function (it, s) { const t = it.t; if (!TECHDRAW[t]) return _di(it, s); const g = ctx, x = it.x * T, y = it.y * T, w = it.w * T, h = it.h * T; g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x + 3, y + 4, w, h); TECHDRAW[t](g, x, y, w, h, it); }; }
+const scr = (g, x, y, w, h, hue) => { const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, 'hsl(' + hue + ',70%,45%)'); gr.addColorStop(1, 'hsl(' + (hue + 50) + ',70%,22%)'); g.fillStyle = gr; g.fillRect(x, y, w, h); g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x, y, w, h * .25); };
+const TECHDRAW = {
+  td_tv: (g, x, y, w, h) => { g.fillStyle = '#1b1f24'; g.fillRect(x, y, w, h); const n = 3, sw = (w - 8) / n; for (let i = 0; i < n; i++) scr(g, x + 3 + i * (sw + 1), y + 3, sw - 1, h - 6, ((G.t * 30 | 0) + i * 70) % 360); },
+  td_phones: (g, x, y, w, h) => { g.fillStyle = '#e8eaed'; g.fillRect(x, y, w, h); g.fillStyle = '#cfd3d8'; g.fillRect(x + 2, y + h - 5, w - 4, 3); for (let i = 0; i < 5; i++) { const px = x + 6 + i * (w - 12) / 5, pw = (w - 12) / 5 - 5; g.fillStyle = '#111'; g.fillRect(px, y + 6, pw, h - 14); scr(g, px + 1.5, y + 7.5, pw - 3, h - 17, 200 + i * 30); } },
+  td_pcs: (g, x, y, w, h) => { g.fillStyle = '#e8eaed'; g.fillRect(x, y, w, h); for (let i = 0; i < 3; i++) { const px = x + 6 + i * (w - 12) / 3, pw = (w - 12) / 3 - 6; g.fillStyle = '#2c3e50'; g.fillRect(px, y + 5, pw, h * .5); scr(g, px + 2, y + 7, pw - 4, h * .5 - 4, 190 + i * 40); g.fillStyle = '#95a5a6'; g.fillRect(px, y + h * .62, pw, 4); } },
+  td_parts: (g, x, y, w, h) => { g.fillStyle = '#8d9298'; g.fillRect(x, y, w, h); for (let i = 0; i < 8; i++) { g.fillStyle = TIERC[1 + i % 6]; g.fillRect(x + 3, y + 4 + i * (h - 8) / 8, w - 6, (h - 8) / 8 - 3); } },
+  td_games: (g, x, y, w, h) => { g.fillStyle = '#1c1c24'; g.fillRect(x, y, w, h); scr(g, x + 4, y + 3, w * .55, h * .5, (G.t * 40) % 360); g.fillStyle = '#fafafa'; g.fillRect(x + w * .66, y + 5, w * .1, h * .6); g.fillStyle = '#111'; g.fillRect(x + w * .8, y + 5, w * .14, h * .6); },
+  techbar: (g, x, y, w, h) => { g.fillStyle = '#263238'; g.fillRect(x, y, w, h); g.fillStyle = '#00bcd4'; g.fillRect(x, y + h - 4, w, 4); g.fillStyle = '#90a4ae'; g.fillRect(x + 6, y + 5, w * .3, h * .45); g.fillStyle = '#ffeb3b'; g.font = 'bold 9px Rubik,sans-serif'; g.fillText('TECH BAR', x + w * .42, y + h * .55); },
+  pcdesk: (g, x, y, w, h, it) => { g.fillStyle = '#5d4037'; g.fillRect(x, y, w, h); g.fillStyle = '#4e342e'; g.fillRect(x, y + h - 4, w, 4); const pc = (G.scene && pcsHere()[0]) || null, on = !!pc; g.fillStyle = '#212121'; g.fillRect(x + w * .25, y + 3, w * .5, h * .5); if (on) scr(g, x + w * .25 + 2, y + 5, w * .5 - 4, h * .5 - 4, 205); else { g.fillStyle = '#37474f'; g.fillRect(x + w * .25 + 2, y + 5, w * .5 - 4, h * .5 - 4); }
+    g.fillStyle = '#bdbdbd'; g.fillRect(x + w * .3, y + h * .66, w * .4, 4); if (pc && !DEV_MODELS[pc.m].port && pc.m !== 'vista') { g.fillStyle = '#111'; g.fillRect(x + w * .82, y + 3, w * .14, h * .75); if (pc.m === 'forge' || pc.m === 'atlas') { g.fillStyle = 'hsl(' + (G.t * 60 % 360) + ',90%,60%)'; g.fillRect(x + w * .84, y + 6, 2, h * .65); } } },
+  srack: (g, x, y, w, h) => { g.fillStyle = '#111418'; g.fillRect(x, y, w, h); for (let i = 0; i < 7; i++) { g.fillStyle = '#263238'; g.fillRect(x + 3, y + 3 + i * (h - 6) / 7, w - 6, (h - 6) / 7 - 2); g.fillStyle = Math.sin(G.t * 9 + i * 2.3) > 0 ? '#2ecc71' : '#0b3d2e'; g.fillRect(x + w - 9, y + 5 + i * (h - 6) / 7, 3, 3); } },
+  ebench: (g, x, y, w, h) => { g.fillStyle = '#546e7a'; g.fillRect(x, y, w, h); g.fillStyle = '#0b3d2e'; g.fillRect(x + 6, y + 4, w * .3, h * .55); g.strokeStyle = '#1abc9c'; g.lineWidth = 1; for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(x + 7, y + 7 + i * 5); g.lineTo(x + 6 + w * .3, y + 9 + i * 4); g.stroke(); } g.fillStyle = '#ffca28'; g.fillRect(x + w * .48, y + 6, w * .08, h * .5); g.fillStyle = '#90a4ae'; g.beginPath(); g.arc(x + w * .78, y + h * .4, h * .22, 0, TAU); g.fill(); },
+  gconsole: (g, x, y, w, h) => { g.fillStyle = '#3e2723'; g.fillRect(x, y + h * .45, w, h * .55); g.fillStyle = '#111'; g.fillRect(x + w * .08, y, w * .84, h * .42); scr(g, x + w * .1, y + 2, w * .8, h * .38, (G.t * 25) % 360); g.fillStyle = '#fafafa'; g.fillRect(x + w * .42, y + h * .55, w * .16, h * .3); },
+  gconsole2: (g, x, y, w, h) => { g.fillStyle = '#263238'; g.fillRect(x, y + h * .45, w, h * .55); g.fillStyle = '#111'; g.fillRect(x + w * .08, y, w * .84, h * .42); scr(g, x + w * .1, y + 2, w * .8, h * .38, 110 + (G.t * 25) % 120); g.fillStyle = '#111'; g.fillRect(x + w * .44, y + h * .52, w * .12, h * .4); g.fillStyle = '#76ff03'; g.fillRect(x + w * .48, y + h * .56, 3, 3); },
+  arcadecab: (g, x, y, w, h) => { g.fillStyle = '#4a148c'; g.fillRect(x, y, w, h); g.fillStyle = '#111'; g.fillRect(x + 4, y + 3, w - 8, h * .55); scr(g, x + 6, y + 5, w - 12, h * .5 - 4, 280 + (G.t * 50) % 80); g.fillStyle = '#ff1744'; g.beginPath(); g.arc(x + w * .35, y + h * .78, 3, 0, TAU); g.fill(); g.fillStyle = '#00e5ff'; g.beginPath(); g.arc(x + w * .65, y + h * .78, 3, 0, TAU); g.fill(); },
+};
+// ---------- using things ----------
+{ const _u0 = useItem0; useItem0 = function (it) { const t = it && it.t, s = G.scene; if (!t || !TECHDRAW[t] || !s) return _u0(it);
+  const shop = s.b.kind2 === 'tech', clerk = shop && s.peds && s.peds.find(q => !q.dead && q.techbar && q.state !== 'flee'), open = shop && (shopClerk(s) || clerk);
+  if (t === 'td_tv') return toast('Wall of 4K screens. Gorgeous.');
+  if (shop && !open) return toast('Nobody\'s serving — the tech is all locked in its cases.');
+  if (t === 'td_phones') return Panel.open('tech', { tab: 'phone' }); if (t === 'td_pcs') return Panel.open('tech', { tab: 'pc' }); if (t === 'td_parts') return Panel.open('tech', { tab: 'parts' }); if (t === 'td_games') return Panel.open('tech', { tab: 'home' });
+  if (t === 'techbar') return clerk ? Panel.open('devws', { shop: 1 }) : toast('The Tech Bar is unattended.');
+  if (t === 'ebench') return Panel.open('devws');
+  if (t === 'srack') return say('Server rack', 'Your own servers. Everything you do online from this office bounces through them first — 25% less trace. Trace now: ' + Math.round(DEV().trace) + '%.', [{ t: 'Purge the logs · ' + money(1500), c: 'y', d: !canPay(1500) || DEV().trace < 5, f: () => { if (payAny(1500)) { DEV().trace = Math.max(0, DEV().trace - 40); Snd.play('beep'); toast('Logs purged. Trace −40%.'); } } }, { t: 'Close' }]);
+  if (t === 'pcdesk') { const pc = pcsHere()[0]; if (!pc) return say('Computer desk', atOffice() ? 'No computer here yet. Buy one at Byte Depot, then move it to your office from the electronics bench (or your phone\'s Tech tab).' : 'No computer at home yet. Buy one at Byte Depot — desktops and all-in-ones are delivered home.', [{ t: 'OK' }]); return Panel.open('pc', { uid: pc.uid }); }
+  if (t === 'gconsole' || t === 'gconsole2' || t === 'arcadecab') return Panel.open('pc', { tab: 'games', console: t });
+  return _u0(it); }; }
+// ---------- the store panel ----------
+const TBOX = () => { const D = DEV(); return D.boxed || (D.boxed = {}); };
+PMODES.tech = function (H) { const s = G.scene, D = DEV(), tab = this.tab || (this.tab = 'phone'); H.title.textContent = '🔌 Byte Depot';
+  H.tabBtn('phone', 'Phones'); H.tabBtn('pc', 'Computers'); H.tabBtn('parts', 'Parts & add-ons'); H.tabBtn('home', 'Home & gaming');
+  const buyDev = m => { const M = DEV_MODELS[m]; if (!payAny(M.price)) return Snd.play('bad'); const d = newDevice(m, 1); D.list.push(d); if (M.f === 'phone') { D.active = d.uid; d.loc = 'carry'; } Snd.play('cash'); msg('📦 ' + M.n + (M.f === 'phone' ? ' — your SIM is in it and it\'s in your pocket.' : M.port ? ' — in your bag.' : ' — delivered to your home. Use it at a computer desk, or move it to your office.'), '#2ecc71'); doSave(true); };
+  const row = (c, m) => { const M = DEV_MODELS[m], d = newDevice(m, 1); d.uid = -1; const st = devStats(d), have = D.list.filter(x => x.m === m).length; const r = H.row(c, '', M.n, M.tag + ' · ⚡' + st.power + ' · ' + (M.f === 'pc' ? 'cracking ' + st.crack.toFixed(1) + ' · ' : 'range ' + st.range + ' · ' + st.charges + ' charges · ') + M.add + ' add-on bay' + (M.add > 1 ? 's' : '') + (have ? ' · you own ' + have : ''), [H.btn('Buy ' + money(M.price), () => buyDev(m), 'y', !canPay(M.price))]); const ic = r && r.querySelector ? r.querySelector('.pe') : null; if (ic) { ic.textContent = ''; ic.appendChild(devIcon(d, 54)); } };
+  if (tab === 'phone' || tab === 'pc') { const c = H.col(tab === 'phone' ? 'Phones — every one moddable' : 'Computers — laptops, desktops, all-in-ones, towers'); for (const m in DEV_MODELS) if (DEV_MODELS[m].f === tab) row(c, m);
+    H.foot.appendChild(H.mk('span', 'pnote', 'Any part fits any model: a budget ' + (tab === 'phone' ? 'phone' : 'laptop') + ' with elite parts and enough cooling outruns a stock flagship. The Tech Bar fits parts on the spot.')); return; }
+  if (tab === 'parts') { const c = H.col('Add-ons'); for (const k in ADDONS) { const a = ADDONS[k]; H.row(c, a.e, a.n, money(a.price) + ' · ' + (a.f === 'both' ? 'phones & computers' : a.f === 'pc' ? 'computers' : 'phones') + ' — ' + a.d + ((D.adds[k] | 0) ? ' · in your bin ×' + D.adds[k] : ''), [H.btn('Buy', () => { if (!payAny(a.price)) return; addonAdd(k); Snd.play('cash'); doSave(true); }, 'y', !canPay(a.price))]); }
+    const c2 = H.col('Parts — go to your parts bin'), [f, setF] = [this.pf || 'phone', v => { this.pf = v; }]; { const bar = H.mk('div', 'pbs'); bar.appendChild(H.btn('📱 Phone parts', () => setF('phone'), f === 'phone' ? 'on' : '')); bar.appendChild(H.btn('🖥 Computer parts', () => setF('pc'), f === 'pc' ? 'on' : '')); c2.appendChild(bar); }
+    for (const k of DEV_SLOTS[f]) H.row(c2, SLOTE[k], devSlotName(f, k), [1, 2, 3, 4, 5, 6].map(t => TIERN[t] + ' ' + money(PART_PRICE(f, k, t))).join(' · '), [3, 5, 6].map(t => H.btn('T' + t, () => { if (!payAny(PART_PRICE(f, k, t))) return; binAdd(f, k, t, 1); Snd.play('cash'); doSave(true); }, '', !canPay(PART_PRICE(f, k, t)))));
+    H.foot.appendChild(H.mk('span', 'pnote', 'Every tier is on the Tech Bar too, where they fit it for you. Loose parts wait in your bin at your office bench.')); return; }
+  const B = TBOX(), c = H.col('Home & gaming — boxed, place it from Decorate at home'); for (const t in TECHF) { const [n, w, h, pr, e, d] = TECHF[t]; H.row(c, e, n, money(pr) + ' · ' + d + ((B[t] | 0) ? ' · ' + B[t] + ' boxed' : ''), [H.btn('Buy', () => { if (!payAny(pr)) return; B[t] = (B[t] | 0) + 1; Snd.play('cash'); msg('📦 ' + n + ' is boxed and waiting — place it from Decorate in your home.', '#2ecc71'); doSave(true); }, 'y', !canPay(pr))]); } };
+// decorate: tech furniture comes boxed from Byte Depot
+{ const _d = PMODES.decor; PMODES.decor = function (H) { const keep = DECOR.slice(); if ((this.tab || 'shop') === 'shop') DECOR.splice(0, DECOR.length, ...keep.filter(d => !TECHF[d[0]])); try { _d.call(this, H); } finally { DECOR.splice(0, DECOR.length, ...keep); }
+  if (!G.scene || (this.tab || 'shop') !== 'shop') return; const B = TBOX(), ks = Object.keys(B).filter(k => B[k] > 0), c = H.col('📦 Boxed from Byte Depot'); if (!ks.length) { H.empty(c, 'Consoles, computer desks and arcade cabinets come from Byte Depot.'); return; }
+  for (const t of ks) { const [n, w, h, , e] = TECHF[t]; H.row(c, e, n + (B[t] > 1 ? ' ×' + B[t] : ''), 'Already paid for', [H.btn('Place', () => { G.placing = { t, w, h, price: 0, name: n, boxed: 1 }; Panel.close(); }, 'y')]); } }; }
+{ const _pt = placeTap; placeTap = function (sx, sy) { const P = G.placing; if (!P || !P.boxed) return _pt(sx, sy); const s = G.scene, n0 = s ? decorOf(s.b).items.length : 0; const r = _pt(sx, sy); if (s && decorOf(s.b).items.length > n0) { const B = TBOX(); B[P.t] = Math.max(0, (B[P.t] | 0) - 1); } return r; }; }
+// ---------- the office ----------
+{ const _eb = enterBuilding; enterBuilding = function (b) { const r = _eb.apply(this, arguments); const s = G.scene; if (s && s.b === b && b.office && owned(b) && !s.officeSet) { s.officeSet = 1; s.peds = (s.peds || []).filter(q => q.role === 'guard'); s.npcDefs = [];
+  s.items = s.items.filter(it => it.deco); const I = (t, x, y, w, h) => { if (!s.items.some(o => o.t === t && Math.abs(o.x - x) < .3 && Math.abs(o.y - y) < .3)) s.items.push({ t, x, y, w, h, used: 0, small: 1 }); };
+  I('pcdesk', 1, .4, 1.6, .8); I('pcdesk', 3.2, .4, 1.6, .8); I('pcdesk', 5.4, .4, 1.6, .8); I('ebench', 8.2, .4, 2.4, .9); I('srack', 12.3, .4, 1.1, 1.6); I('stash', 12.5, 3.2, .74, .59); } return r; }; }
+// ---------- the computer ----------
+const PCGIGS = [['data', '⌨', 'Data entry for a law firm', 0, 140, 60], ['web', '🌐', 'Build a website for a bakery', 16, 480, 110], ['video', '🎬', 'Edit a music video', 28, 950, 150], ['app', '🐞', 'Bug bounty for a fintech app', 40, 1900, 180], ['ai', '🤖', 'Train an AI model for a startup', 58, 4400, 240]];
+const gigPay = (gg, pw) => Math.round(gg[4] * (.75 + pw / 55) / 10) * 10, gigDur = (gg, d) => Math.round(gg[5] / clamp(devStats(d).speed / 3, .6, 3.2));
+const DARK = [['phish', '🎣', 'Phishing blast', 'Spam a million inboxes and see who bites.', 0, 0, 90, 10], ['dumps', '💳', 'Buy & cash out card dumps', 'Pay $600 for a batch of stolen cards — some are dead, some are gold.', 0, 0, 120, 8], ['ransom', '🔒', 'Ransomware a business', 'Lock a company\'s files and name your price. Needs an exploit suite.', 1, 3, 300, 30], ['launder', '🪙', 'Launder cash through crypto', 'Turn dirty pocket cash into clean bank money, minus a cut.', 0, 0, 60, 4]];
+const NET = [['gang', '📻', 'Gang comms', 'Tap the crews\' phones: every hideout on your map and their next shipments.', 0, 2, 180, 8], ['corp', '🏢', 'Helix Labs data heist', 'Steal research data and sell it to a rival.', 0, 3, 240, 20], ['grid', '💡', 'City power grid', 'Black out the streetlights around you for three minutes. Night is yours.', 0, 3, 300, 14], ['lights', '🚦', 'Traffic control', 'Every signal near you goes green for a minute. Chaos.', 0, 2, 150, 10], ['police', '🚓', 'Police records', 'Wipe your description and what the neighborhoods remember. Takes the edge off a chase.', 1, 4, 240, 25], ['bank', '🏦', 'Varro Savings & Loan', 'Skim the corporate accounts. The biggest score — and the loudest.', 1, 5, 600, 45]];
+const pcCD = k => { const D = DEV(); D.cd = D.cd || {}; return Math.max(0, (D.cd[k] || 0) - (G.save.playT || G.t)); };
+const nowT = () => G.save.playT || G.t;
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') G.save.playT = (G.save.playT || 0) + dt; }; }
+function pcDo(d, kind, row) { const D = DEV(), st = devStats(d), k = row[0], pw = st.power; D.cd = D.cd || {}; D.cd[k] = nowT() + row[6];
+  const fin = (ok, txt, cash, toBank) => { devWear(d, .006); traceAdd(ok ? row[7] : row[7] * 1.4, d); if (cash) { if (toBank) G.bank += cash; else addCash(cash); Snd.play('cash'); } else if (!ok) Snd.play('bad'); msg((ok ? '💻 ' : '❌ ') + txt, ok ? '#2ecc71' : '#ff6b6b'); doSave(true); Panel.render(); };
+  const run = () => { if (k === 'phish') { const ok = Math.random() < clamp(.42 + st.speed * .05, 0, .9); return fin(ok, ok ? 'Phishing paid off: ' + money(Math.round(rnd(250, 900) * (1 + pw / 60))) + ' landed in your bank.' : 'Nobody bit. Spam filters ate it.', ok ? Math.round(rnd(250, 900) * (1 + pw / 60)) : 0, 1); }
+    if (k === 'dumps') { if (!payAny(600)) return Snd.play('bad'); const m = Math.random() < .25 ? 0 : rnd(.6, 2.4) * (1 + st.crack * .08); const v = Math.round(600 * m); return fin(v > 600, v ? 'Cashed out the batch for ' + money(v) + (v < 600 ? ' — a loss.' : '.') : 'The whole batch was dead. $600 gone.', v, 1); }
+    if (k === 'launder') { const n = Math.min(G.cash, 5000 + Math.round(pw * 120)); if (n < 100) return toast('You need some cash in your pocket to launder'); G.cash -= n; const cut = d.adds.vpn ? .12 : .2; return fin(true, 'Laundered ' + money(n) + ' → ' + money(Math.round(n * (1 - cut))) + ' clean in your bank.', Math.round(n * (1 - cut)), 1); }
+    if (k === 'ransom') return fin(true, 'They paid the ransom: ' + money(Math.round(rnd(3000, 9000) * (1 + st.crack * .12))) + '.', Math.round(rnd(3000, 9000) * (1 + st.crack * .12)), 1);
+    if (k === 'corp') return fin(true, 'Sold Helix Labs\' research for ' + money(Math.round(rnd(1500, 4500) * (1 + st.crack * .1))) + '.', Math.round(rnd(1500, 4500) * (1 + st.crack * .1)), 1);
+    if (k === 'bank') return fin(true, 'Skimmed ' + money(Math.round(rnd(6000, 18000) * (1 + st.crack * .1))) + ' from Varro Savings & Loan into a shell account.', Math.round(rnd(6000, 18000) * (1 + st.crack * .1)), 1);
+    if (k === 'gang') { for (const g in HIDE) if (g !== '_done') facSeen()[g] = 1; const F = FAC(); for (const g in F) if (F[g]) F[g].convCD = Math.min(F[g].convCD || 999, rnd(15, 40)); return fin(true, 'You\'re in their group chats: every hideout is on your map, and their next supply runs leave soon — be near a hideout.'); }
+    if (k === 'grid') { const o = G.scene ? G.outPos : G.player; let n = 0; for (const p of propsNear(o.x, o.y, 1400)) if (p.t === 'lamp') { p.hackOff = G.t + 180; n++; } return fin(true, 'Grid hacked: ' + n + ' streetlights around you are dark for three minutes.'); }
+    if (k === 'lights') { lightHackArea(G.scene ? G.outPos : G.player, 1500, 'green', 60); return fin(true, 'Every signal around you is green. Drive carefully — nobody else will.'); }
+    if (k === 'police') { G.desc = null; G.save.mem = {}; let t = ''; if (stars() > 0) { G.heat = Math.max(0, G.heat - 1); t = ' Dispatch is confused — one star off.'; } return fin(true, 'Records wiped: no description on file, the neighborhoods forget your face.' + t); } };
+  if (row[5]) hackPuzzle(row[5], st, ok => { if (ok) run(); else fin(false, 'Locked out — they noticed the intrusion.'); }); else run(); }
+PMODES.pc = function (H) { const D = DEV(), P = this; let d = devOf(P.opt.uid); if (!d || !pcsHere().includes(d)) d = pcsHere()[0] || null; if (d) P.opt.uid = d.uid; const phone = activePhone();
+  const tab = this.tab || (this.tab = d ? 'apps' : 'device'); const st = d ? devStats(d) : null;
+  H.title.textContent = P.opt.console ? '🎮 ' + TECHF[P.opt.console][0] : d ? '💻 ' + (d.name || devName(d)) + ' · ⚡' + st.power : '📱 ' + (phone ? phone.name || devName(phone) : 'Phone');
+  if (!P.opt.console) { if (d) { H.tabBtn('apps', 'Apps'); H.tabBtn('market', 'Marketplace'); H.tabBtn('gigs', 'Gigs'); H.tabBtn('dark', 'Darknet'); H.tabBtn('net', 'Hack'); } H.tabBtn('games', 'Games'); H.tabBtn('device', 'Devices'); }
+  if (tab === 'games') return gameTab(H, P);
+  if (tab === 'market' && d) return marketTab.call(this, H);
+  if (tab === 'device' || !d) { const c = H.col('Your phone'); if (phone) { const ps = devStats(phone), ch = phoneCharge(); H.row(c, '📱', phone.name || devName(phone), '⚡' + ps.power + ' · hack range ' + ps.range + ' · charges ' + ch.n + '/' + ch.max + (ps.heat > 1 ? ' · 🔥 throttled' : '') + ' · add-ons: ' + (Object.keys(phone.adds).filter(k => phone.adds[k]).map(k => ADDONS[k].n).join(', ') || 'none'), []); }
+    { const t = H.mk('div', 'trbar'), b = H.mk('b'); b.style.width = Math.round(D.trace) + '%'; t.appendChild(b); c.appendChild(H.mk('div', 'lhint', '🛰 Cyber Crimes trace: ' + Math.round(D.trace) + '% — at 100% they find you. It cools off over time.')); c.appendChild(t); }
+    c.appendChild(H.mk('div', 'lhint', 'Hack mode: tap 📡 HACK on screen (or press J), then tap a phone, car, streetlight, hydrant, ATM, payphone, traffic light or cop car in range.'));
+    const c2 = H.col('All your devices'); for (const x of D.list) H.row(c2, DEV_MODELS[x.m].f === 'pc' ? '🖥' : '📱', (x.name || devName(x)) + (D.active === x.uid ? ' · active' : ''), '⚡' + devPower(x) + ' · ' + locName(x.loc) + ' · ' + pct(devCond(x)), DEV_MODELS[x.m].f === 'pc' && !DEV_MODELS[x.m].port && myOffice() ? [H.btn(x.loc === 'office' ? 'Ship home' : 'Ship to office', () => { x.loc = x.loc === 'office' ? 'home' : 'office'; toast('Moved.'); doSave(true); })] : []);
+    if (!d) c2.appendChild(H.mk('div', 'lhint', 'No computer here. Use one at a computer desk at home or your office — or carry a laptop.')); return; }
+  const scr2 = H.col(tab === 'apps' ? 'Desktop' : tab === 'gigs' ? 'Freelance gigs — legit money' : tab === 'dark' ? 'Darknet — crime online' : 'Network intrusion'); scr2.classList.add('pcscr');
+  const trace = () => { const t = H.mk('div', 'trbar'), b = H.mk('b'); b.style.width = Math.round(D.trace) + '%'; t.appendChild(b); scr2.appendChild(H.mk('div', 'lhint', '🛰 Trace ' + Math.round(D.trace) + '%' + (d.adds.vpn ? ' · VPN on (−40%)' : '') + (atOffice() ? ' · server rack (−25%)' : ''))); scr2.appendChild(t); };
+  if (tab === 'apps') { H.row(scr2, '⚡', 'Power ' + st.power, 'Speed ' + st.speed.toFixed(1) + ' · cracking ' + st.crack.toFixed(1) + ' · storage ' + st.store.toFixed(1) + (st.heat > 1 ? ' · 🔥 throttled to ' + Math.round(st.thr * 100) + '%' : ' · cool'), []);
+    if (D.gig) { const gg = PCGIGS.find(x => x[0] === D.gig.k), left = Math.max(0, D.gig.end - nowT()); H.row(scr2, gg[1], 'Working: ' + gg[2], Math.ceil(left) + 's left · pays ' + money(D.gig.pay), []); }
+    if (d.adds.farm) H.row(scr2, '🪙', 'Crypto miner running', 'About ' + money(Math.round(minerRate(d) * 60)) + ' a minute while you play', []);
+    trace(); scr2.appendChild(H.mk('div', 'lhint', 'Marketplace: buy and sell. Gigs: honest work that pays by your computer\'s power. Darknet and Hack: big money, big trace.')); return; }
+  if (tab === 'gigs') { if (D.gig) { const gg = PCGIGS.find(x => x[0] === D.gig.k), left = Math.max(0, D.gig.end - nowT()); H.row(scr2, gg[1], gg[2], 'In progress · ' + Math.ceil(left) + 's left · pays ' + money(D.gig.pay) + ' to your bank', [H.btn('Drop it', () => { D.gig = null; }, 'r')]); return; }
+    for (const gg of PCGIGS) { const ok = st.power >= gg[3]; H.row(scr2, gg[1], gg[2], (ok ? money(gigPay(gg, st.power)) + ' · about ' + gigDur(gg, d) + 's' : 'Needs ⚡' + gg[3] + ' power'), [H.btn('Take it', () => { D.gig = { k: gg[0], end: nowT() + gigDur(gg, d), pay: gigPay(gg, st.power), uid: d.uid }; Snd.play('beep'); devWear(d, .004); }, 'y', !ok)]); }
+    scr2.appendChild(H.mk('div', 'lhint', 'Gigs run in the background — go do other things, the money lands when it\'s done.')); return; }
+  const L = tab === 'dark' ? DARK : NET; trace();
+  for (const row of L) { const cd = pcCD(row[0]), need = row[4] && !d.adds.exploit, dif = row[5], chance = dif ? Math.round(100 * clamp(.95 - (dif - st.speed / 2.2) * .12, .2, .97)) : null;
+    H.row(scr2, row[1], row[2], row[3] + ' · trace +' + row[7] + '%' + (dif ? ' · intrusion puzzle, level ' + dif : '') + (cd ? ' · ready in ' + Math.ceil(cd) + 's' : ''), [H.btn(need ? 'Needs exploit suite' : cd ? 'Cooling down' : 'Run', () => pcDo(d, tab, row), 'y', !!(need || cd || (row[0] === 'dumps' && !canPay(600))))]); } };
+const minerRate = d => (1.2 + partT(d, 'gpu') * 1.1) * devStats(d).thr / 60;
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.save.dev) return; const D = G.save.dev;
+  if (D.gig && nowT() >= D.gig.end) { const gg = PCGIGS.find(x => x[0] === D.gig.k); G.bank += D.gig.pay; msg('💼 Gig done — ' + gg[2] + ': ' + money(D.gig.pay) + ' paid to your bank.', '#2ecc71'); Snd.play('cash'); D.gig = null; doSave(true); }
+  D.mineT = (D.mineT || 0) + dt; if (D.mineT >= 10) { let v = 0; for (const d of D.list) if (d.adds.farm && DEV_MODELS[d.m].f === 'pc' && d.loc !== 'carry') { v += minerRate(d) * D.mineT; devWear(d, .0006 * D.mineT / 10); } D.mineT = 0; if (v) { D.mined = (D.mined || 0) + v; if (D.mined >= 25) { G.bank += Math.floor(D.mined); D.mined -= Math.floor(D.mined); } } } }; }
+// phone gets a Tech tab
+{ const _ph = PMODES.phone; if (_ph) PMODES.phone = function (H) { const r = _ph.call(this, H); try { const tabs = H.el.querySelector('.ptabs'); if (tabs) { const b = H.mk('button', '', '📡 Tech'); b.onclick = () => { Snd.play('ui'); Panel.open('pc', { tab: pcsHere()[0] ? 'apps' : 'device' }); }; tabs.appendChild(b); } } catch (e) { } return r; }; }
+// ---------- games: Neon Drift ----------
+function gameTab(H, P) { const D = DEV(), c = H.col('Neon Drift — dodge the traffic'); const cv = H.mk('canvas', 'gamecv'); cv.width = 480; cv.height = 320; c.appendChild(cv); const info = H.mk('div', 'lhint', 'Best: ' + (D.best | 0) + ' · drag or ← → to steer. Survive as long as you can.'); c.appendChild(info);
+  const g = cv.getContext('2d'), S = { x: 240, cars: [], t: 0, sp: 180, over: 0, score: 0, go: 0 }; let last = 0, keys = {};
+  const kd = e => { keys[e.key] = 1; }, ku = e => { keys[e.key] = 0; }; window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+  cv.addEventListener('pointerdown', e => { if (!S.go || S.over) { Object.assign(S, { cars: [], t: 0, sp: 180, over: 0, score: 0, go: 1 }); } mv(e); }); const mv = e => { const r = cv.getBoundingClientRect(); S.x = clamp((e.clientX - r.left) / r.width * 480, 40, 440); }; cv.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') mv(e); });
+  const loop = ts => { if (!cv.isConnected) { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); return; } const dt = Math.min(.05, last ? (ts - last) / 1000 : 0); last = ts;
+    if (S.go && !S.over) { S.t += dt; S.sp += dt * 9; S.score += dt * S.sp / 10; if (keys.ArrowLeft || keys.a) S.x -= 300 * dt; if (keys.ArrowRight || keys.d) S.x += 300 * dt; S.x = clamp(S.x, 40, 440);
+      if (Math.random() < dt * (1.2 + S.t * .05)) S.cars.push({ x: 60 + Math.floor(Math.random() * 5) * 90, y: -40, h: Math.random() * 360 }); for (const k of S.cars) k.y += S.sp * dt; S.cars = S.cars.filter(k => k.y < 360);
+      if (S.cars.some(k => Math.abs(k.x - S.x) < 34 && Math.abs(k.y - 270) < 40)) { S.over = 1; Snd.play('bad'); if (S.score > (D.best | 0)) { D.best = Math.round(S.score); doSave(true); } info.textContent = 'Crashed! Score ' + Math.round(S.score) + ' · best ' + (D.best | 0) + ' · tap to go again'; } }
+    g.fillStyle = '#05010f'; g.fillRect(0, 0, 480, 320); for (let i = 0; i < 6; i++) { g.strokeStyle = 'rgba(255,0,200,.35)'; g.beginPath(); g.moveTo(15 + i * 90, 0); g.lineTo(15 + i * 90, 320); g.stroke(); } g.fillStyle = '#ff00c8'; for (let y = (S.t * S.sp) % 40; y < 320; y += 40) for (let i = 1; i < 5; i++) g.fillRect(14 + i * 90, y, 3, 18);
+    for (const k of S.cars) { g.fillStyle = 'hsl(' + k.h + ',90%,55%)'; g.fillRect(k.x - 22, k.y - 34, 44, 68); g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(k.x - 16, k.y - 20, 32, 14); }
+    g.fillStyle = '#00e5ff'; g.shadowColor = '#00e5ff'; g.shadowBlur = 16; g.fillRect(S.x - 20, 240, 40, 64); g.shadowBlur = 0; g.fillStyle = '#fff'; g.font = '700 18px Rubik,sans-serif'; g.fillText(Math.round(S.score) + '', 12, 26); if (!S.go) { g.textAlign = 'center'; g.fillText('TAP TO START', 240, 160); g.textAlign = 'left'; }
+    requestAnimationFrame(loop); }; requestAnimationFrame(loop);
+  if (P.opt.console) c.appendChild(H.mk('div', 'lhint', 'Best score ' + (D.best | 0) + '. Beat it.')); }
+
+// ================= HACKING THE CITY (Watch Dogs-style) =================
+// Profiler: turn on 📡 HACK (or J) and everything hackable in your phone's range lights up. Tap a person to see their
+// profile — name, job, income, a secret — and hack them: skim their bank account, read their texts, ring their phone
+// to distract them. Tap cars to stall them, swerve them or pop their locks; tap junctions to flip every signal; blow
+// steam pipes under pursuers; black out streetlights; loop security cameras; jam police radios; make ATMs pay out.
+// Every hack costs battery and takes a moment to upload (faster on a faster phone). City infrastructure in each
+// district only answers once you've broken into that district's CityNet relay tower — a node-routing puzzle.
+// Hacks earn XP; levels give points for the hacking skill tree.
+const HKS = () => { const S = G.save; if (!S.hk) S.hk = { xp: 0, lvl: 0, pts: 2, sk: {}, nodes: {}, n: 0 }; return S.hk; };
+const HSK = {
+  skim: ['💸', 'Bank skim', 'Drain the bank account of anyone you profile.', 0, null],
+  texts: ['💬', 'Text intercept', 'Read people\'s messages. Gang phones leak their supply runs.', 0, null],
+  lamps: ['💡', 'Streetlight blackout', 'Kill the lights around a lamp post for a minute. Needs the district relay.', 0, null],
+  unlock: ['🔓', 'Car lock bypass', 'Pop a parked car\'s locks and start it — no hotwiring.', 0, null],
+  lights: ['🚦', 'Traffic signals', 'Flip a junction all-green for a crash, or all-red to box traffic in. Needs the relay.', 1, null],
+  distract: ['📳', 'Distraction', 'Ring someone\'s phone or set off a car alarm: guards and witnesses look away.', 1, null],
+  stall: ['🛑', 'Engine kill', 'Shut down a moving car\'s engine for a few seconds. Cop cars too.', 1, null],
+  cams: ['📹', 'Camera loop', 'Loop a security camera\'s feed so it can\'t report you. Needs the relay.', 1, null],
+  steam: ['♨', 'Steam pipes', 'Blow a steam pipe under the road — cars get thrown. Needs the relay.', 2, 'lights'],
+  swerve: ['↪', 'Remote steer', 'Take over a car\'s steering for a moment and yank it sideways.', 2, 'stall'],
+  radio: ['📻', 'Police radio jam', 'Cops can\'t call in your position for 10 seconds.', 2, 'stall'],
+  atm: ['🏧', 'ATM jackpot', 'Make a cash machine spit out its drawer. Loud.', 2, 'skim'],
+  battery: ['🔋', 'Battery mod', '+1 battery segment on any phone.', 2, null],
+  focus: ['⏱', 'Focus', 'Slow time to 40% for five seconds — line up hacks in a chase. Uses one battery.', 2, 'stall'],
+  mass: ['📡', 'Mass skim', 'Skim every phone in range at once. Uses three batteries.', 3, 'skim'],
+  blackout: ['🌑', 'Neighborhood blackout', 'Every streetlight in a wide area goes dark for two minutes. Drains the battery.', 3, 'lamps'] };
+const hasSk = k => !!HSK[k] && (HSK[k][3] === 0 || !!HKS().sk[k]);
+const hkNext = () => 60 + HKS().lvl * 45;
+function hkXP(n) { const H = HKS(); H.xp += n; let up = 0; while (H.xp >= hkNext()) { H.xp -= hkNext(); H.lvl++; H.pts++; up = 1; } if (up) { G.big = { text: 'HACKER LEVEL ' + (H.lvl + 1), col: '#00e5ff', t: 2.5, sub: '+1 skill point — open the skill tree from 📡 HACK', small: 1 }; Snd.play('mission'); } }
+{ const _ds = devStats; devStats = function (d) { const s = _ds(d); if (d && DEV_MODELS[d.m].f === 'phone' && G.save.hk && G.save.hk.sk.battery) s.charges++; return s; }; }
+// ---------- city infrastructure: relays, steam pipes, cameras ----------
+const CITYD = { downtown: 4, midtown: 3, oldtown: 3, docks: 2, industrial: 3, suburbs: 2, park: 2, town: 2 };
+function hackGen() { W.relays = []; W.vents = []; W.cams = []; const byD = {};
+  for (let j = 1; j < NR - 1; j++) for (let i = 1; i < NR - 1; i++) { if (!hasLight(i, j)) continue; const cx = roadCX(i), cy = roadCY(j), d = districtAt(cx, cy); if (!CITYD[d]) continue; (byD[d] = byD[d] || []).push([i, j]);
+    if (((i * 31 + j * 17) % 5) < 2) { const [dx, dy] = DV[(i + j) % 4]; W.vents.push({ x: cx + dx * 2.6 * T + dy * .8 * T, y: cy + dy * 2.6 * T + dx * .8 * T, cd: 0, d }); } }
+  for (const d in byD) { const L = byD[d], mx = L.reduce((a, q) => a + q[0], 0) / L.length, my = L.reduce((a, q) => a + q[1], 0) / L.length; L.sort((a, b) => Math.hypot(a[0] - mx, a[1] - my) - Math.hypot(b[0] - mx, b[1] - my)); const [i, j] = L[0];
+    W.relays.push({ d, x: roadCX(i) + 3.3 * T, y: roadCY(j) + 3.3 * T, lvl: CITYD[d], i, j }); }
+  for (const b of W.buildings) { if (!b.door || !['store', 'gunshop', 'pawn', 'bar', 'club', 'jewel', 'diner'].includes(b.type) || !CITYD[b.d]) continue; const [fx, fy] = FACEV[b.door.f] || [0, 1]; W.cams.push({ x: b.door.x + fy * 26 - fx * 4, y: b.door.y + fx * 26 - fy * 4, fx, fy, d: b.d, off: 0 }); } }
+{ const _sg = storeGen; storeGen = function () { _sg(); try { hackGen(); } catch (e) { console.error('hackGen', e); W.relays = []; W.vents = []; W.cams = []; } }; }
+const relayOK = (x, y) => !!HKS().nodes[districtAt(x, y)] || !CITYD[districtAt(x, y)];
+// hacked traffic lights
+{ const _ls = lightState; lightState = function (i, j, axis) { const h = G.lhk && G.lhk[i + ',' + j]; if (h && h.until > G.t) return h.m === 'green' ? 'g' : 'r'; return _ls(i, j, axis); }; }
+function lightHackArea(o, r, m, secs) { G.lhk = G.lhk || {}; let n = 0; for (let j = 1; j < NR - 1; j++) for (let i = 1; i < NR - 1; i++) if (hasLight(i, j) && dist2(roadCX(i), roadCY(j), o.x, o.y) < r * r) { G.lhk[i + ',' + j] = { m, until: G.t + secs }; n++; } return n; }
+// hacked cars
+const isCopCar = c => !!((c.driver && c.driver.role === 'cop') || /police|cruiser|swat|interceptor/.test(c.type));
+{ const _ai = updateCarAI; updateCarAI = function (c, dt) { if (c.hkStall > G.t) { c.throttle = 0; c.brake = .7; c.steer = 0; if (Math.random() < dt * 3) spawnFx('smoke', c.x, c.y); return; } if (c.hkSwerve > G.t) { c.throttle = 1; c.brake = 0; c.steer = c.hkDir; return; } return _ai(c, dt); }; }
+// distracted people don't see you; jammed radios don't report you
+{ const _sp = seesPlayer; seesPlayer = function (q, r) { if (q && q.distT > G.t) return false; return _sp(q, r); }; }
+{ const _pw = pickWitness; pickWitness = function (p) { const w = _pw(p); if (w && w.distT > G.t) return null; if (w instanceof Car && w.driver && w.driver.distT > G.t) return null; return w; }; }
+{ const _ms = markSeen; markSeen = function () { if (G.jamT > G.t) return; return _ms.apply(this, arguments); }; }
+// security cameras report what they see
+function camSees(cm) { if (cm.off > G.t) return false; const p = G.player, px = p.car ? p.car.x : p.x, py = p.car ? p.car.y : p.y, dx = px - cm.x, dy = py - cm.y, d = Math.hypot(dx, dy); if (d > 300 * playerVis() + 60) return false; return (dx * cm.fx + dy * cm.fy) / (d || 1) > .25 && losClear(cm.x, cm.y, px, py); }
+{ const _c = crime; crime = function (sev, label) { const r0 = (G.reports || []).length, s0 = stars(); const r = _c(sev, label); if (!G.scene && sev >= .3 && (G.reports || []).length === r0 && stars() === s0 && W.cams) { const p = G.player, cm = W.cams.find(c => dist2(c.x, c.y, p.x, p.y) < 380 * 380 && camSees(c)); if (cm) { try { fileDesc(lookNow(), 'cam'); } catch (e) { } reportCrime(sev >= .8 ? 2 : 1, label || 'Caught on camera', 'alarm'); msg('📹 A security camera caught that.', '#ff9f43'); } } return r; }; }
+// payphones with a cut line
+{ const _u = update; update = function (dt) { _u(dt); if (!G.reports) return; for (const r of G.reports) if (r.phone && r.phone.cut > G.t && r.calling && !r.cutDone) { r.cutDone = 1; const w = r.who; if (w) { pedSay(w, pick(['The line\'s dead!', 'Hello? HELLO?', 'This phone\'s busted!'])); w.still = 0; w.toPhone = null; } G.reports.splice(G.reports.indexOf(r), 1); break; } }; }
+// ---------- profiles ----------
+const OCC = ['Barista', 'Night-shift nurse', 'Software tester', 'Real-estate agent', 'Between jobs', 'Line cook', 'Dentist', 'Bike courier', 'Accountant', 'Street musician', 'Influencer (2.1k followers)', 'Retired teacher', 'Mall security', 'Day trader', 'Tattoo artist', 'Ride-share driver', 'Insurance adjuster', 'Yoga instructor', 'Plumber', 'Grad student', 'Pet psychic', 'Wedding DJ', 'Paralegal', 'Food-truck owner'];
+const QUIRK = ['Searched "how to fake your own death" 14 times', 'Owes $11,400 in parking fines', 'Writes fan fiction under a pen name', 'Allergic to cats — owns four', 'Bought 300 lbs of glitter last month', 'Cheats at online chess', 'Lied about a PhD on a dating profile', 'Donates monthly to a llama sanctuary', 'Banned for life from Varro Zoo', '47 unread voicemails from Mom', 'Collects antique spoons', 'Training for a hot-dog eating contest', 'Terrified of pigeons', 'Sleeps in a race-car bed', 'Under tax audit for three years', 'Hosts a conspiracy podcast (9 listeners)', 'Won $50 on a scratch card, quit their job', 'Wanted for overdue library books in two counties', 'Talks to houseplants daily', 'Runs six burner email accounts', 'Bought a boat. Doesn\'t own a car.', 'Recently Googled "is my boss a vampire"'];
+const TEXTS = ['"Did u feed the iguana or did I"', '"I\'m not mad. I\'m just disappointed. Also mad."', '"Mom says the casserole was a cry for help"', '"Pick up milk. And bail money for Kevin"', '"New phone who dis"', '"Do NOT tell Dana about the boat"', '"Running late, a pigeon stole my sandwich"', '"Did you just like my post from 2014??"', '"Wire me $40 and I\'ll explain later"', '"The ferret is back in the vents"'];
+function hkHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function profileOf(q) { if (q.prof) return q.prof; const h = hkHash((q.name || '') + (q.uid || '')), r = k => ((h >>> (k * 3)) % 1000) / 1000;
+  if (q.role === 'cop') return q.prof = { job: 'Officer, Varro PD', inc: '$58,000', line: 'Badge #' + (1000 + h % 8999) + ' · ' + (h % 4) + ' complaints on file', bal: 0, cop: 1 };
+  if (q.gang) return q.prof = { job: 'Known associate — ' + GANGS[q.gang].name, inc: 'Unreported', line: 'Encrypted group chat · ' + (1 + h % 9) + ' burner numbers', bal: r(2) < .5 ? Math.round(80 + r(3) * 600) : 0, gang: q.gang };
+  const rich = r(1) < .06; return q.prof = { job: rich ? pick(['Hedge fund manager', 'Surgeon', 'Tech founder', 'Heir to a mattress fortune']) : OCC[h % OCC.length], inc: '$' + Math.round(rich ? 400 + r(2) * 2000 : 18 + r(2) * 90) + ',000', line: QUIRK[(h >>> 5) % QUIRK.length], bal: rich ? Math.round(900 + r(3) * 3500) : r(3) < .55 ? Math.round(30 + r(4) * 420) : 0 }; }
+// ---------- targets ----------
+const HKC = { ped: '#00e5ff', cop: '#4f8cff', gang: '#ff5c8a', car: '#ffd23f', copcar: '#4f8cff', parked: '#ffd23f', lamp: '#fff59d', hydrant: '#ff5252', atm: '#69f0ae', vend: '#69f0ae', phone: '#b388ff', light: '#39e075', vent: '#ff9f43', cam: '#ff9f43', relay: '#00e5ff' };
+const HKI = { ped: '👤', cop: '👮', gang: '☠', car: '🚗', copcar: '🚓', parked: '🔒', lamp: '💡', hydrant: '🚒', atm: '🏧', vend: '🥤', phone: '☎', light: '🚦', vent: '♨', cam: '📹', relay: '📡' };
+const hkPos = () => { const p = G.player; return p.car ? { x: p.car.x, y: p.car.y } : { x: p.x, y: p.y }; };
+function hkScan() { const o = hkPos(), d = activePhone(), R = d ? devStats(d).range : 0, R2 = R * R, out = [], add = (k, ob, x, y) => out.push({ k, o: ob, x, y });
+  if (!R || G.scene) return out; const peds = G.peds.filter(q => !q.dead && !q.isPlayer && !q.remote && !q.inside && !q.ko && dist2(q.x, q.y, o.x, o.y) < R2).sort((a, b) => dist2(a.x, a.y, o.x, o.y) - dist2(b.x, b.y, o.x, o.y)).slice(0, 14);
+  for (const q of peds) add(q.role === 'cop' ? 'cop' : q.gang ? 'gang' : 'ped', q);
+  for (const c of G.cars) { if (c.dead || c === pCar() || c.remote || c.owned || c.d.boat || dist2(c.x, c.y, o.x, o.y) > R2) continue; add(c.driver ? (isCopCar(c) ? 'copcar' : 'car') : 'parked', c); }
+  for (const p of propsNear(o.x, o.y, R)) { if (dist2(p.x, p.y, o.x, o.y) > R2) continue; if (p.t === 'lamp' && !p.down) add('lamp', p); else if (p.t === 'hydrant') add('hydrant', p); else if (p.t === 'atm') add('atm', p); else if (p.t === 'vend') add('vend', p); }
+  for (const ph of W.phones || []) if (dist2(ph.x, ph.y, o.x, o.y) < R2) add('phone', ph);
+  for (let j = 1; j < NR - 1; j++) for (let i = 1; i < NR - 1; i++) { if (!hasLight(i, j)) continue; const x = roadCX(i), y = roadCY(j); if (dist2(x, y, o.x, o.y) < R2) add('light', { i, j, x, y }); }
+  for (const v of W.vents || []) if (dist2(v.x, v.y, o.x, o.y) < R2) add('vent', v); for (const cm of W.cams || []) if (dist2(cm.x, cm.y, o.x, o.y) < R2) add('cam', cm); for (const rl of W.relays || []) if (dist2(rl.x, rl.y, o.x, o.y) < R2 * 1.5) add('relay', rl);
+  const cap = { lamp: 6, light: 4, cam: 4, hydrant: 3, atm: 3, vend: 2, phone: 2, vent: 3, parked: 5, car: 6, copcar: 4 }, cnt = {}; return out.map(t => [t, dist2(t.o.x !== undefined ? t.o.x : t.x, t.o.y !== undefined ? t.o.y : t.y, o.x, o.y)]).sort((a, b) => a[1] - b[1]).filter(([t]) => (cnt[t.k] = (cnt[t.k] || 0) + 1) <= (cap[t.k] || 99)).map(a => a[0]); }
+const hX = t => t.o.x !== undefined ? t.o.x : t.x, hY = t => t.o.y !== undefined ? t.o.y : t.y;
+// what you can do to a target: [id, label, battery, upload seconds, needs relay?]
+function hkActs(t) { const o = t.o, A = [], S = (k, ...a) => { if (hasSk(k)) A.push(a); }, d = activePhone();
+  switch (t.k) {
+    case 'ped': case 'gang': { const P = profileOf(o); if (P.bal && !o.skimmed) S('skim', 'skim', '💸 Skim ' + money(P.bal), 1, .9); S('texts', 'texts', '💬 Read texts', 1, .7); S('distract', 'ring', '📳 Ring phone', 1, .4); S('mass', 'mass', '📡 Mass skim', 3, 1.8); break; }
+    case 'cop': S('radio', 'jam', '📻 Jam radio', 2, 1.2); S('distract', 'ring', '📳 Ring phone', 1, .5); break;
+    case 'car': case 'copcar': S('stall', 'stall', '🛑 Kill engine', 1, .6); S('swerve', 'swerve', '↪ Steer it', 1, .5); if (t.k === 'copcar') S('radio', 'jam', '📻 Jam radio', 2, 1.2); break;
+    case 'parked': { const tier = typeof carTier === 'function' ? carTier(o) : 1; if (!o.wired) S('unlock', 'unlock', '🔓 Unlock & start' + (tier >= 3 && !d.adds.exploit ? ' (needs exploit suite)' : ''), 1, .8 + tier * .5); S('distract', 'alarm', '🚨 Set off alarm', 1, .4); break; }
+    case 'lamp': S('lamps', 'lamp', '💡 Lights out', 1, .4, 1); S('blackout', 'blackout', '🌑 Blackout area', 99, 1.6, 1); break;
+    case 'hydrant': A.push(['burst', '🚒 Burst it', 1, .5, 1]); break;
+    case 'atm': S('atm', 'atm', '🏧 Jackpot it', 2, 2.4); break;
+    case 'vend': A.push(['vend', '🥤 Free sodas', 1, .5]); break;
+    case 'phone': A.push(['cut', '✂ Cut the line', 1, .5]); break;
+    case 'light': S('lights', 'green', '🟢 All green — crash', 1, .6, 1); S('lights', 'red', '🔴 All red — box in', 1, .6, 1); break;
+    case 'vent': S('steam', 'steam', '♨ Blow the pipe', 2, .5, 1); break;
+    case 'cam': S('cams', 'loop', '📹 Loop the feed', 1, .8, 1); break;
+    case 'relay': A.push(['relay', HKS().nodes[o.d] ? '✔ Relay is yours' : '📡 Break into the relay', 0, 0]); break; }
+  return A; }
+// ---------- hack mode ----------
+function toggleHack() { if (G.mode !== 'play' || G.scene) return; const d = activePhone(); if (!d) return toast('You need a phone'); G.hkOn = !G.hkOn; G.hkSel = null; Snd.play(G.hkOn ? 'beep' : 'ui'); if (G.hkOn) { G.hkT = 0; G.hkList = hkScan(); if (!HKS().seen) { HKS().seen = 1; msg('📡 Profiler on. Tap anything highlighted to profile it and hack it. Battery recharges over time — faster in a car or at home.', '#00e5ff'); } } }
+function hkScreen(x, y) { const c = G.cam; return [(x - c.x) * c.z + VW / 2, (y - c.y) * c.z + VH / 2]; }
+function hackTap(x, y) { if (!G.hkOn || G.scene || G.mode !== 'play') return false; const sc = G.hkSc || 1; let best = null, bd = (42 * sc) ** 2;
+  for (const t of G.hkList || []) { const [sx, sy] = hkScreen(hX(t), hY(t)), d = (sx - x) ** 2 + (sy - 26 - y) ** 2; if (d < bd) { bd = d; best = t; } }
+  if (!best) { if (G.hkSel) { G.hkSel = null; return true; } return false; } G.hkSel = best; Snd.play('ui'); if (best.k === 'ped' || best.k === 'gang' || best.k === 'cop') profileOf(best.o); return true; }
+function hkStart(t, a) { const [id, , cost, up, relay] = a, d = activePhone(), ch = phoneCharge(), st = devStats(d);
+  if (id === 'relay') return relayHack(t.o); if (relay && !relayOK(hX(t), hY(t))) { Snd.play('bad'); return toast('🔒 ' + (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name + '\'s CityNet relay is locked. Find the 📡 tower and break in first.'); }
+  if (id === 'unlock' && carTier(t.o) >= 3 && !d.adds.exploit) { Snd.play('bad'); return toast('High-end locks need an exploit suite on your phone (Byte Depot).'); }
+  const need = cost === 99 ? Math.max(3, ch.max) : cost; if (ch.n < need) { Snd.play('bad'); return toast(cost === 99 ? 'Blackout needs a full battery (at least 3).' : '🔋 Not enough battery — it recharges over time.'); }
+  if (G.hkUp) return; d.chg -= need; G.hkUp = { t: 0, need: up * clamp(2.4 / Math.max(.5, st.speed), .25, 1.7), tgt: t, id }; Snd.play('beep'); devWear(d, .002); }
+function hkDone(U) { const t = U.tgt, o = t.o, id = U.id, d = activePhone(), quiet = () => { if (d.adds.ghost) return; const cop = G.peds.find(q => !q.dead && q.role === 'cop' && dist2(q.x, q.y, G.player.x, G.player.y) < 260 * 260 && seesPlayer(q, 260)); if (cop) { pedSay(cop, 'Hey — what are you doing with that phone?'); crime(.3, 'Hacking'); } }, loud = (s, l) => crime(s, l);
+  let xp = 4; HKS().n++;
+  switch (id) {
+    case 'skim': { const P = profileOf(o); G.bank += P.bal; o.skimmed = 1; msg('💸 Skimmed ' + money(P.bal) + ' from ' + o.name + ' → your bank.', '#2ecc71'); Snd.play('cash'); P.bal = 0; quiet(); xp = 6; break; }
+    case 'mass': { let n = 0, v = 0; for (const x of G.hkList) if ((x.k === 'ped' || x.k === 'gang') && !x.o.skimmed) { const P = profileOf(x.o); if (P.bal) { v += P.bal; P.bal = 0; x.o.skimmed = 1; n++; } } G.bank += v; msg('📡 Mass skim: ' + n + ' phones, ' + money(v) + ' → your bank.', '#2ecc71'); if (v) Snd.play('cash'); xp = 5 + n * 2; quiet(); break; }
+    case 'texts': { const P = profileOf(o); if (P.gang) { const g = P.gang, F = FAC()[g]; facSeen()[g] = 1; if (F) F.convCD = Math.min(F.convCD || 999, rnd(12, 30)); msg('💬 ' + o.name + ': "Truck\'s coming to the spot soon. Keep it quiet." — the ' + GANGS[g].name + ' hideout is on your map and a supply run is about to roll.', GANGS[g].col); xp = 8; } else msg('💬 ' + o.name + ': ' + pick(TEXTS), '#b388ff'); break; }
+    case 'ring': { o.distT = G.t + 7; o.state = o.state === 'fight' ? o.state : 'idle'; o.timer = 4; o.sus = 0; pedSay(o, pick(['Hello? Hello?', 'Who is this?', 'Unknown number again…', 'Ugh, spam.'])); Snd.play('beep', o.x, o.y); xp = 3; break; }
+    case 'alarm': { o.alarmT = 10; Snd.play('alarm', o.x, o.y); for (const q of G.peds) if (!q.dead && dist2(q.x, q.y, o.x, o.y) < 380 * 380) { q.distT = G.t + 8; q.a = Math.atan2(o.y - q.y, o.x - q.x); q.sus = 0; } toast('Car alarm — everyone\'s looking at it.'); xp = 3; break; }
+    case 'jam': { G.jamT = G.t + 10; G.lastSeen = Math.min(G.lastSeen || 0, G.t - 5); const p = hkPos(), a = rnd(0, TAU); G.lastKnown = { x: p.x + Math.cos(a) * 1600, y: p.y + Math.sin(a) * 1600 }; msg('📻 Police radio jammed — they lost your position. 10 seconds.', '#4f8cff'); xp = 10; break; }
+    case 'stall': { o.hkStall = G.t + (isCopCar(o) ? 4 : 6); Snd.play('clunk', o.x, o.y); xp = isCopCar(o) ? 8 : 4; break; }
+    case 'swerve': { o.hkSwerve = G.t + .9; o.hkDir = Math.random() < .5 ? -1 : 1; xp = 5; break; }
+    case 'unlock': { o.locked = 0; o.wired = 1; Snd.play('beep', o.x, o.y); toast('🔓 Unlocked and running. Get in.'); quiet(); xp = 6; break; }
+    case 'lamp': { let n = 0; for (const p of propsNear(o.x, o.y, 170)) if (p.t === 'lamp') { p.hackOff = G.t + 60; n++; } Snd.play('zap', o.x, o.y); spawnFx('spark', o.x, o.y); xp = 3; break; }
+    case 'blackout': { let n = 0; for (const p of propsNear(o.x, o.y, 1200)) if (p.t === 'lamp') { p.hackOff = G.t + 120; n++; } lightHackArea(o, 1200, 'red', 20); msg('🌑 Blackout: ' + n + ' streetlights dark for two minutes.', '#9b8cff'); Snd.play('zap'); xp = 15; break; }
+    case 'burst': { o.spray = 10; o.down = 0; Snd.play('splash', o.x, o.y); for (const q of G.peds) { const dd = dist(q.x, q.y, o.x, o.y); if (!q.dead && dd < 90) { q.kx = (q.kx || 0) + (q.x - o.x) / (dd || 1) * 380; q.ky = (q.ky || 0) + (q.y - o.y) / (dd || 1) * 380; q.distT = G.t + 4; } } for (const c of G.cars) { const dd = dist(c.x, c.y, o.x, o.y); if (dd < 80 && c !== pCar()) { c.vx += (c.x - o.x) / (dd || 1) * 160 / c.mass; c.vy += (c.y - o.y) / (dd || 1) * 160 / c.mass; } } xp = 4; break; }
+    case 'atm': { if (o.hkT > G.t) { toast('This ATM is already empty.'); break; } o.hkT = G.t + 300; const v = Math.round(rnd(250, 900) * (1 + devStats(d).speed * .06)); addCash(v); Snd.play('cash', o.x, o.y); for (let i = 0; i < 8; i++) spawnFx('deb', o.x, o.y); msg('🏧 Jackpot: ' + money(v) + ' sprayed out of the ATM.', '#2ecc71'); loud(.45, 'ATM hacking'); xp = 12; break; }
+    case 'vend': { if (o.hkT > G.t) { toast('Empty.'); break; } o.hkT = G.t + 200; if (dist2(o.x, o.y, G.player.x, G.player.y) < 120 * 120 && typeof invAdd === 'function') { invAdd('soda', 3, 1); toast('Three free sodas. Living the dream.'); } else toast('Sodas clatter out onto the sidewalk.'); Snd.play('clunk', o.x, o.y); xp = 2; break; }
+    case 'cut': { o.cut = G.t + 120; Snd.play('zap', o.x, o.y); toast('☎ Line cut for two minutes — no one\'s calling the cops from here.'); xp = 3; break; }
+    case 'green': case 'red': { G.lhk = G.lhk || {}; G.lhk[o.i + ',' + o.j] = { m: id, until: G.t + (id === 'green' ? 9 : 14) }; Snd.play('beep', o.x, o.y); xp = 6; if (id === 'green') loud(.2, 'Hacking'); break; }
+    case 'steam': { if (o.cd > G.t) { toast('That pipe needs to build pressure again.'); break; } o.cd = G.t + 60; steamBlast(o); loud(.6, 'Sabotage'); xp = 12; break; }
+    case 'loop': { o.off = G.t + 120; Snd.play('beep', o.x, o.y); toast('📹 Camera feed looped for two minutes.'); xp = 4; break; } }
+  hkXP(xp); doSave(); }
+function steamBlast(v) { Snd.play('boom', v.x, v.y); for (let i = 0; i < 26; i++) spawnFx('smoke', v.x + rnd(-30, 30), v.y + rnd(-30, 30)); G.cam.shake = Math.max(G.cam.shake, 8); addDecal('scorch', v.x, v.y);
+  for (const c of G.cars) { if (c.dead || c === pCar()) continue; const d = dist(c.x, c.y, v.x, v.y); if (d < 150) { const f = 1 - d / 150; c.vx += (c.x - v.x) / (d || 1) * 900 * f / c.mass + rnd(-200, 200) * f; c.vy += (c.y - v.y) / (d || 1) * 900 * f / c.mass + rnd(-200, 200) * f; c.av += rnd(-6, 6) * f; c.damage(70 * f, G.player); if (c.ai) c.hkStall = G.t + 3; } }
+  for (const q of G.peds) { if (q.dead) continue; const d = dist(q.x, q.y, v.x, v.y); if (d < 110) { q.kx = (q.kx || 0) + (q.x - v.x) / (d || 1) * 420; q.ky = (q.ky || 0) + (q.y - v.y) / (d || 1) * 420; q.hurt(18 * (1 - d / 110), G.player); } }
+  const p = G.player, pd = dist(p.x, p.y, v.x, v.y); if (!p.car && pd < 90) hurtPlayer(15 * (1 - pd / 90), null, 'boom'); else if (p.car && pd < 120) p.car.damage(30 * (1 - pd / 120)); }
+// ---------- relay towers: the node puzzle ----------
+function relayHack(rl) { const H = HKS(), dn = (DISTRICTS[rl.d] || {}).name || rl.d; if (H.nodes[rl.d]) return toast('📡 ' + dn + ' relay is already yours.'); const p = hkPos(); if (dist2(p.x, p.y, rl.x, rl.y) > 130 * 130) return toast('Get right up to the relay box to break in.');
+  hackPuzzle(rl.lvl, devStats(activePhone()), ok => { if (!ok) { Snd.play('bad'); return toast('Connection dropped. Try again.'); } H.nodes[rl.d] = 1; hkXP(40); G.big = { text: 'RELAY HACKED', col: '#00e5ff', t: 3, sub: dn + ' — lights, steam pipes, cameras and streetlights are yours', small: 1 }; Snd.play('mission'); doSave(true); }); }
+{ const _mp = mapPOIs; mapPOIs = function () { const out = _mp(); try { for (const rl of W.relays || []) out.push({ x: rl.x, y: rl.y, c: HKS().nodes[rl.d] ? '#00e5ff' : '#7a8794', ic: '📡', r: 5, n: (DISTRICTS[rl.d] || {}).name + ' relay' + (HKS().nodes[rl.d] ? ' (hacked)' : ''), pr: 4 }); } catch (e) { } return out; }; }
+// node-routing puzzle: rotate the tiles to carry the signal from the left port to the right port before time runs out
+function hackPuzzle(level, st, cb) { let ov = document.getElementById('hackov'); if (!ov) { ov = document.createElement('div'); ov.id = 'hackov'; ov.innerHTML = '<canvas width="480" height="540"></canvas>'; document.body.appendChild(ov); }
+  const cv = ov.querySelector('canvas'), g = cv.getContext('2d'), n = clamp(3 + Math.ceil(level / 2), 4, 6), r0 = Math.floor(Math.random() * n), r1 = Math.floor(Math.random() * n), cell = 420 / n, ox = 30, oy = 80;
+  const rot = m => ((m << 1) | (m >> 3)) & 15, DIRS = [[0, -1, 1, 4], [1, 0, 2, 8], [0, 1, 4, 1], [-1, 0, 8, 2]];
+  // carve a random path
+  const M = Array.from({ length: n }, () => Array(n).fill(0)); let path = null; const seen = new Set(), dfs = (x, y, acc) => { if (x === n - 1 && y === r1) { path = acc; return true; } for (const [dx, dy] of DIRS.map(v => v).sort(() => Math.random() - .5)) { const nx = x + dx, ny = y + dy, k = nx + ',' + ny; if (nx < 0 || ny < 0 || nx >= n || ny >= n || seen.has(k)) continue; if (acc.length > n * 2.2 && Math.random() < .5) continue; seen.add(k); if (dfs(nx, ny, acc.concat([[nx, ny]]))) return true; } return false; };
+  seen.add('0,' + r0); if (!dfs(0, r0, [[0, r0]])) { path = []; for (let x = 0; x < n; x++) path.push([x, r0]); for (let y = r0; y !== r1; y += Math.sign(r1 - r0)) path.push([n - 1, y + Math.sign(r1 - r0)]); }
+  for (let k = 0; k < path.length; k++) { const [x, y] = path[k], prev = k ? path[k - 1] : [x - 1, y], next = k < path.length - 1 ? path[k + 1] : [x + 1, y]; for (const [px, py] of [prev, next]) { const dd = DIRS.find(v => v[0] === px - x && v[1] === py - y); if (dd) M[y][x] |= dd[2]; } }
+  const SH = [5, 10, 3, 6, 12, 9, 7, 14]; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { if (!M[y][x]) M[y][x] = SH[Math.floor(Math.random() * (level > 3 ? 8 : 6))]; const k = Math.floor(Math.random() * 4); for (let i = 0; i < k; i++) M[y][x] = rot(M[y][x]); }
+  const lim = Math.max(14, 30 + (st ? st.speed : 2) * 2.5 - level * 3); let t0 = performance.now(), done = false, lit = new Set();
+  const flow = () => { lit = new Set(); if (!(M[r0][0] & 8)) return false; const Q = [[0, r0]]; lit.add('0,' + r0); let win = false; while (Q.length) { const [x, y] = Q.shift(); if (x === n - 1 && y === r1 && (M[y][x] & 2)) win = true; for (const [dx, dy, a, b] of DIRS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= n || ny >= n || !(M[y][x] & a) || !(M[ny][nx] & b) || lit.has(nx + ',' + ny)) continue; lit.add(nx + ',' + ny); Q.push([nx, ny]); } } return win; };
+  const end = ok => { if (done) return; done = true; ov.classList.remove('show'); ov.onpointerdown = null; window.removeEventListener('keydown', kd, true); Snd.play(ok ? 'mission' : 'bad'); cb(ok); };
+  const kd = e => { e.stopImmediatePropagation(); if (e.key === 'Escape') { e.preventDefault(); end(false); } }; window.addEventListener('keydown', kd, true);
+  ov.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 480, y = (e.clientY - r.top) / r.height * 540; if (y < 60 && x > 400) return end(false);
+    const cx = Math.floor((x - ox) / cell), cy = Math.floor((y - oy) / cell); if (cx >= 0 && cy >= 0 && cx < n && cy < n) { M[cy][cx] = rot(M[cy][cx]); Snd.play('ui'); if (flow()) { setTimeout(() => end(true), 350); } } };
+  flow(); ov.classList.add('show');
+  const draw = () => { if (done) return; const left = lim - (performance.now() - t0) / 1000; if (left <= 0) return end(false); g.clearRect(0, 0, 480, 540); g.fillStyle = 'rgba(4,14,22,.96)'; g.beginPath(); g.roundRect(0, 0, 480, 540, 18); g.fill(); g.strokeStyle = '#00e5ff'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#00e5ff'; g.font = '800 20px Rubik,sans-serif'; g.textAlign = 'left'; g.fillText('CITYNET INTRUSION · LVL ' + level, 22, 36); g.fillStyle = '#ff6b6b'; g.textAlign = 'center'; g.fillText('✕', 448, 38); g.fillStyle = '#1b2a36'; g.fillRect(22, 50, 436, 8); g.fillStyle = left < 6 ? '#ff4d4d' : '#00e5ff'; g.fillRect(22, 50, 436 * left / lim, 8);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const X = ox + x * cell, Y = oy + y * cell, m = M[y][x], on = lit.has(x + ',' + y); g.fillStyle = on ? '#06303a' : '#0b1720'; g.fillRect(X + 2, Y + 2, cell - 4, cell - 4); g.strokeStyle = on ? '#00e5ff' : '#4a5d6b'; g.lineWidth = cell * .16; g.lineCap = 'round';
+      const cxp = X + cell / 2, cyp = Y + cell / 2; g.beginPath(); for (const [dx, dy, a] of DIRS) if (m & a) { g.moveTo(cxp, cyp); g.lineTo(cxp + dx * cell / 2, cyp + dy * cell / 2); } g.stroke(); g.fillStyle = on ? '#00e5ff' : '#4a5d6b'; g.beginPath(); g.arc(cxp, cyp, cell * .1, 0, TAU); g.fill(); }
+    g.fillStyle = '#39e075'; g.fillRect(ox - 22, oy + r0 * cell + cell * .3, 20, cell * .4); g.fillStyle = '#ff9f43'; g.fillRect(ox + n * cell + 2, oy + r1 * cell + cell * .3, 20, cell * .4);
+    g.fillStyle = '#9fb3c2'; g.font = '600 14px Rubik,sans-serif'; g.textAlign = 'center'; g.fillText('Tap tiles to rotate. Route the signal from green to orange.', 240, 525); requestAnimationFrame(draw); }; requestAnimationFrame(draw); }
+// ---------- update: scan, uploads, focus ----------
+{ const _u = update; update = function (dt) { const rdt = dt; if (G.focusT > 0) { G.focusT -= rdt; if (!Net.room) dt *= .4; } _u(dt); if (G.mode !== 'play') return;
+  if (G.hkOn && (G.scene || G.player.dead || !activePhone())) { G.hkOn = false; G.hkSel = null; G.hkUp = null; }
+  if (!G.hkOn) { G.hkUp = null; return; } G.hkT = (G.hkT || 0) - rdt; if (G.hkT <= 0) { G.hkT = .25; G.hkList = hkScan(); if (G.hkSel && !G.hkList.some(t => t.o === G.hkSel.o)) G.hkSel = null; }
+  const U = G.hkUp; if (U) { if (U.tgt.o.dead || !(G.hkList || []).some(t => t.o === U.tgt.o)) { G.hkUp = null; Snd.play('bad'); toast('Signal lost.'); } else { U.t += rdt; if (U.t >= U.need) { G.hkUp = null; hkDone(U); } } } }; }
+function focusNow() { const ch = phoneCharge(), d = activePhone(); if (G.focusT > 0) return; if (ch.n < 1) return toast('🔋 No battery for Focus.'); d.chg--; G.focusT = 5; Snd.play('zap'); }
+// ---------- drawing: world icons ----------
+{ const _df = drawFx; drawFx = function () { _df(); if (G.scene) return; const g = ctx;
+  for (const v of W.vents || []) if (inView(v.x, v.y, 30)) { g.fillStyle = '#2b2f35'; g.beginPath(); g.arc(v.x, v.y, 11, 0, TAU); g.fill(); g.strokeStyle = '#474d55'; g.lineWidth = 2; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(v.x - 8, v.y + i * 4); g.lineTo(v.x + 8, v.y + i * 4); g.stroke(); } if (Math.random() < .03) spawnFx('smoke', v.x, v.y); }
+  for (const rl of W.relays || []) if (inView(rl.x, rl.y, 60)) { const own = HKS().nodes[rl.d]; g.fillStyle = '#37474f'; g.fillRect(rl.x - 13, rl.y - 10, 26, 22); g.fillStyle = '#263238'; g.fillRect(rl.x - 2, rl.y - 46, 4, 38); g.strokeStyle = own ? '#00e5ff' : '#90a4ae'; g.lineWidth = 2; for (let k = 1; k <= 3; k++) { g.globalAlpha = (Math.sin(G.t * 3 - k) + 1) / 2; g.beginPath(); g.arc(rl.x, rl.y - 46, k * 7, -2.4, -.7); g.stroke(); } g.globalAlpha = 1; g.fillStyle = own ? '#00e5ff' : Math.sin(G.t * 6) > 0 ? '#ff4d4d' : '#5a1010'; g.fillRect(rl.x - 8, rl.y - 4, 5, 5); }
+  for (const cm of W.cams || []) if (inView(cm.x, cm.y, 30)) { g.fillStyle = '#cfd8dc'; g.save(); g.translate(cm.x, cm.y); g.rotate(Math.atan2(cm.fy, cm.fx)); g.fillRect(-4, -4, 12, 8); g.fillStyle = cm.off > G.t ? '#555' : (Math.sin(G.t * 4) > 0 ? '#ff1744' : '#600'); g.fillRect(6, -1.5, 3, 3); g.restore(); }
+  if (!G.hkOn) return; const o = hkPos(), d = activePhone(), R = devStats(d).range, z = G.cam.z;
+  g.strokeStyle = 'rgba(0,229,255,.25)'; g.lineWidth = 2 / z; g.setLineDash([10 / z, 8 / z]); g.beginPath(); g.arc(o.x, o.y, R, 0, TAU); g.stroke(); g.setLineDash([]);
+  for (const t of G.hkList || []) { const x = hX(t), y = hY(t) - 26 / z, sel = G.hkSel && G.hkSel.o === t.o, s = (sel ? 15 : 11) / z, col = HKC[t.k], locked = (t.k === 'light' || t.k === 'vent' || t.k === 'cam' || t.k === 'lamp' || t.k === 'hydrant') && !relayOK(x, y);
+    g.globalAlpha = locked ? .45 : .9; g.fillStyle = 'rgba(5,15,25,.8)'; g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s, y); g.lineTo(x, y + s); g.lineTo(x - s, y); g.closePath(); g.fill(); g.strokeStyle = col; g.lineWidth = (sel ? 3 : 1.6) / z; g.stroke();
+    g.font = `${(sel ? 13 : 10) / z}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(locked ? '🔒' : HKI[t.k], x, y + .5 / z); g.globalAlpha = 1;
+    if (sel) { const bx = hX(t), by = hY(t), b = 22 / z; g.strokeStyle = col; g.lineWidth = 2.5 / z; for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { g.beginPath(); g.moveTo(bx + sx * b, by + sy * b * .5); g.lineTo(bx + sx * b, by + sy * b); g.lineTo(bx + sx * b * .5, by + sy * b); g.stroke(); } } }
+  const U = G.hkUp; if (U) { const x = hX(U.tgt), y = hY(U.tgt); g.strokeStyle = '#00e5ff'; g.lineWidth = 4 / z; g.beginPath(); g.arc(x, y, 28 / z, -Math.PI / 2, -Math.PI / 2 + TAU * U.t / U.need); g.stroke(); g.strokeStyle = 'rgba(0,229,255,.5)'; g.lineWidth = 1.5 / z; g.setLineDash([4 / z, 4 / z]); g.beginPath(); g.moveTo(o.x, o.y); g.lineTo(x, y); g.stroke(); g.setLineDash([]); } }; }
+// ---------- drawing: HUD (button, battery, profile card) ----------
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); Input.xBtns = (Input.xBtns || []).filter(b => b.k !== 'hack'); const p = G.player; G.hkSc = sc; if (G.mode !== 'play' || !p || p.dead || G.scene || G.surrender || !G.save.dev) return; const d = activePhone(); if (!d) return;
+  const g = ctx, h = 30 * sc, x = 14 * sc + 86 * sc + 96 * sc, y = VH - 250 * sc, btn = (bx, by, bw, label, on, col, fn) => { g.fillStyle = on ? 'rgba(4,24,34,.88)' : 'rgba(0,0,0,.55)'; g.beginPath(); g.roundRect(bx, by, bw, h, 8); g.fill(); g.strokeStyle = col; g.lineWidth = on ? 2.5 : 1.5; g.stroke(); txt(label, bx + bw / 2, by + h * .67, 12 * sc, on ? col : '#ddd', 'center'); Input.xBtns.push({ k: 'hack', r: [bx, by, bw, h], fn }); };
+  btn(x, y, 86 * sc, '📡 HACK', !!G.hkOn, '#00e5ff', toggleHack); const ch = phoneCharge(); for (let i = 0; i < ch.max; i++) { g.fillStyle = i < ch.n ? '#00e5ff' : 'rgba(255,255,255,.18)'; g.fillRect(x + 94 * sc + i * 9 * sc, y + 9 * sc, 6 * sc, 12 * sc); }
+  const H = HKS(); if (G.hkOn) { btn(x + 94 * sc + ch.max * 9 * sc + 6 * sc, y, 60 * sc, H.pts ? '🧠 ' + H.pts : '🧠', false, H.pts ? '#ffd23f' : '#9fb3c2', () => Panel.open('hacksk')); if (H.sk.focus) btn(x, y - h - 8 * sc, 86 * sc, G.focusT > 0 ? '⏱ ' + G.focusT.toFixed(1) : '⏱ FOCUS', G.focusT > 0, '#ffd23f', focusNow); }
+  if (G.focusT > 0) { g.fillStyle = 'rgba(0,40,60,.18)'; g.fillRect(0, 0, VW, VH); }
+  if (G.jamT > G.t) txt('📻 RADIO JAMMED ' + Math.ceil(G.jamT - G.t), VW / 2, 92 * sc, 14 * sc, '#4f8cff', 'center');
+  if (!G.hkOn) return; g.strokeStyle = 'rgba(0,229,255,.35)'; g.lineWidth = 6 * sc; g.strokeRect(3 * sc, 3 * sc, VW - 6 * sc, VH - 6 * sc);
+  const t = G.hkSel; if (!t) { txt('PROFILER — tap a highlighted target', VW / 2, VH > VW ? VH - 300 * sc : VH - 24 * sc, 12 * sc, '#00e5ff', 'center'); return; }
+  const acts = hkActs(t), W2 = Math.min(VW - 20 * sc, 340 * sc), cx = VW / 2 - W2 / 2; let lines = [];
+  if (t.k === 'ped' || t.k === 'gang' || t.k === 'cop') { const P = profileOf(t.o); lines = [[t.o.name, '#fff', 14], [P.job + ' · income ' + P.inc, '#9fdfff', 11], [P.line, '#ffd23f', 11], [P.bal && !t.o.skimmed ? 'Bank: ' + money(P.bal) + ' skimmable' : 'Bank: nothing worth taking', '#9fb3c2', 10.5]]; }
+  else if (t.k === 'car' || t.k === 'copcar' || t.k === 'parked') { const c = t.o; lines = [[c.d.name + (t.k === 'copcar' ? ' · police' : t.k === 'parked' ? ' · parked' : ''), '#fff', 14], [c.driver ? 'Driver: ' + (c.driver.name || 'unknown') : (c.locked === 0 || c.wired ? 'Unlocked' : 'Locked · ' + ['beater', 'standard', 'good', 'high-end'][typeof carTier === 'function' ? carTier(c) : 1] + ' security'), '#9fdfff', 11]]; }
+  else { const nm = { lamp: 'Streetlight', hydrant: 'Fire hydrant', atm: 'Cash machine · Varro Savings', vend: 'Vending machine', phone: 'Payphone', light: 'Traffic signal', vent: 'Steam pipe', cam: 'Security camera', relay: 'CityNet relay tower' }[t.k], dn = (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name;
+    lines = [[nm, '#fff', 14], [t.k === 'relay' ? (HKS().nodes[t.o.d] ? 'Hacked — ' + dn + ' infrastructure is open' : 'Break in to control ' + dn + '\'s lights, pipes, cameras and streetlights') : (['light', 'vent', 'cam', 'lamp', 'hydrant'].includes(t.k) && !relayOK(hX(t), hY(t)) ? '🔒 Needs the ' + dn + ' relay' : dn), '#9fdfff', 11]]; }
+  const bh = 30 * sc, rows = Math.ceil(acts.length / 2), Hh = 14 * sc + lines.length * 16 * sc + (acts.length ? rows * (bh + 6 * sc) + 6 * sc : 24 * sc), cy = VH > VW ? VH - 290 * sc - Hh : VH - 12 * sc - Hh;
+  g.fillStyle = 'rgba(4,14,22,.9)'; g.beginPath(); g.roundRect(cx, cy, W2, Hh, 12 * sc); g.fill(); g.strokeStyle = HKC[t.k]; g.lineWidth = 2; g.stroke();
+  lines.forEach((l, i) => txt(l[0], cx + 12 * sc, cy + 22 * sc + i * 16 * sc, l[2] * sc, l[1], 'left'));
+  const by0 = cy + 14 * sc + lines.length * 16 * sc, bw = (W2 - 30 * sc) / 2, ch2 = phoneCharge(); acts.forEach((a, i) => { const bx = cx + 10 * sc + (i % 2) * (bw + 10 * sc), by = by0 + Math.floor(i / 2) * (bh + 6 * sc), need = a[2] === 99 ? Math.max(3, ch2.max) : a[2], ok = ch2.n >= need && !G.hkUp && !(a[4] && !relayOK(hX(t), hY(t)));
+    g.globalAlpha = ok || a[0] === 'relay' ? 1 : .5; btn(bx, by, bw, a[1] + (need ? '  ' + '▮'.repeat(Math.min(need, 6)) : ''), false, HKC[t.k], () => { hkStart(t, a); }); g.globalAlpha = 1; });
+  if (!acts.length) txt('No hacks unlocked for this — check the 🧠 skill tree', cx + 12 * sc, by0 + 14 * sc, 10.5 * sc, '#9fb3c2', 'left'); }; }
+// ---------- skill tree ----------
+PMODES.hacksk = function (H) { const K = HKS(); H.title.textContent = '🧠 Hacking skills · level ' + (K.lvl + 1) + ' · ' + K.pts + ' point' + (K.pts === 1 ? '' : 's');
+  const c = H.col('XP ' + Math.floor(K.xp) + ' / ' + hkNext() + ' · relays hacked ' + Object.keys(K.nodes).length + ' / ' + (W.relays || []).length);
+  for (const k in HSK) { const [e, n, dsc, cost, pre] = HSK[k], own = hasSk(k), blocked = pre && !hasSk(pre); H.row(c, e, n + (cost === 0 ? ' · starter' : ''), dsc + (blocked ? ' · needs ' + HSK[pre][1] : ''), own ? [H.btn('✓ Unlocked', () => { }, 'on', true)] : [H.btn('Unlock · ' + cost + ' pt' + (cost > 1 ? 's' : ''), () => { if (K.pts < cost) return; K.pts -= cost; K.sk[k] = 1; Snd.play('mission'); doSave(true); }, 'y', K.pts < cost || !!blocked)]); }
+  H.foot.appendChild(H.mk('span', 'pnote', 'Earn XP by hacking. Relay towers give big XP — find the 📡 towers on your map.')); };
+
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with
 // filter chips and drill-in submenus. Anything that is a thing shows its drawn icon in lists too. Long multi-section shops get
 // a section switcher on phones instead of one endless scroll.
 (() => { const st = document.createElement('style'); st.textContent = `#panel .pback{width:100%;margin:0 0 6px;text-align:left;padding:10px 12px;flex:none}#panel .prow.tap{cursor:pointer}#panel .prow .pe.pei2{width:44px;display:flex;align-items:center;justify-content:center}#panel .prow .pe.pei2 canvas{width:38px;height:auto;max-height:38px}
 #panel .colsw{flex:none;position:sticky;top:0;z-index:2;background:#12151c;padding:4px 0 6px;margin:0}`; document.head.appendChild(st); })();
-const KICON = { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡' };
+const KICON = { home: '🏠', biz: '🏪', club: '🪩', lab: '🧪', farm: '🚜', bunker: '🛡', office: '💼' };
 const RCHIPS = [['all', 'All'], ['home', '🏠 Homes'], ['biz', '🏪 Businesses'], ['club', '🪩 Clubs'], ['lab', '🧪 Labs'], ['farm', '🚜 Farms'], ['bunker', '🛡 Bunker']];
 const navTo = b => { setNav({ x: b.door.x, y: b.door.y, name: b.name }); Panel.close(); };
 function realtyTab(P, H) { H.body.innerHTML = ''; const L = LIFE(), here = herePos(), f = P.rkind || 'all', all = W.realty.filter(r => !L.own[r.id] && W.buildings[r.id] && W.buildings[r.id].door), c = H.col('For sale · ' + all.length + ' listings'), bar = H.mk('div', 'gchips');
@@ -12519,7 +13108,7 @@ function realtyTab(P, H) { H.body.innerHTML = ''; const L = LIFE(), here = hereP
   const list = all.filter(r => f === 'all' || r.kind === f).sort((a, b) => a.price - b.price); if (!list.length) H.empty(c, 'Nothing of this kind on the market.');
   for (const r of list) { const b = W.buildings[r.id]; H.row(c, KICON[r.kind] || '🏠', b.name + ' · ' + money(r.price), KINDN[r.kind] + ' · ' + (DISTRICTS[b.d] || {}).name + ' · ' + (dist(here.x, here.y, b.door.x, b.door.y) / T * .012).toFixed(1) + ' mi' + (r.kind === 'biz' ? ' · earns ~' + money(r.price * .18) + '/day' : r.kind === 'farm' ? ' · fields, pasture, farmhouse' : r.kind === 'bunker' ? ' · hideout, 10-car garage' : ''), [H.btn('GPS', () => navTo(b)), H.btn('Buy', () => buyProperty(r), 'y', !canPay(r.price))]); } }
 function empireList(P, H) { H.body.innerHTML = ''; const L = LIFE(), places = myPlaces(), c = H.col('Your properties · garage ' + garUsed() + '/' + garCap()); if (!places.length) H.empty(c, 'You don\'t own anything yet — see For sale.');
-  for (const b of places) { const apt = b === aptB(), r = apt ? { kind: 'home' } : b.realty, O = apt ? {} : L.own[b.id], st = apt ? 'Home · bed, stash, 6-car garage' : r.kind === 'home' ? 'Home' : r.kind === 'bunker' ? 'Hideout' : r.kind === 'farm' ? 'Farm' : r.kind === 'lab' ? Math.floor(O.prod || 0) + ' units · supplies ' + Math.round(O.sup || 0) + '%' : 'Safe: ' + money(O.safe || 0);
+  for (const b of places) { const apt = b === aptB(), r = apt ? { kind: 'home' } : b.realty, O = apt ? {} : L.own[b.id], st = apt ? 'Home · bed, stash, 6-car garage' : r.kind === 'home' ? 'Home' : r.kind === 'bunker' ? 'Hideout' : r.kind === 'office' ? 'Office · workstations, server rack, bench' : r.kind === 'farm' ? 'Farm' : r.kind === 'lab' ? Math.floor(O.prod || 0) + ' units · supplies ' + Math.round(O.sup || 0) + '%' : 'Safe: ' + money(O.safe || 0);
     const open = () => { P.propOpen = apt ? 'apt' : String(b.id); }, row = H.row(c, KICON[r.kind] || '🏠', apt ? 'Your Apartment' : b.name, st, [H.btn('Manage ›', open, 'y')]); row.classList.add('tap'); row.onclick = () => { Snd.play('ui'); open(); Panel.render(); }; }
   c.appendChild(H.mk('div', 'pempty', 'Tap a property to manage it, collect from it or sell it. You always keep at least one home.')); }
 function empireDetail(P, H) { const body = H.body, back = H.btn('‹ All properties', () => { P.propOpen = null; }); back.classList.add('pback');

@@ -67,6 +67,8 @@ cv.addEventListener('pointerdown', e => {
   if (inRect(x, y, Input.miniBtn)) { G.fullMap = true; return; }
   if (G.placing && !G.dlgOpen) { if (inRect(x, y, Input.bagBtn) || inRect(x, y, Input.menuBtn)) G.placing = null; else { placeTap(x, y); return; } }
   if (inRect(x, y, Input.bagBtn)) { openInv(); return; }
+  for (const xb of (Input.xBtns || [])) if (inRect(x, y, xb.r)) { xb.fn(); return; }
+  if (typeof hackTap === 'function' && hackTap(x, y)) return;
   if (Input.bribeBtn && inRect(x, y, Input.bribeBtn)) { bribeOffer(); return; }
   if (Input.surBtn && inRect(x, y, Input.surBtn)) { toggleSurrender(); return; }
   if (Input.phoneBtn && inRect(x, y, Input.phoneBtn)) { openPhone(); return; }
@@ -117,6 +119,9 @@ window.addEventListener('keydown', e => {
   if (k === 'r') Input.edge.radio = true;
   if (k === 'n') Input.edge.nos = true;
   if (k === 'x') toggleSurrender();
+  if (k === 'z' && typeof toggleSneak === 'function') toggleSneak();
+  if (k === 'j' && typeof toggleHack === 'function') toggleHack();
+  if (k === 'k' && typeof takedownNow === 'function') takedownNow();
   if (k === 'm') G.fullMap = !G.fullMap;
   if (k === 'g') openGoto();
   if (k === 'i' || k === 'b') Input.edge.inv = true;

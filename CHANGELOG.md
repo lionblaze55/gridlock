@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.93 — Stealth, hacking and electronics
+- Stealth: 🥷 SNEAK (or Z) to move quietly. How visible you are depends on light (streetlights, headlights, day or night), cover (bushes, trees) and whether you're moving. An eye meter shows hidden / dim / exposed. Witnesses only spot you if they're facing you, and guards fill a ? meter before they react.
+- Silent takedowns: sneak up behind someone and press ✋ TAKEDOWN (or K) to knock them out. They wake up a minute later. If someone sees it, it's assault.
+- You can sneak into Fort Varro at night on foot without the alarm going off, until a soldier actually spots you.
+- Hacking, Watch Dogs-style. Press 📡 HACK (or J) to turn on the Profiler, and everything your phone can reach lights up. Tap a target to see its card and its hacks. Each hack costs battery segments (they recharge, faster in a car or at home) and takes a moment to upload — faster on a faster phone.
+  - People: a profile with name, job, income and a secret. You can skim their bank account, read their texts (gang phones leak supply runs), or ring their phone to distract them.
+  - Cars: kill the engine (cop cars too), steer it sideways, unlock and start parked cars with no hotwiring, or set off an alarm as a distraction.
+  - The city:
+    - Traffic signals: all green for a pile-up, or all red to box traffic in.
+    - Steam pipes that throw cars.
+    - Streetlight blackouts (they feed stealth).
+    - Fire hydrants.
+    - ATMs that spit out cash.
+    - Vending machines.
+    - Payphones you can cut so witnesses can't call it in.
+    - Security cameras you can loop. Cameras outside shops now report crimes they see.
+    - Police radios you can jam, so cops lose your position for 10 seconds.
+- CityNet relay towers (📡 on the map): each city district has one. Break in with a node-routing puzzle — rotate tiles to route the signal — to unlock that district's lights, pipes, cameras and streetlights.
+- Hacking skill tree: hacks earn XP and levels give points. Unlock engine kill, distraction, remote steer, radio jam, ATM jackpot, steam pipes, camera loops, an extra battery segment, Focus (slow time), mass skim and neighbourhood blackout.
+- Byte Depot: a big-box electronics store downtown.
+  - Phones: Kestrel A1 (budget, your starter), Nova 5, Pulse Pro and Cipher X.
+  - Computers: Lumen 14 laptop, Officemate desktop, Vista 27 all-in-one, Forge RTX tower and Atlas workstation.
+  - Parts, add-ons, consoles and arcade cabinets for your home.
+- Devices work like cars and guns:
+  - Every phone and computer is its own item, with core parts that each have a tier and wear. Phones have processor, memory, battery, radio and cooling; computers also have graphics and storage.
+  - Add-on bays: VPN, exploit suite, signal amp, overclock, police scanner, ghost mode, cracking rig and crypto miner.
+  - Any part fits any model, so a budget phone with elite parts and enough cooling outruns a stock flagship. Without the cooling it throttles and cooks its parts.
+  - Pull, fit, swap, fix and scrap parts on the bench. Loose parts go in your parts bin. The Tech Bar fits new parts on the spot.
+- Offices: buy an office suite. It has computer workstations, a server rack (25% less trace, and you can purge the logs), an electronics bench with your parts bin, and a stash.
+- Computers run apps:
+  - Marketplace.
+  - Freelance gigs: honest work that pays more on a stronger computer and runs in the background.
+  - Darknet: phishing, card dumps, ransomware, crypto laundering.
+  - Network intrusions, each one a node puzzle:
+    - Gang comms, which reveal hideouts and supply runs.
+    - Corporate data heist.
+    - City power grid blackout.
+    - Traffic control.
+    - Police records, which wipe your description and take a star off.
+    - The Varro Savings & Loan.
+  - Neon Drift, an arcade game.
+  - Online crime builds Cyber Crimes trace. At 100% they freeze part of your bank account and send units. A VPN and your office's server rack slow it down.
+- Consoles and computer desks: place them at home from Decorate after buying them at Byte Depot. Play Neon Drift on a console or arcade cabinet, and use your home computer at the desk.
+- Phone: a new 📡 Tech tab shows your phone's battery, range, add-ons and trace, plus all your devices. With a laptop on you, it also gives you the full computer apps anywhere.
+
 ## 1.92
 - Wanted stars, clearer: one scale again. The number of stars is how hard the city is coming for you; the whole row is one colour for who's coming — blue (🚓 POLICE) for local heat, red (🛡 SWAT RESPONSE) once it's gone tactical (gunfire, killings, armed robbery). No more mixed-colour rows.
 

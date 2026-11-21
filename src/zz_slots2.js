@@ -29,7 +29,7 @@ const PAIRSUB = { 'c:barrel': ['barrel', 'Barrel', 'Length'], 'c:action': ['trig
 #panel .gunsheet .ldet{margin:0;border:0;background:transparent;padding:2px}#panel .gunsheet .ldet .lx{display:none}#panel .gunsheet .ldet .lbtns .pb{min-height:48px}}`; document.head.appendChild(st); })();
 { const _r = Panel.render; Panel.render = function () { const pe = pEl(), old = pe && pe.querySelector('.pbody > .gtop'), sc = old && this._gsMode === this.mode + ':' + (this.wbGun || '') ? old.scrollTop : null;
   const r = _r.apply(this, arguments);
-  try { if ((this.mode !== 'gunws' && this.mode !== 'guns') || !matchMedia('(orientation:portrait)').matches) return r; const body = pEl().querySelector('.pbody'); if (!body || body.classList.contains('gsheet')) return r;
+  try { if ((this.mode !== 'gunws' && this.mode !== 'guns' && this.mode !== 'devws') || !matchMedia('(orientation:portrait)').matches) return r; const body = pEl().querySelector('.pbody'); if (!body || body.classList.contains('gsheet')) return r;
     const d = body.querySelector(this.wbGun ? '.gdet2' : '.ldet'); if (!d) { this._gsMode = null; return r; }
     const cols = body.querySelectorAll(':scope > .pcol'), top = document.createElement('div'); top.className = 'gtop'; body.insertBefore(top, cols[0]); cols.forEach(c => top.appendChild(c));
     const sh = document.createElement('div'); sh.className = 'pcol gsheetc gunsheet'; const h = document.createElement('div'); h.className = 'gsheetx'; sh.appendChild(h);
