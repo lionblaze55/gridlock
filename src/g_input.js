@@ -120,7 +120,7 @@ window.addEventListener('keydown', e => {
   if (k === 'n') Input.edge.nos = true;
   if (k === 'x') toggleSurrender();
   if (k === 'z' && typeof toggleSneak === 'function') toggleSneak();
-  if (k === 'j' && typeof toggleHack === 'function') toggleHack();
+  if (k === 'u' && typeof toggleHack === 'function') toggleHack();
   if (k === 'k' && typeof takedownNow === 'function') takedownNow();
   if (k === 'm') G.fullMap = !G.fullMap;
   if (k === 'g') openGoto();

@@ -43,12 +43,12 @@ function toggleSneak() { const p = G.player; if (!p || p.car || p.dead) return; 
   _u(dt); if (G.mode === 'play') try { susTick(dt); koTick(dt); } catch (e) { console.error(e); } }; }
 
 // ---------- suspicion: guards who care about trespassers ----------
-function watcher(q) { if (q.dead || q.ko || q.state === 'fight' || q.cuffed) return false; if (q.army) return true; if (q.hideG && (G.rep[q.hideG] | 0) < 30) return true; return false; }
+function watcher(q) { if (q.dead || q.ko || q.state === 'fight' || q.cuffed) return false; if (q.army) return true; if (q.hideG && (G.rep[q.hideG] | 0) < 30) { const H = typeof HIDE !== 'undefined' && HIDE[q.hideG], p = G.player; return !!(H && H.door && dist2(p.x, p.y, H.door.x, H.door.y) < 210 * 210); } return false; }
 function susTick(dt) { const p = G.player; if (!p || p.dead || p.car) return; const peds = G.scene ? G.scene.peds : G.peds;
   for (const q of peds) { if (!watcher(q)) { if (q.sus) q.sus = Math.max(0, q.sus - dt); continue; }
     if (seesPlayer(q, 340)) { const d = dist(q.x, q.y, p.x, p.y); q.sus = (q.sus || 0) + dt * (p.weapon > 0 ? 1.4 : .8) * clamp(1.6 - d / 300, .35, 1.6); if (!q.susSaid && q.sus > .35) { q.susSaid = 1; pedSay(q, pick(['Hey… who\'s there?', 'Did you hear that?', 'Hold on…'])); q.a = Math.atan2(p.y - q.y, p.x - q.x); }
       if (q.sus >= 1) { q.sus = 0; q.susSaid = 0; if (q.army) { crime(1.2, 'Trespassing on a military base'); G.baseSpotted = 1; G.heat = Math.max(G.heat, 3.2); G.starFlash = 1.5; Snd.play('alarm'); q.state = 'fight'; q.target = p; q.timer = 25; q.hostile = 1; pedSay(q, 'Intruder! Weapons free!'); }
-        else { G.gangAggro[q.hideG] = Math.max(G.gangAggro[q.hideG] || 0, 60); q.state = 'fight'; q.target = p; q.timer = 25; pedSay(q, pick(['Who sent you?!', 'Light him up!', 'You picked the wrong door!'])); } Snd.play('alert'); } }
+        else { const H = HIDE[q.hideG]; G.gangAggro[q.hideG] = Math.max(G.gangAggro[q.hideG] || 0, 12); for (const r of (H && H.guards) || [q]) if (!r.dead && dist2(r.x, r.y, p.x, p.y) < 500 * 500) { r.state = 'fight'; r.target = p; r.timer = 20; r.hostile = 1; } q.state = 'fight'; q.target = p; q.timer = 20; pedSay(q, pick(['Who sent you?!', 'Light him up!', 'You picked the wrong door!'])); } Snd.play('alert'); } }
     else if (q.sus) { q.sus = Math.max(0, q.sus - dt * .35); if (!q.sus) q.susSaid = 0; } } }
 { const _dp = drawPed; drawPed = function (q) { if (q.ko && !q.dead) return drawKO(q); _dp(q); if (q.sus > .02 && !q.dead) { const g = ctx, a = clamp(q.sus, 0, 1); g.save(); g.translate(q.x, q.y - 30); g.lineWidth = 3.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.arc(0, 0, 9, 0, TAU); g.stroke();
     g.strokeStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.beginPath(); g.arc(0, 0, 9, -Math.PI / 2, -Math.PI / 2 + TAU * a); g.stroke(); g.fillStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.font = '800 12px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText('?', 0, 4.5); g.restore(); } }; }

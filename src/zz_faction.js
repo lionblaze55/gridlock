@@ -63,7 +63,8 @@ function convoyHit(C, how) { if (C.hit) return; C.hit = 1; const g = C.g, F = FA
   else { for (let i = 0; i < 4; i++) G.drops.push({ x: tr.x + rnd(-30, 30), y: tr.y + rnd(-30, 30), t: i === 0 ? 'cash' : C.cargo === 'guns' ? pick(['uzi', 'shotgun', 'pistol', 'rifle']) : 'item', v: rint(150, 400), id: C.cargo === 'drugs' ? pick(['leaf', 'glint', 'haze']) : undefined, life: 120 }); }
   msg('💥 You hit the ' + GANGS[g].name + ' supply run — their soldiers will be short on guns. Expect payback.', '#ff9f43'); }
 function convoyTick() { for (const C of FACX.conv.slice()) { const tr = C.tr, p = G.player;
-    if (!C.hit && (tr.dead || tr.hp <= 0 || p.car === tr || !tr.driver)) convoyHit(C, 'hit');
+    if (!C.drv && tr.driver) C.drv = tr.driver; const P = pCar(), me = x => !!x && (x === p || (P && x === P)), byMe = p.car === tr || me(tr.lastHitBy) || (C.es && me(C.es.lastHitBy)) || (C.drv && (me(C.drv.lastHitBy) || me(C.drv.killedBy)));
+    if (!C.hit && !C.done && (tr.dead || tr.hp <= 0 || p.car === tr || !tr.driver)) { if (byMe) convoyHit(C, 'hit'); else { C.done = 1; tr.persist = 0; if (C.es) C.es.persist = 0; } }
     if (!C.hit && dist(tr.x, tr.y, C.to.x, C.to.y) < 170) { FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); C.done = 1; tr.ai = { mode: 'parked' }; tr.persist = 0; if (C.es && !C.es.dead) { C.es.ai = { mode: 'parked' }; C.es.persist = 0; } }
     if (!C.hit && !C.done && G.t - C.t0 > 200) { C.done = 1; FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); tr.persist = 0; if (C.es) C.es.persist = 0; }
     if (C.hit || C.done) FACX.conv.splice(FACX.conv.indexOf(C), 1); } }
@@ -100,22 +101,22 @@ function fightTick() { for (const Fi of FACX.fights.slice()) { const aL = Fi.hom
 
 // ---------- payback: hit squads ----------
 function squadStart(g) { const p = G.player, F = FAC()[g], pt = roadNear(p.x, p.y, 700, 1050, true); if (!pt) return; const c = facCar(pick(['suv', 'bruiser', 'sedan', 'luxsuv']), pt, g); c.facMax = 560; c.facGoal = () => { const P = pCar() || p; return [P.x, P.y, 150]; };
-  FACX.squads.push({ g, c, t: G.t }); F.hunt = Math.max(0, F.hunt - 1.6); F.hitCD = 100; msg('☠ The ' + GANGS[g].name + ' sent a crew after you.', '#ff6b6b'); Snd.play('alarm'); }
+  FACX.squads.push({ g, c, t: G.t }); F.hunt = Math.max(0, F.hunt - 2.4); F.hitCD = 240; msg('☠ The ' + GANGS[g].name + ' sent a crew after you.', '#ff6b6b'); Snd.play('alarm'); }
 function squadTick() { const p = G.player; for (const S of FACX.squads.slice()) { const c = S.c; if (c.dead || !c.driver) { FACX.squads.splice(FACX.squads.indexOf(S), 1); continue; }
     const P = pCar() || p, d = dist(c.x, c.y, P.x, P.y), stuck = G.t - S.t > 35;
     if (d < 190 || stuck || (G.scene && G.t - S.t > 10)) { if (!G.scene && d < 500) { const L = facUnloadCar(c, 3, 1, p); pedSay(L[0], pick(['That\'s them! Light \'em up!', 'You hit the wrong crew!', 'Payback time!'])); } else { c.ai = { mode: 'parked' }; c.persist = 0; } FACX.squads.splice(FACX.squads.indexOf(S), 1); } } }
 
 // ---------- the clock ----------
 function facTick(dt) { const F = FAC(); facHideouts(); const p = G.player, here = G.scene ? null : facGangAt(p.x, p.y), safe = G.scene || (typeof nearSafe === 'function' && nearSafe(p.x, p.y));
-  for (const g in F) { const f = F[g]; f.sup = clamp(f.sup - dt * .035, 0, 100); f.hunt = Math.max(0, f.hunt - dt * .006); f.convCD -= dt; f.hitCD = Math.max(0, (f.hitCD || 0) - dt); if (f.convCD <= 0) convoyDue(g);
-    if (f.hunt >= 2 && f.hitCD <= 0 && !safe && !p.dead && stars() < 3 && !FACX.squads.some(s => s.g === g)) squadStart(g); }
+  for (const g in F) { const f = F[g]; f.sup = clamp(f.sup - dt * .035, 0, 100); f.hunt = Math.max(0, f.hunt - dt * .01); f.convCD -= dt; f.hitCD = Math.max(0, (f.hitCD || 0) - dt); if (f.convCD <= 0) convoyDue(g);
+    if (f.hunt >= 3 && f.hitCD <= 0 && (G.t - (G.respawnT || -999)) > 120 && !safe && !p.dead && stars() < 3 && !FACX.squads.some(s => s.g === g)) squadStart(g); }
   for (const q of G.peds) if (q.gang && !q.facArmed) facArm(q);
-  if (here && !p.dead && !safe) { G.facExtCD = (G.facExtCD ?? rnd(30, 60)) - dt; if (G.facExtCD <= 0 && FACX.ext.length < 1) { G.facExtCD = rnd(55, 100); extortStart(here); }
-    const R = facRivals(here); G.facFightCD = (G.facFightCD ?? rnd(40, 80)) - dt; if (R.length && G.facFightCD <= 0 && !FACX.fights.length && stars() < 2) { G.facFightCD = rnd(70, 130); fightStart(here, pick(R)); } } }
+  if (here && !p.dead && !safe) { G.facExtCD = (G.facExtCD ?? rnd(30, 60)) - dt; if (G.facExtCD <= 0 && FACX.ext.length < 1) { G.facExtCD = rnd(90, 160); extortStart(here); }
+    const R = facRivals(here); G.facFightCD = (G.facFightCD ?? rnd(40, 80)) - dt; if (R.length && G.facFightCD <= 0 && !FACX.fights.length && stars() < 2) { G.facFightCD = rnd(160, 280); if (Math.random() < .6) fightStart(here, pick(R)); } } }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !W.blocks) return; G.facT = (G.facT || 0) - dt; if (G.facT > 0) return; G.facT = .5;
   try { facTick(.5); convoyTick(); hideTick(); extortTick(); fightTick(); squadTick(); } catch (e) { console.error(e); } }; }
 // killing a gang's people makes them hunt you (more so on their own turf)
-{ const _d = Ped.prototype.die; Ped.prototype.die = function (by, kind) { const was = this.dead, r = _d.apply(this, arguments); if (!was && this.dead && this.gang && by === G.player && FAC()[this.gang]) { const F = FAC()[this.gang]; F.hunt = Math.min(6, F.hunt + (facGangAt(this.x, this.y) === this.gang ? .4 : .25)); } return r; }; }
+{ const _d = Ped.prototype.die; Ped.prototype.die = function (by, kind) { const was = this.dead, r = _d.apply(this, arguments); if (!was && this.dead && this.gang && by === G.player && FAC()[this.gang]) { const F = FAC()[this.gang]; F.hunt = Math.min(6, F.hunt + (facGangAt(this.x, this.y) === this.gang ? .3 : .15)); } return r; }; }
 
 // ---------- the map shows hideouts you've found and convoys on the move ----------
 { const _mp = mapPOIs; mapPOIs = function () { const out = _mp(); try { for (const g in HIDE) if (g !== '_done' && facSeen()[g]) out.push({ x: HIDE[g].door.x, y: HIDE[g].door.y, c: GANGS[g].col, ic: '☠', r: 5.5, n: GANGS[g].name + ' hideout', pr: 7 });

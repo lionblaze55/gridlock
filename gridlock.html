@@ -3375,7 +3375,7 @@ window.addEventListener('keydown', e => {
   if (k === 'n') Input.edge.nos = true;
   if (k === 'x') toggleSurrender();
   if (k === 'z' && typeof toggleSneak === 'function') toggleSneak();
-  if (k === 'j' && typeof toggleHack === 'function') toggleHack();
+  if (k === 'u' && typeof toggleHack === 'function') toggleHack();
   if (k === 'k' && typeof takedownNow === 'function') takedownNow();
   if (k === 'm') G.fullMap = !G.fullMap;
   if (k === 'g') openGoto();
@@ -5314,7 +5314,7 @@ function bailOut(c, mode, th) {
   const dr = c.driver; if (!dr || dr === G.player) return; const side = c.a - Math.PI / 2;
   const q = new Ped(c.x + Math.cos(side) * (c.W / 2 + 14), c.y + Math.sin(side) * (c.W / 2 + 14), dr.gang ? { gang: dr.gang } : { role: 'civ', skin: dr.skin, shirt: dr.shirt, name: dr.name });
   q.kx = Math.cos(side) * 120; q.ky = Math.sin(side) * 120; c.driver = null; c.ai = { mode: 'parked' }; c.throttle = 0; c.brake = 1; c.abandoned = G.t; Snd.play('door', c.x, c.y);
-  if (mode === 'fight') { q.state = 'fight'; q.target = th; q.timer = 14; if (!q.gang && Math.random() < .5) q.weapon = WI.pistol; if (q.gang) G.gangAggro[q.gang] = Math.max(G.gangAggro[q.gang] || 0, 40); pedSay(q, pick(q.gang ? ['You picked the wrong car!', 'Get him!', 'Big mistake!'] : ['You want some?!', 'Get out here!', 'That\'s it, buddy!', 'You scratched my car!'])); }
+  if (mode === 'fight') { q.state = 'fight'; q.target = th; q.timer = 14; if (!q.gang && Math.random() < .2) q.weapon = WI.pistol; if (q.gang) G.gangAggro[q.gang] = Math.max(G.gangAggro[q.gang] || 0, 40); pedSay(q, pick(q.gang ? ['You picked the wrong car!', 'Get him!', 'Big mistake!'] : ['You want some?!', 'Get out here!', 'That\'s it, buddy!', 'You scratched my car!'])); }
   else { q.state = 'flee'; q.threat = th; q.timer = 9; pedSay(q, pick(['Take it! Take it!', 'Don\'t shoot!', 'Help! Help!', 'I\'m out of here!'])); }
   G.peds.push(q);
 }
@@ -6987,7 +6987,7 @@ function pickTarget(a, range, mode) {
   // the current lock gets a big bonus while it's still about where you're aiming
   if (LK.t && tgtAlive(LK.t)) { const s = score(LK.t, true); if (s < bs) { bs = s; best = LK.t; } }
   const peds = G.scene ? G.scene.peds : G.peds;
-  for (const q of peds) { if (q.dead || q.talking || q === p || q === LK.t) continue; const s = score(q); if (s < bs) { bs = s; best = q; } }
+  for (const q of peds) { if (q.dead || q.ko || q.talking || q === p || q === LK.t) continue; const s = score(q); if (s < bs) { bs = s; best = q; } }
   if (G.settings.pvp) for (const r of Net.remoteTargets()) { if (r.inCar || r === LK.t) continue; const s = score(r); if (s < bs) { bs = s; best = r; } }
   if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || !c.driver || c.driver === p || c === LK.t) continue; const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (!hostile) continue; const s = score(c); if (s < bs) { bs = s; best = c; } }
     for (const an of G.animals) { if (an.dead || an === LK.t || an.scene !== undefined || an.pet || an.d.pet || an.stray || an.leash || an.remoteF || an.coop) continue; const s = score(an); if (s < bs) { bs = s; best = an; } } }
@@ -11324,10 +11324,10 @@ function pickFresh(a, range, mode) { const p = G.player, [ox, oy] = aimOrigin(),
   G.hostNear = peds.some(q => !q.dead && isHostileT(q) && dist2(q.x, q.y, ox, oy) < range * range * 1.3);
   const consider = (q, kind) => { const air = q.copHeli && (q.alt || 0) > .02, d = dist(ox, oy, q.x, q.y); if (d > range * (air ? 1.4 : 1) || d < 4) return; if (!air && !losClear(ox, oy, q.x, q.y)) return; const da = Math.abs(angDiff(a, Math.atan2(q.y - oy, q.x - ox))), hostile = kind === 'car' ? true : isHostileT(q);
     // drag-aim: only near where you point; tap-fire / drive-by: an arc in front (wider for threats); only a threat at arm's length counts from behind
-    const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && kind !== 'car' && d < 110 ? Math.PI : hostile ? 1.45 : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
-    const pri = kind === 'car' ? (q.copHeli ? .25 : .8) : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? .2 : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
+    const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && kind !== 'car' && (d < 110 || mode === 'face') ? Math.PI : hostile ? 1.45 : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
+    const pri = kind === 'car' ? (q.copHeli ? .25 : .8) : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? (q === G.attacker && G.t - (G.attackT || -9) < 3 ? .1 : .2) : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
     const s = (da / Math.PI * 1.2 + d / range * .7) * pri; if (s < bs) { bs = s; best = q; } };
-  for (const q of peds) if (!q.dead && !q.talking && q !== p) consider(q, 'ped');
+  for (const q of peds) if (!q.dead && !q.ko && !q.talking && q !== p) consider(q, 'ped');
   if (G.settings.pvp) for (const r of Net.remoteTargets()) if (!r.inCar) consider(r, 'ped');
   if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || (!c.driver && !c.copHeli) || c.driver === p) continue; if (c.copHeli) { consider(c, 'car'); continue; } const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (hostile) consider(c, 'car'); }
     for (const an of G.animals) if (!an.dead && an.scene === undefined && !an.pet && !(an.d && an.d.pet) && !an.stray && !an.leash && !an.remoteF && !an.coop) consider(an, 'ani'); }
@@ -12346,7 +12346,8 @@ function convoyHit(C, how) { if (C.hit) return; C.hit = 1; const g = C.g, F = FA
   else { for (let i = 0; i < 4; i++) G.drops.push({ x: tr.x + rnd(-30, 30), y: tr.y + rnd(-30, 30), t: i === 0 ? 'cash' : C.cargo === 'guns' ? pick(['uzi', 'shotgun', 'pistol', 'rifle']) : 'item', v: rint(150, 400), id: C.cargo === 'drugs' ? pick(['leaf', 'glint', 'haze']) : undefined, life: 120 }); }
   msg('💥 You hit the ' + GANGS[g].name + ' supply run — their soldiers will be short on guns. Expect payback.', '#ff9f43'); }
 function convoyTick() { for (const C of FACX.conv.slice()) { const tr = C.tr, p = G.player;
-    if (!C.hit && (tr.dead || tr.hp <= 0 || p.car === tr || !tr.driver)) convoyHit(C, 'hit');
+    if (!C.drv && tr.driver) C.drv = tr.driver; const P = pCar(), me = x => !!x && (x === p || (P && x === P)), byMe = p.car === tr || me(tr.lastHitBy) || (C.es && me(C.es.lastHitBy)) || (C.drv && (me(C.drv.lastHitBy) || me(C.drv.killedBy)));
+    if (!C.hit && !C.done && (tr.dead || tr.hp <= 0 || p.car === tr || !tr.driver)) { if (byMe) convoyHit(C, 'hit'); else { C.done = 1; tr.persist = 0; if (C.es) C.es.persist = 0; } }
     if (!C.hit && dist(tr.x, tr.y, C.to.x, C.to.y) < 170) { FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); C.done = 1; tr.ai = { mode: 'parked' }; tr.persist = 0; if (C.es && !C.es.dead) { C.es.ai = { mode: 'parked' }; C.es.persist = 0; } }
     if (!C.hit && !C.done && G.t - C.t0 > 200) { C.done = 1; FAC()[C.g].sup = Math.min(100, FAC()[C.g].sup + 30); tr.persist = 0; if (C.es) C.es.persist = 0; }
     if (C.hit || C.done) FACX.conv.splice(FACX.conv.indexOf(C), 1); } }
@@ -12383,22 +12384,22 @@ function fightTick() { for (const Fi of FACX.fights.slice()) { const aL = Fi.hom
 
 // ---------- payback: hit squads ----------
 function squadStart(g) { const p = G.player, F = FAC()[g], pt = roadNear(p.x, p.y, 700, 1050, true); if (!pt) return; const c = facCar(pick(['suv', 'bruiser', 'sedan', 'luxsuv']), pt, g); c.facMax = 560; c.facGoal = () => { const P = pCar() || p; return [P.x, P.y, 150]; };
-  FACX.squads.push({ g, c, t: G.t }); F.hunt = Math.max(0, F.hunt - 1.6); F.hitCD = 100; msg('☠ The ' + GANGS[g].name + ' sent a crew after you.', '#ff6b6b'); Snd.play('alarm'); }
+  FACX.squads.push({ g, c, t: G.t }); F.hunt = Math.max(0, F.hunt - 2.4); F.hitCD = 240; msg('☠ The ' + GANGS[g].name + ' sent a crew after you.', '#ff6b6b'); Snd.play('alarm'); }
 function squadTick() { const p = G.player; for (const S of FACX.squads.slice()) { const c = S.c; if (c.dead || !c.driver) { FACX.squads.splice(FACX.squads.indexOf(S), 1); continue; }
     const P = pCar() || p, d = dist(c.x, c.y, P.x, P.y), stuck = G.t - S.t > 35;
     if (d < 190 || stuck || (G.scene && G.t - S.t > 10)) { if (!G.scene && d < 500) { const L = facUnloadCar(c, 3, 1, p); pedSay(L[0], pick(['That\'s them! Light \'em up!', 'You hit the wrong crew!', 'Payback time!'])); } else { c.ai = { mode: 'parked' }; c.persist = 0; } FACX.squads.splice(FACX.squads.indexOf(S), 1); } } }
 
 // ---------- the clock ----------
 function facTick(dt) { const F = FAC(); facHideouts(); const p = G.player, here = G.scene ? null : facGangAt(p.x, p.y), safe = G.scene || (typeof nearSafe === 'function' && nearSafe(p.x, p.y));
-  for (const g in F) { const f = F[g]; f.sup = clamp(f.sup - dt * .035, 0, 100); f.hunt = Math.max(0, f.hunt - dt * .006); f.convCD -= dt; f.hitCD = Math.max(0, (f.hitCD || 0) - dt); if (f.convCD <= 0) convoyDue(g);
-    if (f.hunt >= 2 && f.hitCD <= 0 && !safe && !p.dead && stars() < 3 && !FACX.squads.some(s => s.g === g)) squadStart(g); }
+  for (const g in F) { const f = F[g]; f.sup = clamp(f.sup - dt * .035, 0, 100); f.hunt = Math.max(0, f.hunt - dt * .01); f.convCD -= dt; f.hitCD = Math.max(0, (f.hitCD || 0) - dt); if (f.convCD <= 0) convoyDue(g);
+    if (f.hunt >= 3 && f.hitCD <= 0 && (G.t - (G.respawnT || -999)) > 120 && !safe && !p.dead && stars() < 3 && !FACX.squads.some(s => s.g === g)) squadStart(g); }
   for (const q of G.peds) if (q.gang && !q.facArmed) facArm(q);
-  if (here && !p.dead && !safe) { G.facExtCD = (G.facExtCD ?? rnd(30, 60)) - dt; if (G.facExtCD <= 0 && FACX.ext.length < 1) { G.facExtCD = rnd(55, 100); extortStart(here); }
-    const R = facRivals(here); G.facFightCD = (G.facFightCD ?? rnd(40, 80)) - dt; if (R.length && G.facFightCD <= 0 && !FACX.fights.length && stars() < 2) { G.facFightCD = rnd(70, 130); fightStart(here, pick(R)); } } }
+  if (here && !p.dead && !safe) { G.facExtCD = (G.facExtCD ?? rnd(30, 60)) - dt; if (G.facExtCD <= 0 && FACX.ext.length < 1) { G.facExtCD = rnd(90, 160); extortStart(here); }
+    const R = facRivals(here); G.facFightCD = (G.facFightCD ?? rnd(40, 80)) - dt; if (R.length && G.facFightCD <= 0 && !FACX.fights.length && stars() < 2) { G.facFightCD = rnd(160, 280); if (Math.random() < .6) fightStart(here, pick(R)); } } }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !W.blocks) return; G.facT = (G.facT || 0) - dt; if (G.facT > 0) return; G.facT = .5;
   try { facTick(.5); convoyTick(); hideTick(); extortTick(); fightTick(); squadTick(); } catch (e) { console.error(e); } }; }
 // killing a gang's people makes them hunt you (more so on their own turf)
-{ const _d = Ped.prototype.die; Ped.prototype.die = function (by, kind) { const was = this.dead, r = _d.apply(this, arguments); if (!was && this.dead && this.gang && by === G.player && FAC()[this.gang]) { const F = FAC()[this.gang]; F.hunt = Math.min(6, F.hunt + (facGangAt(this.x, this.y) === this.gang ? .4 : .25)); } return r; }; }
+{ const _d = Ped.prototype.die; Ped.prototype.die = function (by, kind) { const was = this.dead, r = _d.apply(this, arguments); if (!was && this.dead && this.gang && by === G.player && FAC()[this.gang]) { const F = FAC()[this.gang]; F.hunt = Math.min(6, F.hunt + (facGangAt(this.x, this.y) === this.gang ? .3 : .15)); } return r; }; }
 
 // ---------- the map shows hideouts you've found and convoys on the move ----------
 { const _mp = mapPOIs; mapPOIs = function () { const out = _mp(); try { for (const g in HIDE) if (g !== '_done' && facSeen()[g]) out.push({ x: HIDE[g].door.x, y: HIDE[g].door.y, c: GANGS[g].col, ic: '☠', r: 5.5, n: GANGS[g].name + ' hideout', pr: 7 });
@@ -12417,7 +12418,7 @@ function swatOdds(st, car) { if (!heatTac()) return st >= 5 ? .1 : 0; return st 
   if (dh > 0) { if (TAC_RE.test(label || '') || (!label && sev >= 1.5)) G.heatT = Math.min(5.99, (G.heatT || 0) + dh); else G.heatL = Math.min(5.99, (G.heatL || 0) + dh); }
   // gangs: violence on their turf, seen by their own people, is personal
   if (p && !G.scene && /gunfire|shots|murder|assault|killing/i.test(label || '') && typeof facGangAt === 'function') { const g = facGangAt(p.x, p.y);
-    if (g && G.peds.some(q => q.gang === g && !q.dead && dist2(q.x, q.y, p.x, p.y) < 520 * 520 && losClear(q.x, q.y, p.x, p.y))) { const F = FAC()[g]; if (F) { F.hunt = Math.min(6, F.hunt + (/murder|killing/i.test(label) ? .5 : .2)); if (!G.facWarnT || G.t - G.facWarnT > 30) { G.facWarnT = G.t; toast('The ' + GANGS[g].name + ' saw that — this is their turf.'); } } } }
+    if (g && G.peds.some(q => q.gang === g && !q.dead && dist2(q.x, q.y, p.x, p.y) < 520 * 520 && losClear(q.x, q.y, p.x, p.y))) { const F = FAC()[g]; if (F) { F.hunt = Math.min(6, F.hunt + (/murder|killing/i.test(label) ? .35 : .1)); if (!G.facWarnT || G.t - G.facWarnT > 30) { G.facWarnT = G.t; toast('The ' + GANGS[g].name + ' saw that — this is their turf.'); } } } }
   return r; }; }
 { const _u = update; update = function (dt) { _u(dt); if (stars() === 0) { G.heatT = Math.max(0, (G.heatT || 0) - dt * .1); G.heatL = Math.max(0, (G.heatL || 0) - dt * .1); } else { const k = G.heat / Math.max(.01, (G.heatT || 0) + (G.heatL || 0)); if (k < 1) { G.heatT *= k; G.heatL *= k; } } }; }
 // callOffCops wipes both kinds
@@ -12556,12 +12557,12 @@ function toggleSneak() { const p = G.player; if (!p || p.car || p.dead) return; 
   _u(dt); if (G.mode === 'play') try { susTick(dt); koTick(dt); } catch (e) { console.error(e); } }; }
 
 // ---------- suspicion: guards who care about trespassers ----------
-function watcher(q) { if (q.dead || q.ko || q.state === 'fight' || q.cuffed) return false; if (q.army) return true; if (q.hideG && (G.rep[q.hideG] | 0) < 30) return true; return false; }
+function watcher(q) { if (q.dead || q.ko || q.state === 'fight' || q.cuffed) return false; if (q.army) return true; if (q.hideG && (G.rep[q.hideG] | 0) < 30) { const H = typeof HIDE !== 'undefined' && HIDE[q.hideG], p = G.player; return !!(H && H.door && dist2(p.x, p.y, H.door.x, H.door.y) < 210 * 210); } return false; }
 function susTick(dt) { const p = G.player; if (!p || p.dead || p.car) return; const peds = G.scene ? G.scene.peds : G.peds;
   for (const q of peds) { if (!watcher(q)) { if (q.sus) q.sus = Math.max(0, q.sus - dt); continue; }
     if (seesPlayer(q, 340)) { const d = dist(q.x, q.y, p.x, p.y); q.sus = (q.sus || 0) + dt * (p.weapon > 0 ? 1.4 : .8) * clamp(1.6 - d / 300, .35, 1.6); if (!q.susSaid && q.sus > .35) { q.susSaid = 1; pedSay(q, pick(['Hey… who\'s there?', 'Did you hear that?', 'Hold on…'])); q.a = Math.atan2(p.y - q.y, p.x - q.x); }
       if (q.sus >= 1) { q.sus = 0; q.susSaid = 0; if (q.army) { crime(1.2, 'Trespassing on a military base'); G.baseSpotted = 1; G.heat = Math.max(G.heat, 3.2); G.starFlash = 1.5; Snd.play('alarm'); q.state = 'fight'; q.target = p; q.timer = 25; q.hostile = 1; pedSay(q, 'Intruder! Weapons free!'); }
-        else { G.gangAggro[q.hideG] = Math.max(G.gangAggro[q.hideG] || 0, 60); q.state = 'fight'; q.target = p; q.timer = 25; pedSay(q, pick(['Who sent you?!', 'Light him up!', 'You picked the wrong door!'])); } Snd.play('alert'); } }
+        else { const H = HIDE[q.hideG]; G.gangAggro[q.hideG] = Math.max(G.gangAggro[q.hideG] || 0, 12); for (const r of (H && H.guards) || [q]) if (!r.dead && dist2(r.x, r.y, p.x, p.y) < 500 * 500) { r.state = 'fight'; r.target = p; r.timer = 20; r.hostile = 1; } q.state = 'fight'; q.target = p; q.timer = 20; pedSay(q, pick(['Who sent you?!', 'Light him up!', 'You picked the wrong door!'])); } Snd.play('alert'); } }
     else if (q.sus) { q.sus = Math.max(0, q.sus - dt * .35); if (!q.sus) q.susSaid = 0; } } }
 { const _dp = drawPed; drawPed = function (q) { if (q.ko && !q.dead) return drawKO(q); _dp(q); if (q.sus > .02 && !q.dead) { const g = ctx, a = clamp(q.sus, 0, 1); g.save(); g.translate(q.x, q.y - 30); g.lineWidth = 3.5; g.strokeStyle = 'rgba(0,0,0,.55)'; g.beginPath(); g.arc(0, 0, 9, 0, TAU); g.stroke();
     g.strokeStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.beginPath(); g.arc(0, 0, 9, -Math.PI / 2, -Math.PI / 2 + TAU * a); g.stroke(); g.fillStyle = a > .7 ? '#ff4d4d' : '#ffd23f'; g.font = '800 12px Rubik, sans-serif'; g.textAlign = 'center'; g.fillText('?', 0, 4.5); g.restore(); } }; }
@@ -12869,7 +12870,7 @@ PMODES.pc = function (H) { const D = DEV(), P = this; let d = devOf(P.opt.uid); 
   if (tab === 'market' && d) return marketTab.call(this, H);
   if (tab === 'device' || !d) { const c = H.col('Your phone'); if (phone) { const ps = devStats(phone), ch = phoneCharge(); H.row(c, '📱', phone.name || devName(phone), '⚡' + ps.power + ' · hack range ' + ps.range + ' · charges ' + ch.n + '/' + ch.max + (ps.heat > 1 ? ' · 🔥 throttled' : '') + ' · add-ons: ' + (Object.keys(phone.adds).filter(k => phone.adds[k]).map(k => ADDONS[k].n).join(', ') || 'none'), []); }
     { const t = H.mk('div', 'trbar'), b = H.mk('b'); b.style.width = Math.round(D.trace) + '%'; t.appendChild(b); c.appendChild(H.mk('div', 'lhint', '🛰 Cyber Crimes trace: ' + Math.round(D.trace) + '% — at 100% they find you. It cools off over time.')); c.appendChild(t); }
-    c.appendChild(H.mk('div', 'lhint', 'Hack mode: tap 📡 HACK on screen (or press J), then tap a phone, car, streetlight, hydrant, ATM, payphone, traffic light or cop car in range.'));
+    c.appendChild(H.mk('div', 'lhint', 'Hack mode: tap 📡 HACK on screen (or press U), then tap a phone, car, streetlight, hydrant, ATM, payphone, traffic light or cop car in range.'));
     const c2 = H.col('All your devices'); for (const x of D.list) H.row(c2, DEV_MODELS[x.m].f === 'pc' ? '🖥' : '📱', (x.name || devName(x)) + (D.active === x.uid ? ' · active' : ''), '⚡' + devPower(x) + ' · ' + locName(x.loc) + ' · ' + pct(devCond(x)), []);
     if (!d) c2.appendChild(H.mk('div', 'lhint', 'No computer here. Every home and office you own has a home office desk with your computers on it — or carry a laptop.')); return; }
   const scr2 = H.col(tab === 'apps' ? 'Desktop' : tab === 'gigs' ? 'Freelance gigs — legit money' : tab === 'dark' ? 'Darknet — crime online' : 'Network intrusion'); scr2.classList.add('pcscr');
@@ -12906,7 +12907,7 @@ function gameTab(H, P) { const D = DEV(), c = H.col('Neon Drift — dodge the tr
   if (P.opt.console) c.appendChild(H.mk('div', 'lhint', 'Best score ' + (D.best | 0) + '. Beat it.')); }
 
 // ================= HACKING THE CITY (Watch Dogs-style) =================
-// Profiler: turn on 📡 HACK (or J) and everything hackable in your phone's range lights up. Tap a person to see their
+// Profiler: turn on 📡 HACK (or U) and everything hackable in your phone's range lights up. Tap a person to see their
 // profile — name, job, income, a secret — and hack them: skim their bank account, read their texts, ring their phone
 // to distract them. Tap cars to stall them, swerve them or pop their locks; tap junctions to flip every signal; blow
 // steam pipes under pursuers; black out streetlights; loop security cameras; jam police radios; make ATMs pay out.
@@ -13003,9 +13004,9 @@ function hkActs(t) { const o = t.o, A = [], S = (k, ...a) => { if (hasSk(k)) A.p
 // ---------- hack mode ----------
 function toggleHack() { if (G.mode !== 'play' || G.scene) return; const d = activePhone(); if (!d) return toast('You need a phone'); G.hkOn = !G.hkOn; G.hkSel = null; Snd.play(G.hkOn ? 'beep' : 'ui'); if (G.hkOn) { G.hkT = 0; G.hkList = hkScan(); if (!HKS().seen) { HKS().seen = 1; msg('📡 Profiler on. Tap anything highlighted to profile it and hack it. Battery recharges over time — faster in a car or at home.', '#00e5ff'); } } }
 function hkScreen(x, y) { const c = G.cam; return [(x - c.x) * c.z + VW / 2, (y - c.y) * c.z + VH / 2]; }
-function hackTap(x, y) { if (!G.hkOn || G.scene || G.mode !== 'play') return false; const sc = G.hkSc || 1; let best = null, bd = (42 * sc) ** 2;
+function hackTap(x, y) { if (!G.hkOn || G.scene || G.mode !== 'play') return false; if (Input.btnAt && Input.btnAt(x, y)) return false; const sc = G.hkSc || 1; let best = null, bd = (42 * sc) ** 2;
   for (const t of G.hkList || []) { const [sx, sy] = hkScreen(hX(t), hY(t)), d = (sx - x) ** 2 + (sy - 26 - y) ** 2; if (d < bd) { bd = d; best = t; } }
-  if (!best) { if (G.hkSel) { G.hkSel = null; return true; } return false; } G.hkSel = best; Snd.play('ui'); if (best.k === 'ped' || best.k === 'gang' || best.k === 'cop') profileOf(best.o); return true; }
+  if (!best) { G.hkSel = null; return false; } G.hkSel = best; Snd.play('ui'); if (best.k === 'ped' || best.k === 'gang' || best.k === 'cop') profileOf(best.o); return true; }
 function hkStart(t, a) { const [id, , cost, up, relay] = a, d = activePhone(), ch = phoneCharge(), st = devStats(d);
   if (id === 'relay') return relayHack(t.o); if (relay && !relayOK(hX(t), hY(t))) { Snd.play('bad'); return toast('🔒 ' + (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name + '\'s CityNet relay is locked. Find the 📡 tower and break in first.'); }
   if (id === 'unlock' && carTier(t.o) >= 3 && !d.adds.exploit) { Snd.play('bad'); return toast('High-end locks need an exploit suite on your phone (Byte Depot).'); }
@@ -13106,6 +13107,19 @@ PMODES.hacksk = function (H) { const K = HKS(); H.title.textContent = '🧠 Hack
   const c = H.col('XP ' + Math.floor(K.xp) + ' / ' + hkNext() + ' · relays hacked ' + Object.keys(K.nodes).length + ' / ' + (W.relays || []).length);
   for (const k in HSK) { const [e, n, dsc, cost, pre] = HSK[k], own = hasSk(k), blocked = pre && !hasSk(pre); H.row(c, e, n + (cost === 0 ? ' · starter' : ''), dsc + (blocked ? ' · needs ' + HSK[pre][1] : ''), own ? [H.btn('✓ Unlocked', () => { }, 'on', true)] : [H.btn('Unlock · ' + cost + ' pt' + (cost > 1 ? 's' : ''), () => { if (K.pts < cost) return; K.pts -= cost; K.sk[k] = 1; Snd.play('mission'); doSave(true); }, 'y', K.pts < cost || !!blocked)]); }
   H.foot.appendChild(H.mk('span', 'pnote', 'Earn XP by hacking. Relay towers give big XP — find the 📡 towers on your map.')); };
+
+// ================= 1.95 fixes: GPS to the airport & new places, respawn grace for hit squads, gang grudge repair =================
+NAVCATS.push(['✈', 'Airport', () => W.airport ? [{ x: W.airport.office.x, y: W.airport.office.y, n: 'San Varro Airport' }] : []],
+  ['🔌', 'Byte Depot (electronics)', () => W.byteDepot && W.byteDepot.door ? [{ x: W.byteDepot.door.x, y: W.byteDepot.door.y, n: 'Byte Depot' }] : []],
+  ['💼', 'Office for sale', () => W.buildings.filter(b => b.office && b.door && !owned(b)).map(b => ({ x: b.door.x, y: b.door.y, n: b.name + ' (for sale)' }))],
+  ['📡', 'CityNet relay (not hacked)', () => (W.relays || []).filter(r => !HKS().nodes[r.d]).map(r => ({ x: r.x, y: r.y, n: (DISTRICTS[r.d] || {}).name + ' relay' }))],
+  ['🪖', 'Fort Varro', () => W.base ? [{ x: (W.base.x0 + W.base.x1) / 2, y: W.base.y1 + T, n: 'Fort Varro' }] : []]);
+{ const _rs = respawnSafety; respawnSafety = function () { G.respawnT = G.t; return _rs.apply(this, arguments); }; }
+// a bug in 1.92–1.94 blamed you whenever a gang's supply truck crashed or lost its driver (−20 rep and a grudge each time).
+// Saves from those versions get one amnesty: gangs that turned on you cool off to wary, hunts and grudges are dropped.
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.save || G.save.fix195) return; G.save.fix195 = 1; let n = 0;
+  try { for (const g in GANGS) { if ((G.rep[g] | 0) <= -30) { G.rep[g] = -20; n++; } if (G.gangAggro[g] > 0 && G.gangAggro[g] < 500) G.gangAggro[g] = 0; } const F = typeof FAC === 'function' ? FAC() : {}; for (const g in F) if (F[g]) { F[g].hunt = 0; F[g].hitCD = 120; } } catch (e) { }
+  if (n) msg('🤝 Word on the street: the ' + n + ' crew' + (n > 1 ? 's' : '') + ' that wanted you dead have cooled off — for now.', '#2ecc71'); doSave(); }; }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with

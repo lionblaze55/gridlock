@@ -45,10 +45,10 @@ function pickFresh(a, range, mode) { const p = G.player, [ox, oy] = aimOrigin(),
   G.hostNear = peds.some(q => !q.dead && isHostileT(q) && dist2(q.x, q.y, ox, oy) < range * range * 1.3);
   const consider = (q, kind) => { const air = q.copHeli && (q.alt || 0) > .02, d = dist(ox, oy, q.x, q.y); if (d > range * (air ? 1.4 : 1) || d < 4) return; if (!air && !losClear(ox, oy, q.x, q.y)) return; const da = Math.abs(angDiff(a, Math.atan2(q.y - oy, q.x - ox))), hostile = kind === 'car' ? true : isHostileT(q);
     // drag-aim: only near where you point; tap-fire / drive-by: an arc in front (wider for threats); only a threat at arm's length counts from behind
-    const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && kind !== 'car' && d < 110 ? Math.PI : hostile ? 1.45 : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
-    const pri = kind === 'car' ? (q.copHeli ? .25 : .8) : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? .2 : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
+    const cone = mode === 'drag' ? aimCone('drag', d) * 1.25 : hostile && kind !== 'car' && (d < 110 || mode === 'face') ? Math.PI : hostile ? 1.45 : mode === 'car' ? 1.2 : 1.05; if (da > cone) return;
+    const pri = kind === 'car' ? (q.copHeli ? .25 : .8) : q.isAnimal ? (G.hostNear ? 5 : 1.3) : hostile ? (q === G.attacker && G.t - (G.attackT || -9) < 3 ? .1 : .2) : (q.role === 'cop' ? .8 : 1) * (G.hostNear ? 8 : 1);
     const s = (da / Math.PI * 1.2 + d / range * .7) * pri; if (s < bs) { bs = s; best = q; } };
-  for (const q of peds) if (!q.dead && !q.talking && q !== p) consider(q, 'ped');
+  for (const q of peds) if (!q.dead && !q.ko && !q.talking && q !== p) consider(q, 'ped');
   if (G.settings.pvp) for (const r of Net.remoteTargets()) if (!r.inCar) consider(r, 'ped');
   if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || (!c.driver && !c.copHeli) || c.driver === p) continue; if (c.copHeli) { consider(c, 'car'); continue; } const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (hostile) consider(c, 'car'); }
     for (const an of G.animals) if (!an.dead && an.scene === undefined && !an.pet && !(an.d && an.d.pet) && !an.stray && !an.leash && !an.remoteF && !an.coop) consider(an, 'ani'); }

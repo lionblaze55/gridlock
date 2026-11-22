@@ -23,7 +23,7 @@ function pickTarget(a, range, mode) {
   // the current lock gets a big bonus while it's still about where you're aiming
   if (LK.t && tgtAlive(LK.t)) { const s = score(LK.t, true); if (s < bs) { bs = s; best = LK.t; } }
   const peds = G.scene ? G.scene.peds : G.peds;
-  for (const q of peds) { if (q.dead || q.talking || q === p || q === LK.t) continue; const s = score(q); if (s < bs) { bs = s; best = q; } }
+  for (const q of peds) { if (q.dead || q.ko || q.talking || q === p || q === LK.t) continue; const s = score(q); if (s < bs) { bs = s; best = q; } }
   if (G.settings.pvp) for (const r of Net.remoteTargets()) { if (r.inCar || r === LK.t) continue; const s = score(r); if (s < bs) { bs = s; best = r; } }
   if (!G.scene) { for (const c of G.cars) { if (c.dead || c === p.car || !c.driver || c.driver === p || c === LK.t) continue; const hostile = (c.ai && (c.ai.mode === 'chase' || c.ai.mode === 'invest' && stars() > 0)) || c.siren > 0 && stars() > 0 || (c.driver.gang && G.gangAggro[c.driver.gang] > 0); if (!hostile) continue; const s = score(c); if (s < bs) { bs = s; best = c; } }
     for (const an of G.animals) { if (an.dead || an === LK.t || an.scene !== undefined || an.pet || an.d.pet || an.stray || an.leash || an.remoteF || an.coop) continue; const s = score(an); if (s < bs) { bs = s; best = an; } } }

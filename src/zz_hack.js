@@ -1,5 +1,5 @@
 // ================= HACKING THE CITY (Watch Dogs-style) =================
-// Profiler: turn on 📡 HACK (or J) and everything hackable in your phone's range lights up. Tap a person to see their
+// Profiler: turn on 📡 HACK (or U) and everything hackable in your phone's range lights up. Tap a person to see their
 // profile — name, job, income, a secret — and hack them: skim their bank account, read their texts, ring their phone
 // to distract them. Tap cars to stall them, swerve them or pop their locks; tap junctions to flip every signal; blow
 // steam pipes under pursuers; black out streetlights; loop security cameras; jam police radios; make ATMs pay out.
@@ -96,9 +96,9 @@ function hkActs(t) { const o = t.o, A = [], S = (k, ...a) => { if (hasSk(k)) A.p
 // ---------- hack mode ----------
 function toggleHack() { if (G.mode !== 'play' || G.scene) return; const d = activePhone(); if (!d) return toast('You need a phone'); G.hkOn = !G.hkOn; G.hkSel = null; Snd.play(G.hkOn ? 'beep' : 'ui'); if (G.hkOn) { G.hkT = 0; G.hkList = hkScan(); if (!HKS().seen) { HKS().seen = 1; msg('📡 Profiler on. Tap anything highlighted to profile it and hack it. Battery recharges over time — faster in a car or at home.', '#00e5ff'); } } }
 function hkScreen(x, y) { const c = G.cam; return [(x - c.x) * c.z + VW / 2, (y - c.y) * c.z + VH / 2]; }
-function hackTap(x, y) { if (!G.hkOn || G.scene || G.mode !== 'play') return false; const sc = G.hkSc || 1; let best = null, bd = (42 * sc) ** 2;
+function hackTap(x, y) { if (!G.hkOn || G.scene || G.mode !== 'play') return false; if (Input.btnAt && Input.btnAt(x, y)) return false; const sc = G.hkSc || 1; let best = null, bd = (42 * sc) ** 2;
   for (const t of G.hkList || []) { const [sx, sy] = hkScreen(hX(t), hY(t)), d = (sx - x) ** 2 + (sy - 26 - y) ** 2; if (d < bd) { bd = d; best = t; } }
-  if (!best) { if (G.hkSel) { G.hkSel = null; return true; } return false; } G.hkSel = best; Snd.play('ui'); if (best.k === 'ped' || best.k === 'gang' || best.k === 'cop') profileOf(best.o); return true; }
+  if (!best) { G.hkSel = null; return false; } G.hkSel = best; Snd.play('ui'); if (best.k === 'ped' || best.k === 'gang' || best.k === 'cop') profileOf(best.o); return true; }
 function hkStart(t, a) { const [id, , cost, up, relay] = a, d = activePhone(), ch = phoneCharge(), st = devStats(d);
   if (id === 'relay') return relayHack(t.o); if (relay && !relayOK(hX(t), hY(t))) { Snd.play('bad'); return toast('🔒 ' + (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name + '\'s CityNet relay is locked. Find the 📡 tower and break in first.'); }
   if (id === 'unlock' && carTier(t.o) >= 3 && !d.adds.exploit) { Snd.play('bad'); return toast('High-end locks need an exploit suite on your phone (Byte Depot).'); }

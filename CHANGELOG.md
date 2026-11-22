@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.95 — Shooting back, fewer street ambushes, airport on the GPS
+- Shooting back: on foot, tapping fire now turns to whoever is attacking you, even from behind. Before, only attackers right next to you counted, so a shot from behind made you fire at whatever was in front of you, often a passer-by. Whoever just hurt you gets top priority, and knocked-out people are never targeted.
+- Fixed J: it's the fire key, but 1.93 also bound it to hack mode, so shooting kept toggling hacking. Hack mode is now on U.
+- Fixed hack mode eating your touches. With it on, taps on the fire button or joystick could be taken as hack selections.
+- Fixed gangs blaming you for their own truck wrecks. Since 1.92, any gang supply truck that crashed or lost its driver counted as your hit: −20 rep, a citywide grudge, and every member nearby opened fire. Only hits you actually cause count now.
+- Hideout guards only react when you're actually at their door, not when you walk past on the street. When they do react, only those guards fight; the whole gang doesn't come after you.
+- Saves from 1.92–1.94 get a one-time amnesty: any gang at "wants you dead" because of the truck bug cools off to wary, and hunts and grudges reset.
+- Fewer ambushes in general:
+  - Hit squads need a bigger grudge and come at most every 4 minutes, never within 2 minutes of respawning.
+  - Grudges fade faster.
+  - Killing gang members, or committing crimes in front of them, builds less of a grudge.
+  - Gang-vs-gang street fights and shakedowns happen about half as often.
+  - Angry drivers pulling a gun: 50% → 20%.
+- Result: 21 minutes on gang turf without provoking anyone went from 17–19 attackers to 0.
+- GPS (the GPS button) now lists the Airport, Byte Depot, offices for sale, the nearest un-hacked CityNet relay, and Fort Varro.
+
 ## 1.94 — A home office in every home
 - Every home you own, including your starting apartment, the safehouse and the bunker, now has a home office: a computer desk, an electronics bench and a server rack. They're set up automatically in a free spot the first time you walk in. You can rearrange them from Decorate, but you can't sell them.
 - Your office resources are shared everywhere. Every home and office you own is on the same home network:

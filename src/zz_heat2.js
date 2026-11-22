@@ -11,7 +11,7 @@ function swatOdds(st, car) { if (!heatTac()) return st >= 5 ? .1 : 0; return st 
   if (dh > 0) { if (TAC_RE.test(label || '') || (!label && sev >= 1.5)) G.heatT = Math.min(5.99, (G.heatT || 0) + dh); else G.heatL = Math.min(5.99, (G.heatL || 0) + dh); }
   // gangs: violence on their turf, seen by their own people, is personal
   if (p && !G.scene && /gunfire|shots|murder|assault|killing/i.test(label || '') && typeof facGangAt === 'function') { const g = facGangAt(p.x, p.y);
-    if (g && G.peds.some(q => q.gang === g && !q.dead && dist2(q.x, q.y, p.x, p.y) < 520 * 520 && losClear(q.x, q.y, p.x, p.y))) { const F = FAC()[g]; if (F) { F.hunt = Math.min(6, F.hunt + (/murder|killing/i.test(label) ? .5 : .2)); if (!G.facWarnT || G.t - G.facWarnT > 30) { G.facWarnT = G.t; toast('The ' + GANGS[g].name + ' saw that — this is their turf.'); } } } }
+    if (g && G.peds.some(q => q.gang === g && !q.dead && dist2(q.x, q.y, p.x, p.y) < 520 * 520 && losClear(q.x, q.y, p.x, p.y))) { const F = FAC()[g]; if (F) { F.hunt = Math.min(6, F.hunt + (/murder|killing/i.test(label) ? .35 : .1)); if (!G.facWarnT || G.t - G.facWarnT > 30) { G.facWarnT = G.t; toast('The ' + GANGS[g].name + ' saw that — this is their turf.'); } } } }
   return r; }; }
 { const _u = update; update = function (dt) { _u(dt); if (stars() === 0) { G.heatT = Math.max(0, (G.heatT || 0) - dt * .1); G.heatL = Math.max(0, (G.heatL || 0) - dt * .1); } else { const k = G.heat / Math.max(.01, (G.heatT || 0) + (G.heatL || 0)); if (k < 1) { G.heatT *= k; G.heatL *= k; } } }; }
 // callOffCops wipes both kinds

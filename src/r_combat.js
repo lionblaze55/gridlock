@@ -35,7 +35,7 @@ function bailOut(c, mode, th) {
   const dr = c.driver; if (!dr || dr === G.player) return; const side = c.a - Math.PI / 2;
   const q = new Ped(c.x + Math.cos(side) * (c.W / 2 + 14), c.y + Math.sin(side) * (c.W / 2 + 14), dr.gang ? { gang: dr.gang } : { role: 'civ', skin: dr.skin, shirt: dr.shirt, name: dr.name });
   q.kx = Math.cos(side) * 120; q.ky = Math.sin(side) * 120; c.driver = null; c.ai = { mode: 'parked' }; c.throttle = 0; c.brake = 1; c.abandoned = G.t; Snd.play('door', c.x, c.y);
-  if (mode === 'fight') { q.state = 'fight'; q.target = th; q.timer = 14; if (!q.gang && Math.random() < .5) q.weapon = WI.pistol; if (q.gang) G.gangAggro[q.gang] = Math.max(G.gangAggro[q.gang] || 0, 40); pedSay(q, pick(q.gang ? ['You picked the wrong car!', 'Get him!', 'Big mistake!'] : ['You want some?!', 'Get out here!', 'That\'s it, buddy!', 'You scratched my car!'])); }
+  if (mode === 'fight') { q.state = 'fight'; q.target = th; q.timer = 14; if (!q.gang && Math.random() < .2) q.weapon = WI.pistol; if (q.gang) G.gangAggro[q.gang] = Math.max(G.gangAggro[q.gang] || 0, 40); pedSay(q, pick(q.gang ? ['You picked the wrong car!', 'Get him!', 'Big mistake!'] : ['You want some?!', 'Get out here!', 'That\'s it, buddy!', 'You scratched my car!'])); }
   else { q.state = 'flee'; q.threat = th; q.timer = 9; pedSay(q, pick(['Take it! Take it!', 'Don\'t shoot!', 'Help! Help!', 'I\'m out of here!'])); }
   G.peds.push(q);
 }
