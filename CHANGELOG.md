@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.97 — Saving fixed
+- **Fixed: progress wasn't being saved.** Since 1.94, once you'd walked into one of your homes, every save silently failed. "Game saved" still appeared, but loading put you back at your last save from before then. Placing furniture could cause the same failure in older versions.
+  - Cause: a furniture record linked to its live copy in the room, and that copy linked back. The save can't be written with a loop like that, and the error was being swallowed.
+  - Those links are no longer saved. Any other loop is cut instead of breaking the whole save.
+- **A failed save now says so:** a red "Save failed" message appears instead of "Game saved".
+- **Autosave:** every minute of play, and whenever the app goes to the background or closes.
+- Progress lost before this update can't be recovered. The save on your device is the last one that worked.
+
 ## 1.96 — Economy pass from a $100M playthrough
 A fast-forward bot played the game aiming for $100M. These changes come from what it found.
 - **Drug labs make money now.** Before, every lab lost money on every unit, even fully upgraded: Velvet's supplies cost about $659 per unit, and a unit sells for at most about $540.

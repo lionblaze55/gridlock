@@ -22,7 +22,11 @@ function shade(hex, f) { // f<1 darker, >1 lighter
 function money(n) { return '$' + Math.floor(n).toLocaleString('en-US'); }
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  // runtime links (a furniture record's live scene item, etc.) are never saved; a loop anywhere else is cut instead of
+  // making the whole save fail. A save that still can't be written says so instead of failing silently.
+  str(v) { const R = (k, x) => (k === 'ref' && x && typeof x === 'object' && x.rec) ? undefined : x; try { return JSON.stringify(v, R); } catch (e) {
+    const seen = []; return JSON.stringify(v, function (k, x) { x = R(k, x); if (x && typeof x === 'object') { while (seen.length && seen[seen.length - 1] !== this) seen.pop(); if (seen.includes(x)) return undefined; seen.push(x); } return x; }); } },
+  set(k, v) { try { localStorage.setItem(k, store.str(v)); return true; } catch (e) { store.err = e; if (/^gl_save/.test(k) && typeof msg === 'function') msg('⚠ Save failed: ' + String(e && e.message || e).slice(0, 80), '#ff4d4d'); return false; } }
 };
 
 // ================= DEFINITIONS =================

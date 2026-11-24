@@ -192,7 +192,7 @@ function doSave(quiet) {
   const p = G.player; if (!p) return;
   G.save = Object.assign(G.save, { cash: G.cash, bank: G.bank, ammo: p.ammo.map(a => a === Infinity ? 0 : a), armor: Math.round(p.armor), outfit: p.shirt, skin: p.skin, inv: G.inv, stash: G.stash, wmods: G.wmods, wown: G.wown, rep: G.rep });
   const rc = G.cars.find(c => c.isRide); if (rc && G.save.ride) G.save.ride.trunk = rc.trunk || {};
-  G.save.t = Date.now(); store.set(slotKey(G.slot), G.save); if (!quiet) msg('Game saved.', '#2ecc71');
+  G.save.t = Date.now(); const ok = store.set(slotKey(G.slot), G.save); if (!quiet && ok) msg('Game saved.', '#2ecc71'); return ok;
 }
 
 // ---------- cars: enter / exit ----------

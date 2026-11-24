@@ -152,7 +152,11 @@ function shade(hex, f) { // f<1 darker, >1 lighter
 function money(n) { return '$' + Math.floor(n).toLocaleString('en-US'); }
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  // runtime links (a furniture record's live scene item, etc.) are never saved; a loop anywhere else is cut instead of
+  // making the whole save fail. A save that still can't be written says so instead of failing silently.
+  str(v) { const R = (k, x) => (k === 'ref' && x && typeof x === 'object' && x.rec) ? undefined : x; try { return JSON.stringify(v, R); } catch (e) {
+    const seen = []; return JSON.stringify(v, function (k, x) { x = R(k, x); if (x && typeof x === 'object') { while (seen.length && seen[seen.length - 1] !== this) seen.pop(); if (seen.includes(x)) return undefined; seen.push(x); } return x; }); } },
+  set(k, v) { try { localStorage.setItem(k, store.str(v)); return true; } catch (e) { store.err = e; if (/^gl_save/.test(k) && typeof msg === 'function') msg('⚠ Save failed: ' + String(e && e.message || e).slice(0, 80), '#ff4d4d'); return false; } }
 };
 
 // ================= DEFINITIONS =================
@@ -2034,7 +2038,7 @@ function doSave(quiet) {
   const p = G.player; if (!p) return;
   G.save = Object.assign(G.save, { cash: G.cash, bank: G.bank, ammo: p.ammo.map(a => a === Infinity ? 0 : a), armor: Math.round(p.armor), outfit: p.shirt, skin: p.skin, inv: G.inv, stash: G.stash, wmods: G.wmods, wown: G.wown, rep: G.rep });
   const rc = G.cars.find(c => c.isRide); if (rc && G.save.ride) G.save.ride.trunk = rc.trunk || {};
-  G.save.t = Date.now(); store.set(slotKey(G.slot), G.save); if (!quiet) msg('Game saved.', '#2ecc71');
+  G.save.t = Date.now(); const ok = store.set(slotKey(G.slot), G.save); if (!quiet && ok) msg('Game saved.', '#2ecc71'); return ok;
 }
 
 // ---------- cars: enter / exit ----------
@@ -13145,6 +13149,12 @@ const HEIST_COOL = 48, heistCut = H => { const S = HST(); return (S.runs && S.ru
 { const _tab = heistsTab; heistsTab = function (H) { _tab(H); const S = HST(), done = HEISTS.filter(h => S.done[h.id]); if (!done.length) return; const c = H.col('Run it back');
   for (const h of done) { const inProg = (S.prog[h.id] | 0) < h.steps.length, wait = HEIST_COOL - (GH() - ((S.fin || {})[h.id] ?? -1e9));
     H.row(c, '🔁', h.n + ' — ' + h.who, inProg ? 'Replay in progress · ' + (S.prog[h.id] | 0) + '/' + h.steps.length + ' steps' : wait > 0 ? 'Ready again in ' + Math.ceil(wait / 24) + ' day' + (wait > 24 ? 's' : '') : 'Ready — ' + money(Math.round(h.pay * .8 / 500) * 500) + ' cut', [H.btn('GPS', () => { setNav({ x: h.drop.x, y: h.drop.y, name: h.who }); Panel.close(); }, 'y')]); } }; }
+
+// ================= 1.97: autosave =================
+// Saves quietly every minute of play, and whenever the app goes to the background or the page closes, so
+// swiping the app away or a phone call never costs more than a minute.
+{ let acc = 0; const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.inGame || Net.room || !G.player || G.player.dead) return; acc += dt; if (acc >= 60) { acc = 0; doSave(true); } }; }
+{ const bg = () => { try { if (G.inGame && !Net.room && G.player && !G.player.dead) doSave(true); } catch (e) { } }; document.addEventListener('visibilitychange', () => { if (document.hidden) bg(); }); window.addEventListener('pagehide', bg); }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with
