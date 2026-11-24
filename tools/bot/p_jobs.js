@@ -1,0 +1,5 @@
+(async()=>{ const B=BOT, p=G.player; G.save.fix195=1; p.hp=p.maxHp||100; const out={};
+const C=[roadCX(6),roadCY(6)];
+for(const J of JOBS){ B.src='job:'+J.id; const t0=G.t; let n=0; while(G.t-t0<600 && n<6){ if(p.dead){B.wait(()=>!p.dead,15);} if(pCar()&&J.veh) { exitCar(true); B.step(.3);} if(!J.veh && pCar()) { exitCar(true); B.step(.3);} if(G.scene) exitBuilding(); B.go(C[0]+rnd(-300,300),C[1]+rnd(-300,300),40,60); startJob(J); if(!G.mission){ B.note('job '+J.id+' would not start'); break;} B.runMission(400); n++; if(stars()>0) B.evade(120);} }
+B.src='mission'; for(let i=0;i<10;i++){ if(G.scene) exitBuilding(); B.getCar(); startMission(genMission()); B.runMission(400); if(stars()>0){ B.src='evade'; B.evade(150); B.src='mission'; } }
+return {rep:B.report(), missions:B.missions.reduce((a,m)=>{const k=m.t+(m.ok?' ✓':' ✗ '+(m.why||'')); a[k]=(a[k]||0)+1; return a;},{}), avg:Object.entries(B.missions.filter(m=>m.ok).reduce((a,m)=>{(a[m.t]=a[m.t]||[]).push(m.dt);return a;},{})).map(([k,v])=>k+':'+Math.round(v.reduce((s,x)=>s+x,0)/v.length)+'s'), deaths:B.deaths, notes:B.notes, err:B.err, jobs:JOBS.map(j=>j.id+':'+(j.veh||'foot')+':'+j.pay+'x'+j.stops)}; })()

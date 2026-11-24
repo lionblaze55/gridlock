@@ -18,22 +18,24 @@ function addLabs2() { if (!W || !W.realty || W._labs2) return; W._labs2 = 1; con
 { const _er = econRealty; econRealty = function () { _er(); addLabs2(); }; }
 // ---------- the lab as a business ----------
 const LABRATE = [0, .8, 1.4, 2.2, 3.2, 4.5], labLvl = O => clamp(O.lvl | 0, 1, 5);
-const labCap = O => 40 * labLvl(O) + 30 * (O.cooks | 0);
-const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0));
-const labBurn = O => 4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0));
+const LMUL = new WeakMap(), labMul = O => { if (LMUL.has(O)) return LMUL.get(O); const r = W.realty.find(x => LIFE().own[x.id] === O), D = r && DRUGS.find(d => d.id === r.drug), m = D ? clamp(Math.sqrt(450 / D.base), 1, 3.6) : 1; if (r) LMUL.set(O, m); return m; };
+const labCap = O => Math.round((40 * labLvl(O) + 30 * (O.cooks | 0)) * labMul(O));
+const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O);
+const labBurn = O => (4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0))) / 4;
+const labSupply = (O, D) => Math.max(200, Math.round(50 / labBurn(O) * labRate(O) * D.base * .22 / 50) * 50);
 const labRaid = O => .005 * (O.up && O.up.sec ? .25 : 1) * (1 + .15 * (labLvl(O) - 1) + .25 * (O.crew | 0) + .1 * (O.cooks | 0));
-function labCrew(b, r, O, h) { const n = O.crew | 0; if (!n || O.prod < 1) return; const D = DRUGS.find(d => d.id === r.drug) || ITEMS[r.drug]; const sell = Math.min(O.prod, 1.6 * n * h); O.prod -= sell; O.safe = (O.safe || 0) + sell * (D.base || D.v) * .7;
+function labCrew(b, r, O, h) { const n = O.crew | 0; if (!n || O.prod < 1) return; const D = DRUGS.find(d => d.id === r.drug) || ITEMS[r.drug]; const sell = Math.min(O.prod, 1.6 * n * h * labMul(O)); O.prod -= sell; O.safe = (O.safe || 0) + sell * (D.base || D.v) * .7;
   if (Math.random() < .004 * n * h * (O.up && O.up.sec ? .5 : 1)) { O.crew = n - 1; const lost = Math.floor(O.prod * .25); O.prod -= lost; msg('A street crew from ' + b.name + ' got busted' + (lost ? ' — ' + lost + ' units seized.' : '.'), '#ff6b6b'); if (Math.random() < .3) { G.heat = Math.max(G.heat, 1.2); markSeen(); msg('One of them talked. The cops are looking for you.', '#ff6b6b'); } } }
-function labPanel(H, c2, b, r, O, at, gps, upg, collect) { const D = DRUGS.find(d => d.id === r.drug), units = Math.floor(O.prod), cap = labCap(O), lv = labLvl(O), sp = Math.round(r.price * .05 * (1 + .25 * (lv - 1)));
+function labPanel(H, c2, b, r, O, at, gps, upg, collect) { const D = DRUGS.find(d => d.id === r.drug), units = Math.floor(O.prod), cap = labCap(O), lv = labLvl(O), sp = labSupply(O, D);
   H.row(c2, ITEMS[r.drug] ? ITEMS[r.drug].e : '🧪', `${D.n}: ${units} / ${cap} units`, O.sup > 0 ? `Cooking · supplies ${Math.round(O.sup)}% · ~${labRate(O).toFixed(1)} units/hour · street value ${money(units * D.base)}` : 'Stopped — no supplies');
   H.row(c2, '📦', 'Buy supplies', '+50% · ' + money(sp), [H.btn('Order', () => { if (payAny(sp)) O.sup = Math.min(100, O.sup + 50); }, 'y', O.sup > 50 || !canPay(sp))]);
   if ((O.crew | 0) > 0 || O.safe > 0) collect();
   H.row(c2, '🚐', 'Sell a shipment', units >= 5 ? `Drive ${units} units to a buyer for about ${money(units * D.base * .8)}+` : 'Needs at least 5 units', [H.btn('Load van', () => startShipment(b, units), 'y', units < 5 || !!G.mission)]);
   H.row(c2, '🎒', 'Carry product yourself', at ? 'Take what fits in your bag' : 'You have to be at the lab', [at ? H.btn('Take', () => { let n = 0; while (O.prod >= 1 && invAdd(r.drug, 1, 1)) { O.prod--; n++; } toast(n ? 'Took ' + n + ' ' + D.n : 'Your bag is full'); }, '', units < 1) : gps(b)]);
   c2.appendChild(H.mk('div', 'ptitle', 'Grow the operation'));
-  const next = Math.round(r.price * [0, .4, .8, 1.3, 2][lv] / 500) * 500; if (lv < 5) H.row(c2, '⬆', 'Equipment level ' + (lv + 1) + ' of 5', `${LABRATE[lv + 1]} units/hour · stores ${40 * (lv + 1)} · ${money(next)}`, [H.btn('Upgrade', () => { if (payAny(next)) { O.lvl = lv + 1; Snd.play('cash'); } }, 'y', !canPay(next))]); else H.row(c2, '✓', 'Equipment level 5', 'Industrial scale');
+  const next = Math.round(r.price * [0, .4, .8, 1.3, 2][lv] / 500) * 500; if (lv < 5) H.row(c2, '⬆', 'Equipment level ' + (lv + 1) + ' of 5', `${(LABRATE[lv + 1] * (1 + .35 * (O.cooks | 0)) * labMul(O)).toFixed(1)} units/hour · stores ${Math.round((40 * (lv + 1) + 30 * (O.cooks | 0)) * labMul(O))} · ${money(next)}`, [H.btn('Upgrade', () => { if (payAny(next)) { O.lvl = lv + 1; Snd.play('cash'); } }, 'y', !canPay(next))]); else H.row(c2, '✓', 'Equipment level 5', 'Industrial scale');
   const ck = O.cooks | 0, ckP = Math.round(r.price * .15 / 500) * 500 + 4000; H.row(c2, '👨‍🍳', 'Cooks: ' + ck + ' / 3', ck < 3 ? `+35% output & +30 storage each · uses more supplies · ${money(ckP)} to hire` : 'Fully staffed', ck < 3 ? [H.btn('Hire', () => { if (payAny(ckP)) O.cooks = ck + 1; }, 'y', !canPay(ckP))] : []);
-  const cr = O.crew | 0, crP = 6000 + cr * 4000; H.row(c2, '🧢', 'Street crews: ' + cr + ' / 3', cr < 3 ? `Sell ~1.6 units/hour each straight from the lab, 70% of street price into the safe · busts happen · ${money(crP)}` : 'Max crews', cr < 3 ? [H.btn('Hire', () => { if (payAny(crP)) O.crew = cr + 1; }, 'y', !canPay(crP))] : []);
+  const cr = O.crew | 0, crP = 6000 + cr * 4000; H.row(c2, '🧢', 'Street crews: ' + cr + ' / 3', cr < 3 ? `Sell ~${(1.6 * labMul(O)).toFixed(1)} units/hour each straight from the lab, 70% of street price into the safe · busts happen · ${money(crP)}` : 'Max crews', cr < 3 ? [H.btn('Hire', () => { if (payAny(crP)) O.crew = cr + 1; }, 'y', !canPay(crP))] : []);
   upg('sec', 'Security crew', 'Far fewer raids and busts', 5000);
   H.row(c2, '🚨', 'Raid risk', ['Low', 'Moderate', 'High', 'Very high'][clamp(Math.floor(labRaid(O) / .005), 0, 3)] + ' — bigger operations draw attention', []); }
 // ---------- home cooking: point people at it ----------

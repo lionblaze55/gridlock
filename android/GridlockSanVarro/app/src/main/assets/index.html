@@ -548,8 +548,8 @@ const Snd = {
   setVol(v) { this.vol = v; store.set('gl_vol', v); if (this.sfx) { this.sfx.gain.value = v; this.amb.gain.value = this.avol * v; } },
   setMVol(v) { this.mvol = v; store.set('gl_mvol', v); if (this.mus) this.mus.gain.value = v * .5; },
   setAVol(v) { this.avol = v; store.set('gl_avol', v); if (this.amb) this.amb.gain.value = v * this.vol; },
-  att(x, y) { if (x === undefined) return 1; const d = dist(x, y, this.listener.x, this.listener.y); return clamp(1 - d / 1500, 0, 1) ** 1.3; },
-  out(x, y) { const c = this.ctx; if (x === undefined || !c.createStereoPanner) return this.sfx; const p = c.createStereoPanner(); p.pan.value = clamp((x - this.listener.x) / 700, -1, 1) * .75; p.connect(this.sfx); return p; },
+  att(x, y) { if (x === undefined) return 1; if (!isFinite(x) || !isFinite(y)) return 1; const d = dist(x, y, this.listener.x, this.listener.y); return clamp(1 - d / 1500, 0, 1) ** 1.3; },
+  out(x, y) { const c = this.ctx; if (x === undefined || !isFinite(x) || !c.createStereoPanner) return this.sfx; const p = c.createStereoPanner(); p.pan.value = clamp((x - this.listener.x) / 700, -1, 1) * .75; p.connect(this.sfx); return p; },
   nz(dur, freq, type, vol, t0, q, dest, atk) {
     const c = this.ctx, s = c.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = .7 + Math.random() * .6;
     const f = c.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq; if (q) f.Q.value = q;
@@ -9407,22 +9407,24 @@ function addLabs2() { if (!W || !W.realty || W._labs2) return; W._labs2 = 1; con
 { const _er = econRealty; econRealty = function () { _er(); addLabs2(); }; }
 // ---------- the lab as a business ----------
 const LABRATE = [0, .8, 1.4, 2.2, 3.2, 4.5], labLvl = O => clamp(O.lvl | 0, 1, 5);
-const labCap = O => 40 * labLvl(O) + 30 * (O.cooks | 0);
-const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0));
-const labBurn = O => 4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0));
+const LMUL = new WeakMap(), labMul = O => { if (LMUL.has(O)) return LMUL.get(O); const r = W.realty.find(x => LIFE().own[x.id] === O), D = r && DRUGS.find(d => d.id === r.drug), m = D ? clamp(Math.sqrt(450 / D.base), 1, 3.6) : 1; if (r) LMUL.set(O, m); return m; };
+const labCap = O => Math.round((40 * labLvl(O) + 30 * (O.cooks | 0)) * labMul(O));
+const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O);
+const labBurn = O => (4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0))) / 4;
+const labSupply = (O, D) => Math.max(200, Math.round(50 / labBurn(O) * labRate(O) * D.base * .22 / 50) * 50);
 const labRaid = O => .005 * (O.up && O.up.sec ? .25 : 1) * (1 + .15 * (labLvl(O) - 1) + .25 * (O.crew | 0) + .1 * (O.cooks | 0));
-function labCrew(b, r, O, h) { const n = O.crew | 0; if (!n || O.prod < 1) return; const D = DRUGS.find(d => d.id === r.drug) || ITEMS[r.drug]; const sell = Math.min(O.prod, 1.6 * n * h); O.prod -= sell; O.safe = (O.safe || 0) + sell * (D.base || D.v) * .7;
+function labCrew(b, r, O, h) { const n = O.crew | 0; if (!n || O.prod < 1) return; const D = DRUGS.find(d => d.id === r.drug) || ITEMS[r.drug]; const sell = Math.min(O.prod, 1.6 * n * h * labMul(O)); O.prod -= sell; O.safe = (O.safe || 0) + sell * (D.base || D.v) * .7;
   if (Math.random() < .004 * n * h * (O.up && O.up.sec ? .5 : 1)) { O.crew = n - 1; const lost = Math.floor(O.prod * .25); O.prod -= lost; msg('A street crew from ' + b.name + ' got busted' + (lost ? ' — ' + lost + ' units seized.' : '.'), '#ff6b6b'); if (Math.random() < .3) { G.heat = Math.max(G.heat, 1.2); markSeen(); msg('One of them talked. The cops are looking for you.', '#ff6b6b'); } } }
-function labPanel(H, c2, b, r, O, at, gps, upg, collect) { const D = DRUGS.find(d => d.id === r.drug), units = Math.floor(O.prod), cap = labCap(O), lv = labLvl(O), sp = Math.round(r.price * .05 * (1 + .25 * (lv - 1)));
+function labPanel(H, c2, b, r, O, at, gps, upg, collect) { const D = DRUGS.find(d => d.id === r.drug), units = Math.floor(O.prod), cap = labCap(O), lv = labLvl(O), sp = labSupply(O, D);
   H.row(c2, ITEMS[r.drug] ? ITEMS[r.drug].e : '🧪', `${D.n}: ${units} / ${cap} units`, O.sup > 0 ? `Cooking · supplies ${Math.round(O.sup)}% · ~${labRate(O).toFixed(1)} units/hour · street value ${money(units * D.base)}` : 'Stopped — no supplies');
   H.row(c2, '📦', 'Buy supplies', '+50% · ' + money(sp), [H.btn('Order', () => { if (payAny(sp)) O.sup = Math.min(100, O.sup + 50); }, 'y', O.sup > 50 || !canPay(sp))]);
   if ((O.crew | 0) > 0 || O.safe > 0) collect();
   H.row(c2, '🚐', 'Sell a shipment', units >= 5 ? `Drive ${units} units to a buyer for about ${money(units * D.base * .8)}+` : 'Needs at least 5 units', [H.btn('Load van', () => startShipment(b, units), 'y', units < 5 || !!G.mission)]);
   H.row(c2, '🎒', 'Carry product yourself', at ? 'Take what fits in your bag' : 'You have to be at the lab', [at ? H.btn('Take', () => { let n = 0; while (O.prod >= 1 && invAdd(r.drug, 1, 1)) { O.prod--; n++; } toast(n ? 'Took ' + n + ' ' + D.n : 'Your bag is full'); }, '', units < 1) : gps(b)]);
   c2.appendChild(H.mk('div', 'ptitle', 'Grow the operation'));
-  const next = Math.round(r.price * [0, .4, .8, 1.3, 2][lv] / 500) * 500; if (lv < 5) H.row(c2, '⬆', 'Equipment level ' + (lv + 1) + ' of 5', `${LABRATE[lv + 1]} units/hour · stores ${40 * (lv + 1)} · ${money(next)}`, [H.btn('Upgrade', () => { if (payAny(next)) { O.lvl = lv + 1; Snd.play('cash'); } }, 'y', !canPay(next))]); else H.row(c2, '✓', 'Equipment level 5', 'Industrial scale');
+  const next = Math.round(r.price * [0, .4, .8, 1.3, 2][lv] / 500) * 500; if (lv < 5) H.row(c2, '⬆', 'Equipment level ' + (lv + 1) + ' of 5', `${(LABRATE[lv + 1] * (1 + .35 * (O.cooks | 0)) * labMul(O)).toFixed(1)} units/hour · stores ${Math.round((40 * (lv + 1) + 30 * (O.cooks | 0)) * labMul(O))} · ${money(next)}`, [H.btn('Upgrade', () => { if (payAny(next)) { O.lvl = lv + 1; Snd.play('cash'); } }, 'y', !canPay(next))]); else H.row(c2, '✓', 'Equipment level 5', 'Industrial scale');
   const ck = O.cooks | 0, ckP = Math.round(r.price * .15 / 500) * 500 + 4000; H.row(c2, '👨‍🍳', 'Cooks: ' + ck + ' / 3', ck < 3 ? `+35% output & +30 storage each · uses more supplies · ${money(ckP)} to hire` : 'Fully staffed', ck < 3 ? [H.btn('Hire', () => { if (payAny(ckP)) O.cooks = ck + 1; }, 'y', !canPay(ckP))] : []);
-  const cr = O.crew | 0, crP = 6000 + cr * 4000; H.row(c2, '🧢', 'Street crews: ' + cr + ' / 3', cr < 3 ? `Sell ~1.6 units/hour each straight from the lab, 70% of street price into the safe · busts happen · ${money(crP)}` : 'Max crews', cr < 3 ? [H.btn('Hire', () => { if (payAny(crP)) O.crew = cr + 1; }, 'y', !canPay(crP))] : []);
+  const cr = O.crew | 0, crP = 6000 + cr * 4000; H.row(c2, '🧢', 'Street crews: ' + cr + ' / 3', cr < 3 ? `Sell ~${(1.6 * labMul(O)).toFixed(1)} units/hour each straight from the lab, 70% of street price into the safe · busts happen · ${money(crP)}` : 'Max crews', cr < 3 ? [H.btn('Hire', () => { if (payAny(crP)) O.crew = cr + 1; }, 'y', !canPay(crP))] : []);
   upg('sec', 'Security crew', 'Far fewer raids and busts', 5000);
   H.row(c2, '🚨', 'Raid risk', ['Low', 'Moderate', 'High', 'Very high'][clamp(Math.floor(labRaid(O) / .005), 0, 3)] + ' — bigger operations draw attention', []); }
 // ---------- home cooking: point people at it ----------
@@ -11610,7 +11612,7 @@ function flagDriver(c, why) { if (!c || !c.driver || c === pCar() || c.remote ||
 function startStop(cop, tgt) { const J = { kind: 'stop', car: cop, tgt, t0: G.t, phase: 'pursue', fled: tgt.offWhy === 'Hit and run' || Math.random() < .25 }; tgt.pulled = 1; cop.ai = { mode: 'law', stuck: 0, rev: 0, blockT: 0, wps: [], lane: 0, dir: 0 }; cop.lawJob = J; cop.siren = 1; LAW.jobs.push(J);
   J.carGoal = c => J.phase === 'pursue' ? [tgt.x, tgt.y, J.fled ? 0 : 70] : J.phase === 'pull' ? [tgt.x - Math.cos(tgt.a) * (tgt.L / 2 + 40), tgt.y - Math.sin(tgt.a) * (tgt.L / 2 + 40), 22] : null;
   if (J.fled && tgt.ai) { tgt.ai.cruise = Math.min(700, tgt.st.max * .95); tgt.horn = 1; } lawMsg(tgt.x, tgt.y, '🚓 A patrol car lit up a ' + tgt.d.name + ' — ' + (tgt.offWhy || 'speeding').toLowerCase() + '.'); }
-function stopTick(J) { const { car, tgt } = J; if (car.dead || tgt.dead || !G.cars.includes(car) || !G.cars.includes(tgt) || G.t - J.t0 > 90) { tgt.pulled = 0; return endJob(J, 1); } const d = dist(car.x, car.y, tgt.x, tgt.y);
+function stopTick(J) { const { car, tgt } = J; if (car.dead || tgt.dead || !tgt.ai || tgt === pCar() || !G.cars.includes(car) || !G.cars.includes(tgt) || G.t - J.t0 > 90) { tgt.pulled = 0; return endJob(J, 1); } const d = dist(car.x, car.y, tgt.x, tgt.y);
   if (J.phase === 'pursue') { if (J.fled) { if (d < 80) J.close = (J.close || 0) + .25; if (J.close > 3 || tgt.spd < 40 || tgt.hp < tgt.st.hp * .5) { J.phase = 'pull'; J.arrest = 1; } }
     else if (d < 260) { J.phase = 'pull'; tgt.ai.mode = 'parked'; } if (J.phase === 'pull') { tgt.ai = { mode: 'parked' }; tgt.throttle = 0; tgt.brake = 1; } return; }
   if (J.phase === 'pull') { tgt.throttle = 0; tgt.brake = 1; if (car.spd < 25 && d < tgt.L / 2 + 90) { const side = car.a - Math.PI / 2; J.cop = footCop(car.x + Math.cos(side) * (car.W / 2 + 12), car.y + Math.sin(side) * (car.W / 2 + 12), J); J.phase = 'walk'; car.ai.mode = 'parked'; car.brake = 1; } return; }
@@ -12658,8 +12660,8 @@ function phoneCharge() { const d = activePhone(); if (!d) return { n: 0, max: 0 
 // ---------- trace: how close the cyber unit is to finding you ----------
 function traceAdd(n, d) { const D = DEV(); const vpn = d && d.adds.vpn ? .6 : 1, office = typeof atBase === 'function' && atBase() ? .75 : 1; D.trace = clamp(D.trace + n * vpn * office, 0, 100);
   if (D.trace >= 100) { D.trace = 45; const at = G.scene ? G.outPos : G.player; G.heat = Math.max(G.heat, 2.2); G.heatT = Math.max(G.heatT || 0, 1.2); markSeen(); G.lastKnown = { x: at.x, y: at.y }; G.starFlash = 2; Snd.play('starup');
-    const seized = Math.min(G.bank, Math.round(G.bank * .1)); G.bank -= seized; msg('🚨 The Cyber Crimes Unit traced you!' + (seized ? ' They froze ' + money(seized) + ' of your bank account.' : '') + ' Units are on the way.', '#ff4d4d'); } }
-{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save.dev) G.save.dev.trace = Math.max(0, G.save.dev.trace - dt * .05); }; }
+    const seized = Math.min(G.bank, Math.round(G.bank * .1), 15000); G.bank -= seized; msg('🚨 The Cyber Crimes Unit traced you!' + (seized ? ' They froze ' + money(seized) + ' of your bank account.' : '') + ' Units are on the way.', '#ff4d4d'); } }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save.dev) G.save.dev.trace = Math.max(0, G.save.dev.trace - dt * .08); }; }
 // ---------- the bin ----------
 const BIN = () => DEV().bin;
 function binAdd(f, k, t, c) { BIN().push({ f, k, t, c: c ?? 1 }); }
@@ -12842,21 +12844,21 @@ function homeOffice(s) { const D = decorOf(s.b), need = ['pcdesk', 'ebench', 'sr
   for (const t of need) { const [, , w, h] = HOFF_N[t], at = scan(w, h, (x, y) => free(x, y, w, h)); if (at) put(t, at[0], at[1]); } }
 { const _eb = enterBuilding; enterBuilding = function (b) { const r = _eb.apply(this, arguments); const s = G.scene; if (s && s.b === b && !b.office && canDecorate()) { try { homeOffice(s); } catch (e) { console.error('homeOffice', e); } } return r; }; }
 // ---------- the computer ----------
-const PCGIGS = [['data', '⌨', 'Data entry for a law firm', 0, 140, 60], ['web', '🌐', 'Build a website for a bakery', 16, 480, 110], ['video', '🎬', 'Edit a music video', 28, 950, 150], ['app', '🐞', 'Bug bounty for a fintech app', 40, 1900, 180], ['ai', '🤖', 'Train an AI model for a startup', 58, 4400, 240]];
-const gigPay = (gg, pw) => Math.round(gg[4] * (.75 + pw / 55) / 10) * 10, gigDur = (gg, d) => Math.round(gg[5] / clamp(devStats(d).speed / 3, .6, 3.2));
-const DARK = [['phish', '🎣', 'Phishing blast', 'Spam a million inboxes and see who bites.', 0, 0, 90, 10], ['dumps', '💳', 'Buy & cash out card dumps', 'Pay $600 for a batch of stolen cards — some are dead, some are gold.', 0, 0, 120, 8], ['ransom', '🔒', 'Ransomware a business', 'Lock a company\'s files and name your price. Needs an exploit suite.', 1, 3, 300, 30], ['launder', '🪙', 'Launder cash through crypto', 'Turn dirty pocket cash into clean bank money, minus a cut.', 0, 0, 60, 4]];
-const NET = [['gang', '📻', 'Gang comms', 'Tap the crews\' phones: every hideout on your map and their next shipments.', 0, 2, 180, 8], ['corp', '🏢', 'Helix Labs data heist', 'Steal research data and sell it to a rival.', 0, 3, 240, 20], ['grid', '💡', 'City power grid', 'Black out the streetlights around you for three minutes. Night is yours.', 0, 3, 300, 14], ['lights', '🚦', 'Traffic control', 'Every signal near you goes green for a minute. Chaos.', 0, 2, 150, 10], ['police', '🚓', 'Police records', 'Wipe your description and what the neighborhoods remember. Takes the edge off a chase.', 1, 4, 240, 25], ['bank', '🏦', 'Varro Savings & Loan', 'Skim the corporate accounts. The biggest score — and the loudest.', 1, 5, 600, 45]];
+const PCGIGS = [['data', '⌨', 'Data entry for a law firm', 0, 140, 105], ['web', '🌐', 'Build a website for a bakery', 16, 480, 250], ['video', '🎬', 'Edit a music video', 28, 950, 420], ['app', '🐞', 'Bug bounty for a fintech app', 40, 1900, 630], ['ai', '🤖', 'Train an AI model for a startup', 58, 4400, 1050]];
+const gigPay = (gg, pw) => Math.round(gg[4] * (.8 + pw / 200) / 10) * 10, gigDur = (gg, d) => Math.round(gg[5] / clamp(devStats(d).speed / 4, .7, 1.6));
+const DARK = [['phish', '🎣', 'Phishing blast', 'Spam a million inboxes and see who bites.', 0, 0, 120, 10], ['dumps', '💳', 'Buy & cash out card dumps', 'Pay $600 for a batch of stolen cards — some are dead, some are gold.', 0, 0, 120, 8], ['ransom', '🔒', 'Ransomware a business', 'Lock a company\'s files and name your price. Needs an exploit suite.', 1, 3, 480, 32], ['launder', '🪙', 'Launder cash through crypto', 'Turn dirty pocket cash into clean bank money, minus a cut.', 0, 0, 60, 4]];
+const NET = [['gang', '📻', 'Gang comms', 'Tap the crews\' phones: every hideout on your map and their next shipments.', 0, 2, 180, 8], ['corp', '🏢', 'Helix Labs data heist', 'Steal research data and sell it to a rival.', 0, 3, 360, 22], ['grid', '💡', 'City power grid', 'Black out the streetlights around you for three minutes. Night is yours.', 0, 3, 300, 14], ['lights', '🚦', 'Traffic control', 'Every signal near you goes green for a minute. Chaos.', 0, 2, 150, 10], ['police', '🚓', 'Police records', 'Wipe your description and what the neighborhoods remember. Takes the edge off a chase.', 1, 4, 240, 25], ['bank', '🏦', 'Varro Savings & Loan', 'Skim the corporate accounts. The biggest score — and the loudest.', 1, 5, 900, 55]];
 const pcCD = k => { const D = DEV(); D.cd = D.cd || {}; return Math.max(0, (D.cd[k] || 0) - (G.save.playT || G.t)); };
 const nowT = () => G.save.playT || G.t;
 { const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') G.save.playT = (G.save.playT || 0) + dt; }; }
 function pcDo(d, kind, row) { const D = DEV(), st = devStats(d), k = row[0], pw = st.power; D.cd = D.cd || {}; D.cd[k] = nowT() + row[6];
   const fin = (ok, txt, cash, toBank) => { devWear(d, .006); traceAdd(ok ? row[7] : row[7] * 1.4, d); if (cash) { if (toBank) G.bank += cash; else addCash(cash); Snd.play('cash'); } else if (!ok) Snd.play('bad'); msg((ok ? '💻 ' : '❌ ') + txt, ok ? '#2ecc71' : '#ff6b6b'); doSave(true); Panel.render(); };
-  const run = () => { if (k === 'phish') { const ok = Math.random() < clamp(.42 + st.speed * .05, 0, .9); return fin(ok, ok ? 'Phishing paid off: ' + money(Math.round(rnd(250, 900) * (1 + pw / 60))) + ' landed in your bank.' : 'Nobody bit. Spam filters ate it.', ok ? Math.round(rnd(250, 900) * (1 + pw / 60)) : 0, 1); }
+  const run = () => { if (k === 'phish') { const ok = Math.random() < clamp(.42 + st.speed * .05, 0, .9), v = Math.round(rnd(150, 500) * (1 + pw / 120)); return fin(ok, ok ? 'Phishing paid off: ' + money(v) + ' landed in your bank.' : 'Nobody bit. Spam filters ate it.', ok ? v : 0, 1); }
     if (k === 'dumps') { if (!payAny(600)) return Snd.play('bad'); const m = Math.random() < .25 ? 0 : rnd(.6, 2.4) * (1 + st.crack * .08); const v = Math.round(600 * m); return fin(v > 600, v ? 'Cashed out the batch for ' + money(v) + (v < 600 ? ' — a loss.' : '.') : 'The whole batch was dead. $600 gone.', v, 1); }
     if (k === 'launder') { const n = Math.min(G.cash, 5000 + Math.round(pw * 120)); if (n < 100) return toast('You need some cash in your pocket to launder'); G.cash -= n; const cut = d.adds.vpn ? .12 : .2; return fin(true, 'Laundered ' + money(n) + ' → ' + money(Math.round(n * (1 - cut))) + ' clean in your bank.', Math.round(n * (1 - cut)), 1); }
-    if (k === 'ransom') return fin(true, 'They paid the ransom: ' + money(Math.round(rnd(3000, 9000) * (1 + st.crack * .12))) + '.', Math.round(rnd(3000, 9000) * (1 + st.crack * .12)), 1);
-    if (k === 'corp') return fin(true, 'Sold Helix Labs\' research for ' + money(Math.round(rnd(1500, 4500) * (1 + st.crack * .1))) + '.', Math.round(rnd(1500, 4500) * (1 + st.crack * .1)), 1);
-    if (k === 'bank') return fin(true, 'Skimmed ' + money(Math.round(rnd(6000, 18000) * (1 + st.crack * .1))) + ' from Varro Savings & Loan into a shell account.', Math.round(rnd(6000, 18000) * (1 + st.crack * .1)), 1);
+    if (k === 'ransom') { const v = Math.round(rnd(1500, 4500) * (1 + st.crack * .06)); return fin(true, 'They paid the ransom: ' + money(v) + '.', v, 1); }
+    if (k === 'corp') { const v = Math.round(rnd(900, 2600) * (1 + st.crack * .05)); return fin(true, 'Sold Helix Labs\' research for ' + money(v) + '.', v, 1); }
+    if (k === 'bank') { const v = Math.round(rnd(3500, 9000) * (1 + st.crack * .05)); return fin(true, 'Skimmed ' + money(v) + ' from Varro Savings & Loan into a shell account.', v, 1); }
     if (k === 'gang') { for (const g in HIDE) if (g !== '_done') facSeen()[g] = 1; const F = FAC(); for (const g in F) if (F[g]) F[g].convCD = Math.min(F[g].convCD || 999, rnd(15, 40)); return fin(true, 'You\'re in their group chats: every hideout is on your map, and their next supply runs leave soon — be near a hideout.'); }
     if (k === 'grid') { const o = G.scene ? G.outPos : G.player; let n = 0; for (const p of propsNear(o.x, o.y, 1400)) if (p.t === 'lamp') { p.hackOff = G.t + 180; n++; } return fin(true, 'Grid hacked: ' + n + ' streetlights around you are dark for three minutes.'); }
     if (k === 'lights') { lightHackArea(G.scene ? G.outPos : G.player, 1500, 'green', 60); return fin(true, 'Every signal around you is green. Drive carefully — nobody else will.'); }
@@ -12885,7 +12887,7 @@ PMODES.pc = function (H) { const D = DEV(), P = this; let d = devOf(P.opt.uid); 
   const L = tab === 'dark' ? DARK : NET; trace();
   for (const row of L) { const cd = pcCD(row[0]), need = row[4] && !d.adds.exploit, dif = row[5], chance = dif ? Math.round(100 * clamp(.95 - (dif - st.speed / 2.2) * .12, .2, .97)) : null;
     H.row(scr2, row[1], row[2], row[3] + ' · trace +' + row[7] + '%' + (dif ? ' · intrusion puzzle, level ' + dif : '') + (cd ? ' · ready in ' + Math.ceil(cd) + 's' : ''), [H.btn(need ? 'Needs exploit suite' : cd ? 'Cooling down' : 'Run', () => pcDo(d, tab, row), 'y', !!(need || cd || (row[0] === 'dumps' && !canPay(600))))]); } };
-const minerRate = d => (1.2 + partT(d, 'gpu') * 1.1) * devStats(d).thr / 60;
+const minerRate = d => (3 + partT(d, 'gpu') * 3.2) * devStats(d).thr / 60;
 { const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.save.dev) return; const D = G.save.dev;
   if (D.gig && nowT() >= D.gig.end) { const gg = PCGIGS.find(x => x[0] === D.gig.k); G.bank += D.gig.pay; msg('💼 Gig done — ' + gg[2] + ': ' + money(D.gig.pay) + ' paid to your bank.', '#2ecc71'); Snd.play('cash'); D.gig = null; doSave(true); }
   D.mineT = (D.mineT || 0) + dt; if (D.mineT >= 10) { let v = 0; for (const d of D.list) if (d.adds.farm && DEV_MODELS[d.m].f === 'pc' && d.loc !== 'carry') { v += minerRate(d) * D.mineT; devWear(d, .0006 * D.mineT / 10); } D.mineT = 0; if (v) { D.mined = (D.mined || 0) + v; if (D.mined >= 25) { G.bank += Math.floor(D.mined); D.mined -= Math.floor(D.mined); } } } }; }
@@ -12969,7 +12971,7 @@ function hkHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h 
 function profileOf(q) { if (q.prof) return q.prof; const h = hkHash((q.name || '') + (q.uid || '')), r = k => ((h >>> (k * 3)) % 1000) / 1000;
   if (q.role === 'cop') return q.prof = { job: 'Officer, Varro PD', inc: '$58,000', line: 'Badge #' + (1000 + h % 8999) + ' · ' + (h % 4) + ' complaints on file', bal: 0, cop: 1 };
   if (q.gang) return q.prof = { job: 'Known associate — ' + GANGS[q.gang].name, inc: 'Unreported', line: 'Encrypted group chat · ' + (1 + h % 9) + ' burner numbers', bal: r(2) < .5 ? Math.round(80 + r(3) * 600) : 0, gang: q.gang };
-  const rich = r(1) < .06; return q.prof = { job: rich ? pick(['Hedge fund manager', 'Surgeon', 'Tech founder', 'Heir to a mattress fortune']) : OCC[h % OCC.length], inc: '$' + Math.round(rich ? 400 + r(2) * 2000 : 18 + r(2) * 90) + ',000', line: QUIRK[(h >>> 5) % QUIRK.length], bal: rich ? Math.round(900 + r(3) * 3500) : r(3) < .55 ? Math.round(30 + r(4) * 420) : 0 }; }
+  const rich = r(1) < .04; return q.prof = { job: rich ? pick(['Hedge fund manager', 'Surgeon', 'Tech founder', 'Heir to a mattress fortune']) : OCC[h % OCC.length], inc: '$' + Math.round(rich ? 400 + r(2) * 2000 : 18 + r(2) * 90) + ',000', line: QUIRK[(h >>> 5) % QUIRK.length], bal: rich ? Math.round(600 + r(3) * 1800) : r(3) < .4 ? Math.round(20 + r(4) * 240) : 0 }; }
 // ---------- targets ----------
 const HKC = { ped: '#00e5ff', cop: '#4f8cff', gang: '#ff5c8a', car: '#ffd23f', copcar: '#4f8cff', parked: '#ffd23f', lamp: '#fff59d', hydrant: '#ff5252', atm: '#69f0ae', vend: '#69f0ae', phone: '#b388ff', light: '#39e075', vent: '#ff9f43', cam: '#ff9f43', relay: '#00e5ff' };
 const HKI = { ped: '👤', cop: '👮', gang: '☠', car: '🚗', copcar: '🚓', parked: '🔒', lamp: '💡', hydrant: '🚒', atm: '🏧', vend: '🥤', phone: '☎', light: '🚦', vent: '♨', cam: '📹', relay: '📡' };
@@ -13120,6 +13122,29 @@ NAVCATS.push(['✈', 'Airport', () => W.airport ? [{ x: W.airport.office.x, y: W
 { const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.save || G.save.fix195) return; G.save.fix195 = 1; let n = 0;
   try { for (const g in GANGS) { if ((G.rep[g] | 0) <= -30) { G.rep[g] = -20; n++; } if (G.gangAggro[g] > 0 && G.gangAggro[g] < 500) G.gangAggro[g] = 0; } const F = typeof FAC === 'function' ? FAC() : {}; for (const g in F) if (F[g]) { F[g].hunt = 0; F[g].hitCD = 120; } } catch (e) { }
   if (n) msg('🤝 Word on the street: the ' + n + ' crew' + (n > 1 ? 's' : '') + ' that wanted you dead have cooled off — for now.', '#2ecc71'); doSave(); }; }
+
+// ================= 1.96: a bookkeeper for your empire, and heists you can run again =================
+// Bookkeeper: one hire, and every midnight all your property safes are swept into your bank (minus a 6% fee),
+// so owning a dozen places doesn't mean a daily lap of the city to empty them.
+const BK_PRICE = 30000, BK_FEE = .06;
+{ const _lt = lifeTick; lifeTick = function (dt) { const L = LIFE(), d0 = L.day; _lt(dt); if (!L.bk || d0 === undefined || L.day === d0) return; let n = 0, k = 0;
+  for (const id in L.own) { const O = L.own[id]; if (O && O.safe >= 1) { const v = Math.floor(O.safe); O.safe -= v; n += v; k++; } }
+  if (n) { const net = Math.round(n * (1 - BK_FEE)); G.bank += net; L.earned = (L.earned || 0) + net; msg('📒 Your bookkeeper swept ' + k + ' safe' + (k > 1 ? 's' : '') + ': ' + money(net) + ' deposited (after a ' + money(n - net) + ' fee).', '#2ecc71'); } }; }
+{ const _ph = PMODES.phone; PMODES.phone = function (H) { const r = _ph.call(this, H); if (this.tab !== 'empire') return r; try { const L = LIFE(), n = Object.keys(L.own || {}).length; if (!n) return r; const c = H.col('📒 Bookkeeper');
+  if (L.bk) H.row(c, '📒', 'Bookkeeper on payroll', 'Every midnight your safes are swept into your bank, minus a ' + Math.round(BK_FEE * 100) + '% fee. You can still empty a safe yourself any time to keep the whole thing.', [H.btn('Let them go', () => { L.bk = 0; doSave(true); }, 'r')]);
+  else H.row(c, '📒', 'Hire a bookkeeper', 'Sweeps every property safe into your bank at midnight for a ' + Math.round(BK_FEE * 100) + '% fee — no more driving round to collect. ' + money(BK_PRICE) + ' one-time.', [H.btn('Hire', () => { if (!payAny(BK_PRICE)) return; L.bk = 1; Snd.play('cash'); doSave(true); }, 'y', !canPay(BK_PRICE))]); } catch (e) { } return r; }; }
+// Heists: once you've pulled one, the contact will plan it again after things cool off (two in-game days).
+// Replays pay 80% of the original cut; the setups and the finale play out fresh.
+const HEIST_COOL = 48, heistCut = H => { const S = HST(); return (S.runs && S.runs[H.id]) ? Math.round(H.pay * .8 / 500) * 500 : H.pay; };
+{ const _ht = heistTalk; heistTalk = function (q) { const H = HEISTS.find(h => h.id === q.heist), S = HST(); if (!H || !S.done[H.id]) return _ht(q); S.fin = S.fin || {}; S.runs = S.runs || {};
+  if ((S.prog[H.id] | 0) < H.steps.length) { const p0 = H.pay; S.done[H.id] = 0; H.pay = heistCut(H); try { _ht(q); } finally { S.done[H.id] = 1; H.pay = p0; } return; }
+  const wait = HEIST_COOL - (GH() - (S.fin[H.id] ?? -1e9)); if (wait > 0) return say(H.who, '"Too hot right now. Give it ' + Math.ceil(wait / 24) + ' more day' + (wait > 24 ? 's' : '') + ' and come see me."', [{ t: 'Later' }]);
+  say(H.who, '"Same crew, same plan, fresh security. Want to run it back? Your cut this time: ' + money(Math.round(H.pay * .8 / 500) * 500) + '."', [G.mission ? { t: 'Finish what you\'re doing first', d: true } : { t: 'Plan it again', c: 'y', f: () => { closeDialog(); S.prog[H.id] = 0; S.runs[H.id] = (S.runs[H.id] | 0) + 1; heistTalk(q); } }, { t: 'Not now' }]); }; }
+{ const _hs = startHeistStep; startHeistStep = function (H, i) { const r = _hs.apply(this, arguments); const m = G.mission; if (m && m.heistId === H.id && m.reward) m.reward = heistCut(H); return r; }; }
+{ const _hf = heistFinish; heistFinish = function (H) { const live = G.mission && G.mission.heistId === H.id, cut = heistCut(H); _hf(H); if (!live) return; const S = HST(); S.fin = S.fin || {}; S.fin[H.id] = GH(); if (G.big && cut !== H.pay) G.big.sub = H.n + ' — your cut ' + money(cut); msg(H.who + ' will plan it again once things cool off — about two days.', '#ce93d8'); }; }
+{ const _tab = heistsTab; heistsTab = function (H) { _tab(H); const S = HST(), done = HEISTS.filter(h => S.done[h.id]); if (!done.length) return; const c = H.col('Run it back');
+  for (const h of done) { const inProg = (S.prog[h.id] | 0) < h.steps.length, wait = HEIST_COOL - (GH() - ((S.fin || {})[h.id] ?? -1e9));
+    H.row(c, '🔁', h.n + ' — ' + h.who, inProg ? 'Replay in progress · ' + (S.prog[h.id] | 0) + '/' + h.steps.length + ' steps' : wait > 0 ? 'Ready again in ' + Math.ceil(wait / 24) + ' day' + (wait > 24 ? 's' : '') : 'Ready — ' + money(Math.round(h.pay * .8 / 500) * 500) + ' cut', [H.btn('GPS', () => { setNav({ x: h.drop.x, y: h.drop.y, name: h.who }); Panel.close(); }, 'y')]); } }; }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with

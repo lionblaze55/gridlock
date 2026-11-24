@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.96 — Economy pass from a $100M playthrough
+A fast-forward bot played the game aiming for $100M. These changes come from what it found.
+- **Drug labs make money now.** Before, every lab lost money on every unit, even fully upgraded: Velvet's supplies cost about $659 per unit, and a unit sells for at most about $540.
+  - Supplies now cost about 22% of the street value of what they produce.
+  - Supplies last about four times longer. A maxed lab needs restocking about once a day instead of every 5 minutes.
+  - Cheaper drugs come in bigger batches, so cheap labs are worth owning too.
+  - Street crews scale with batch size.
+  - Fully upgraded labs earn back their cost in about 12–18 in-game days; starter labs in about 3 weeks.
+- **Bookkeeper ($30k, in your phone's Empire tab):** sweeps every property safe into your bank at midnight for a 6% fee. Before, collecting from a dozen properties took about a third of every in-game day.
+- **Heists can be replayed.** Two in-game days after finishing one, the contact will plan it again for 80% of the cut. The Heists tab shows when each is ready. Before, the four heists ran out after one go each.
+- **Computer crime toned down.** A gaming PC was earning about $460k an hour from home with no real risk, several times more than anything else, and it also made gigs absurd.
+  - Smaller scores and longer cooldowns for the bank hack, ransomware, data heist and phishing.
+  - Gigs are real shifts now (2–18 in-game minutes) with modest power scaling.
+  - Crypto miners pay about 3× more.
+- **Cyber Crimes raids freeze at most $15k,** instead of 10% of your whole bank account, which grew without limit as you got rich. Trace also fades faster.
+- **Street hacking skims trimmed:** fewer fat wallets, smaller balances.
+- **Fixed:** the computer-crime payout message showed a different amount from what you actually got.
+- **Fixed:** an error every frame when you stole a car that a patrol car was pulling over.
+- **Fixed:** a sound error from a bad position value.
+
 ## 1.95 — Shooting back, fewer street ambushes, airport on the GPS
 - Shooting back: on foot, tapping fire now turns to whoever is attacking you, even from behind. Before, only attackers right next to you counted, so a shot from behind made you fire at whatever was in front of you, often a passer-by. Whoever just hurt you gets top priority, and knocked-out people are never targeted.
 - Fixed J: it's the fire key, but 1.93 also bound it to hack mode, so shooting kept toggling hacking. Hack mode is now on U.

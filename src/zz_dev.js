@@ -66,8 +66,8 @@ function phoneCharge() { const d = activePhone(); if (!d) return { n: 0, max: 0 
 // ---------- trace: how close the cyber unit is to finding you ----------
 function traceAdd(n, d) { const D = DEV(); const vpn = d && d.adds.vpn ? .6 : 1, office = typeof atBase === 'function' && atBase() ? .75 : 1; D.trace = clamp(D.trace + n * vpn * office, 0, 100);
   if (D.trace >= 100) { D.trace = 45; const at = G.scene ? G.outPos : G.player; G.heat = Math.max(G.heat, 2.2); G.heatT = Math.max(G.heatT || 0, 1.2); markSeen(); G.lastKnown = { x: at.x, y: at.y }; G.starFlash = 2; Snd.play('starup');
-    const seized = Math.min(G.bank, Math.round(G.bank * .1)); G.bank -= seized; msg('🚨 The Cyber Crimes Unit traced you!' + (seized ? ' They froze ' + money(seized) + ' of your bank account.' : '') + ' Units are on the way.', '#ff4d4d'); } }
-{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save.dev) G.save.dev.trace = Math.max(0, G.save.dev.trace - dt * .05); }; }
+    const seized = Math.min(G.bank, Math.round(G.bank * .1), 15000); G.bank -= seized; msg('🚨 The Cyber Crimes Unit traced you!' + (seized ? ' They froze ' + money(seized) + ' of your bank account.' : '') + ' Units are on the way.', '#ff4d4d'); } }
+{ const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play' && G.save.dev) G.save.dev.trace = Math.max(0, G.save.dev.trace - dt * .08); }; }
 // ---------- the bin ----------
 const BIN = () => DEV().bin;
 function binAdd(f, k, t, c) { BIN().push({ f, k, t, c: c ?? 1 }); }

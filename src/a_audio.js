@@ -54,8 +54,8 @@ const Snd = {
   setVol(v) { this.vol = v; store.set('gl_vol', v); if (this.sfx) { this.sfx.gain.value = v; this.amb.gain.value = this.avol * v; } },
   setMVol(v) { this.mvol = v; store.set('gl_mvol', v); if (this.mus) this.mus.gain.value = v * .5; },
   setAVol(v) { this.avol = v; store.set('gl_avol', v); if (this.amb) this.amb.gain.value = v * this.vol; },
-  att(x, y) { if (x === undefined) return 1; const d = dist(x, y, this.listener.x, this.listener.y); return clamp(1 - d / 1500, 0, 1) ** 1.3; },
-  out(x, y) { const c = this.ctx; if (x === undefined || !c.createStereoPanner) return this.sfx; const p = c.createStereoPanner(); p.pan.value = clamp((x - this.listener.x) / 700, -1, 1) * .75; p.connect(this.sfx); return p; },
+  att(x, y) { if (x === undefined) return 1; if (!isFinite(x) || !isFinite(y)) return 1; const d = dist(x, y, this.listener.x, this.listener.y); return clamp(1 - d / 1500, 0, 1) ** 1.3; },
+  out(x, y) { const c = this.ctx; if (x === undefined || !isFinite(x) || !c.createStereoPanner) return this.sfx; const p = c.createStereoPanner(); p.pan.value = clamp((x - this.listener.x) / 700, -1, 1) * .75; p.connect(this.sfx); return p; },
   nz(dur, freq, type, vol, t0, q, dest, atk) {
     const c = this.ctx, s = c.createBufferSource(); s.buffer = this.noise; s.playbackRate.value = .7 + Math.random() * .6;
     const f = c.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq; if (q) f.Q.value = q;
