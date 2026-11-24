@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.98 — Skills
+Nine skills that grow by doing, each from level 1 to 20. See them from your phone: ⭐ Skills.
+- 💪 **Strength** (melee hits, knockouts, the weight bench): melee damage up to +100%, damage taken up to −20%.
+- 🏃 **Stamina** (running, swimming, the weight bench): run speed up to +15%, swim speed up to +40%, and up to 1.5 HP/s healing once you're out of combat.
+- 🏎 **Driving** (driving fast): grip up to +30%, acceleration up to +15%, crash damage up to −25%.
+- 🎯 **Aiming** (landing shots): bullet spread up to −55%, reloads up to 35% faster.
+- 🍳 **Cooking** (cooking at a kitchen, lab shipments): lab output up to +30%, and a bigger perfect zone when cooking.
+- 🤝 **Bartering** (buying and selling in shops, with dealers, at the pawn shop, chop shop and when buying property): prices up to 15% lower, sales up to 20% higher. A toast shows what you haggled.
+- 💻 **Hacking** (any hack): uploads up to 45% faster, up to +50% puzzle time, up to −30% trace, and +1 phone battery at level 10 and another at 20.
+- 😎 **Charisma** (talking to people, finishing missions, bribes): mission pay up to +25%, rep gains up to +50%, bribes up to 22% more likely, and up to 25% of witnesses decide not to get involved.
+- 🍀 **Luck** (gambling, close calls, critical hits): critical hits for double damage (up to 12%), lucky dodges that cut a hit to 30% (up to 15%), casino winnings up to +10%, and cash you find lying in the street.
+- Level-ups are announced, and crits and lucky dodges pop up on screen.
+- Existing saves start with credit: hacking and cooking begin at a level based on what you've already done.
+
 ## 1.97 — Saving fixed
 - **Fixed: progress wasn't being saved.** Since 1.94, once you'd walked into one of your homes, every save silently failed. "Game saved" still appeared, but loading put you back at your last save from before then. Placing furniture could cause the same failure in older versions.
   - Cause: a furniture record linked to its live copy in the room, and that copy linked back. The save can't be written with a loop like that, and the error was being swallowed.

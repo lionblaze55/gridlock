@@ -150,6 +150,8 @@ function shade(hex, f) { // f<1 darker, >1 lighter
   return '#' + ((1 << 24) | (clamp(r | 0, 0, 255) << 16) | (clamp(g | 0, 0, 255) << 8) | clamp(b | 0, 0, 255)).toString(16).slice(1);
 }
 function money(n) { return '$' + Math.floor(n).toLocaleString('en-US'); }
+const SKM = { str: 0, sta: 0, drv: 0, aim: 0, cook: 0, bar: 0, hack: 0, cha: 0, luck: 0 };
+const skXP = (k, n) => { if (typeof skGain === 'function') skGain(k, n); };
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   // runtime links (a furniture record's live scene item, etc.) are never saved; a loop anywhere else is cut instead of
@@ -1497,12 +1499,12 @@ function updateCar0(c, dt) {
   const fx = Math.cos(c.a), fy = Math.sin(c.a);
   let fwd = c.vx * fx + c.vy * fy, lat = -c.vx * fy + c.vy * fx;
   const th = c.throttle;
-  if (th > 0) { if (fwd < -15) fwd += 950 * th * dt; else fwd += th * d.acc * (1 - clamp(fwd / d.max, 0, 1.2)) * dt; }
+  if (th > 0) { if (fwd < -15) fwd += 950 * th * dt; else fwd += th * d.acc * (c.driver === G.player ? 1 + SKM.drv * .15 : 1) * (1 - clamp(fwd / d.max, 0, 1.2)) * dt; }
   else if (th < 0) { if (fwd > 15) fwd -= (d.brk || 1200) * .85 * -th * dt; else if (fwd > -d.max * .38) fwd += th * d.acc * .65 * dt; }
   else { const f = Math.min(Math.abs(fwd), 70 * dt); fwd -= Math.sign(fwd) * f; }
   if (c.brake) { const f = Math.min(Math.abs(fwd), d.brk * dt); fwd -= Math.sign(fwd) * f; }
   fwd -= fwd * .12 * dt;
-  const grip = (c.hand ? 1.4 : d.grip) * (c.shoveT > 0 ? (c.shoveT -= dt, c.shoveG || .2) : 1);
+  const grip = (c.hand ? 1.4 : d.grip * (c.driver === G.player ? 1 + SKM.drv * .3 : 1)) * (c.shoveT > 0 ? (c.shoveT -= dt, c.shoveG || .2) : 1);
   if (c.hand) { const f = Math.min(Math.abs(fwd), 280 * dt); fwd -= Math.sign(fwd) * f; }
   const latOld = lat; lat *= Math.exp(-grip * dt);
   c.vx = fx * fwd - fy * lat; c.vy = fy * fwd + fx * lat;
@@ -2590,7 +2592,7 @@ function controlPlayer0(dt) {
     if (I.fire) playerFire(I.aiming ? (G.settings.assist ? aimMagnet(I.aimA, 500) : I.aimA) : (G.settings.assist ? autoAim(c.a, 500) : c.a));
   } else {
     if (G.sitting) { if (mag > .3) G.sitting = null; else { heal(dt * 2); p.mvx = p.mvy = 0; return; } }
-    const run = mag > .82 || I.sprint; const spd = (run ? 178 : 110 * clamp(mag / .82, 0, 1)) * (G.drunk > 0 ? .85 : 1) * drugSpd() * (p.swim ? .42 : 1);
+    const run = mag > .82 || I.sprint; const spd = (run ? 178 * (1 + SKM.sta * .15) : 110 * clamp(mag / .82, 0, 1)) * (p.swim ? 1 + SKM.sta * .4 : 1) * (G.drunk > 0 ? .85 : 1) * drugSpd() * (p.swim ? .42 : 1);
     if (mag > .12) { p.mvx = mx / (mag || 1) * spd; p.mvy = my / (mag || 1) * spd; if (!I.aiming) p.a = Math.atan2(my, mx); G.dancing = 0; } else { p.mvx = p.mvy = 0; }
     if (I.aiming) p.a = I.aimA;
     if (isThrow(p.weapon)) {
@@ -9413,7 +9415,7 @@ function addLabs2() { if (!W || !W.realty || W._labs2) return; W._labs2 = 1; con
 const LABRATE = [0, .8, 1.4, 2.2, 3.2, 4.5], labLvl = O => clamp(O.lvl | 0, 1, 5);
 const LMUL = new WeakMap(), labMul = O => { if (LMUL.has(O)) return LMUL.get(O); const r = W.realty.find(x => LIFE().own[x.id] === O), D = r && DRUGS.find(d => d.id === r.drug), m = D ? clamp(Math.sqrt(450 / D.base), 1, 3.6) : 1; if (r) LMUL.set(O, m); return m; };
 const labCap = O => Math.round((40 * labLvl(O) + 30 * (O.cooks | 0)) * labMul(O));
-const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O);
+const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O) * (1 + SKM.cook * .3);
 const labBurn = O => (4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0))) / 4;
 const labSupply = (O, D) => Math.max(200, Math.round(50 / labBurn(O) * labRate(O) * D.base * .22 / 50) * 50);
 const labRaid = O => .005 * (O.up && O.up.sec ? .25 : 1) * (1 + .15 * (labLvl(O) - 1) + .25 * (O.crew | 0) + .1 * (O.cooks | 0));
@@ -9871,7 +9873,7 @@ function stars5(n) { const k = Math.min(COOK_MASTER, n | 0); return '★'.repeat
   else H.row(c2, '🛒', 'Missing ingredients', 'Groceries sell the basics. Farms, hunting and fishing get you the rest.');
   H.foot.appendChild(H.mk('span', 'pnote', 'Perfect timing = bonus portions. Good = what you planned. Under or over = half of it is ruined. Uses ingredients from your bag' + (canDecorate() ? ' and home stash' : '') + (nearFarm() ? ' and farm storage' : '') + '.')); }; }
 // ---- the mini-game ----
-function cookGame(r, n) { const el = document.getElementById('panel'); const old = el.querySelector('.ckmodal'); if (old) old.remove(); const it = ITEMS[r.id], D = cookDiff(r.ing), lvl = COOK()[r.id] | 0, zone = D.zone + Math.min(lvl, COOK_MASTER) * .008, z0 = .45 + (hash01(r.id) - .5) * .3, z1 = z0 + zone, g0 = z0 - .13, g1 = z1 + .13;
+function cookGame(r, n) { const el = document.getElementById('panel'); const old = el.querySelector('.ckmodal'); if (old) old.remove(); const it = ITEMS[r.id], D = cookDiff(r.ing), lvl = COOK()[r.id] | 0, zone = D.zone + Math.min(lvl, COOK_MASTER) * .008 + SKM.cook * .07, z0 = .45 + (hash01(r.id) - .5) * .3, z1 = z0 + zone, g0 = z0 - .13, g1 = z1 + .13;
   const ov = document.createElement('div'); ov.className = 'ckmodal'; ov.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,.78);z-index:7;display:flex;align-items:center;justify-content:center';
   const pct = v => (v * 100).toFixed(1) + '%';
   ov.innerHTML = `<div style="width:min(560px,94%);background:#161a22;border:3px solid #f2c230;border-radius:14px;padding:14px 16px;text-align:center;font-family:Rubik,system-ui,sans-serif;color:#fff">
@@ -12242,11 +12244,11 @@ function bribeCop() { const p = G.player; let best = null, bd = 1e12; for (const
 function bribeOffer(q) { q = q || bribeCop(); if (!q) return toast('No cop close enough to talk to');
   if (!bribeable(q)) return say(q.name + ' — SVPD', stars() > 2 ? '"Too late for that. Hands where I can see them!"' : '"Not a chance. Not for what you did."');
   const st = Math.max(1, stars()), R = G.rap || [], fine = Math.max(250 * st, R.reduce((s, e) => s + chargeFine(e), 0)), lo = Math.max(100, r50b(fine * .4)), hi = Math.max(250, r50b(fine * .9));
-  const cor = copCorrupt(q), ch = b => clamp(b - (st - 1) * (cor ? .08 : .15) - (plArmed() ? .1 : 0), .05, .95), c1 = ch(cor ? .62 : .2), c2 = ch(cor ? .92 : .45); G.talkPed = q; q.talking = 1; q.state = 'idle';
+  const cor = copCorrupt(q), ch = b => clamp(b + SKM.cha * .22 - (st - 1) * (cor ? .08 : .15) - (plArmed() ? .1 : 0), .05, .95), c1 = ch(cor ? .62 : .2), c2 = ch(cor ? .92 : .45); G.talkPed = q; q.talking = 1; q.state = 'idle';
   const tryB = (amt, chance) => { closeDialog(); q.bribeTried = 1; q.talking = 0;
     if (Math.random() < chance && payCash(amt)) { callOffCops(); G.heat = 0; G.reports = []; for (const c of G.peds) if (c.role === 'cop' && !c.dead && c.target === G.player) { c.state = 'walk'; c.target = null; }
-      pedSay(q, pick(['I didn\'t see anything. Beat it.', 'Get out of here before I change my mind.', 'Pleasure doing business. Drive safe.'])); msg('💵 He pockets it — the cops back off.', '#2ecc71'); }
-    else { crime(1, 'Attempted bribery'); q.state = 'chase'; q.target = G.player; pedSay(q, pick(['Are you trying to bribe me?!', 'That\'s a felony, pal!', 'Nice try. Hands behind your back!'])); msg('🚔 He didn\'t bite — attempted bribery added to your sheet.', '#ff6b6b'); } };
+      pedSay(q, pick(['I didn\'t see anything. Beat it.', 'Get out of here before I change my mind.', 'Pleasure doing business. Drive safe.'])); msg('💵 He pockets it — the cops back off.', '#2ecc71'); skXP('cha', 25); }
+    else { crime(1, 'Attempted bribery'); q.state = 'chase'; q.target = G.player; pedSay(q, pick(['Are you trying to bribe me?!', 'That\'s a felony, pal!', 'Nice try. Hands behind your back!'])); msg('🚔 He didn\'t bite — attempted bribery added to your sheet.', '#ff6b6b'); skXP('cha', 5); } };
   say(q.name + ' — SVPD', '"' + pick(['You know why I stopped you?', 'Make it quick.', 'Let\'s hear it.']) + '" ' + (cor ? '(He\'s eyeing your wallet.)' : '(He looks straight-laced.)') + '\nWanted for: ' + (R.map(e => e.k).join(', ') || 'disorderly conduct') + ' · cash on you ' + money(G.cash), [
     { t: '💵 Slip him ' + money(lo) + ' — ~' + Math.round(c1 * 100) + '% he takes it', c: 'y', d: G.cash < lo, f: () => tryB(lo, c1) },
     { t: '💵 Make it worth his while: ' + money(hi) + ' — ~' + Math.round(c2 * 100) + '%', c: 'y', d: G.cash < hi, f: () => tryB(hi, c2) },
@@ -13017,7 +13019,7 @@ function hkStart(t, a) { const [id, , cost, up, relay] = a, d = activePhone(), c
   if (id === 'relay') return relayHack(t.o); if (relay && !relayOK(hX(t), hY(t))) { Snd.play('bad'); return toast('🔒 ' + (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name + '\'s CityNet relay is locked. Find the 📡 tower and break in first.'); }
   if (id === 'unlock' && carTier(t.o) >= 3 && !d.adds.exploit) { Snd.play('bad'); return toast('High-end locks need an exploit suite on your phone (Byte Depot).'); }
   const need = cost === 99 ? Math.max(3, ch.max) : cost; if (ch.n < need) { Snd.play('bad'); return toast(cost === 99 ? 'Blackout needs a full battery (at least 3).' : '🔋 Not enough battery — it recharges over time.'); }
-  if (G.hkUp) return; d.chg -= need; G.hkUp = { t: 0, need: up * clamp(2.4 / Math.max(.5, st.speed), .25, 1.7), tgt: t, id }; Snd.play('beep'); devWear(d, .002); }
+  if (G.hkUp) return; d.chg -= need; G.hkUp = { t: 0, need: up * clamp(2.4 / Math.max(.5, st.speed), .25, 1.7) * (1 - SKM.hack * .45), tgt: t, id }; Snd.play('beep'); devWear(d, .002); }
 function hkDone(U) { const t = U.tgt, o = t.o, id = U.id, d = activePhone(), quiet = () => { if (d.adds.ghost) return; const cop = G.peds.find(q => !q.dead && q.role === 'cop' && dist2(q.x, q.y, G.player.x, G.player.y) < 260 * 260 && seesPlayer(q, 260)); if (cop) { pedSay(cop, 'Hey — what are you doing with that phone?'); crime(.3, 'Hacking'); } }, loud = (s, l) => crime(s, l);
   let xp = 4; HKS().n++;
   switch (id) {
@@ -13057,7 +13059,7 @@ function hackPuzzle(level, st, cb) { let ov = document.getElementById('hackov');
   seen.add('0,' + r0); if (!dfs(0, r0, [[0, r0]])) { path = []; for (let x = 0; x < n; x++) path.push([x, r0]); for (let y = r0; y !== r1; y += Math.sign(r1 - r0)) path.push([n - 1, y + Math.sign(r1 - r0)]); }
   for (let k = 0; k < path.length; k++) { const [x, y] = path[k], prev = k ? path[k - 1] : [x - 1, y], next = k < path.length - 1 ? path[k + 1] : [x + 1, y]; for (const [px, py] of [prev, next]) { const dd = DIRS.find(v => v[0] === px - x && v[1] === py - y); if (dd) M[y][x] |= dd[2]; } }
   const SH = [5, 10, 3, 6, 12, 9, 7, 14]; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { if (!M[y][x]) M[y][x] = SH[Math.floor(Math.random() * (level > 3 ? 8 : 6))]; const k = Math.floor(Math.random() * 4); for (let i = 0; i < k; i++) M[y][x] = rot(M[y][x]); }
-  const lim = Math.max(14, 30 + (st ? st.speed : 2) * 2.5 - level * 3); let t0 = performance.now(), done = false, lit = new Set();
+  const lim = Math.max(14, 30 + (st ? st.speed : 2) * 2.5 - level * 3) * (1 + SKM.hack * .5); let t0 = performance.now(), done = false, lit = new Set();
   const flow = () => { lit = new Set(); if (!(M[r0][0] & 8)) return false; const Q = [[0, r0]]; lit.add('0,' + r0); let win = false; while (Q.length) { const [x, y] = Q.shift(); if (x === n - 1 && y === r1 && (M[y][x] & 2)) win = true; for (const [dx, dy, a, b] of DIRS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= n || ny >= n || !(M[y][x] & a) || !(M[ny][nx] & b) || lit.has(nx + ',' + ny)) continue; lit.add(nx + ',' + ny); Q.push([nx, ny]); } } return win; };
   const end = ok => { if (done) return; done = true; ov.classList.remove('show'); ov.onpointerdown = null; window.removeEventListener('keydown', kd, true); Snd.play(ok ? 'mission' : 'bad'); cb(ok); };
   const kd = e => { e.stopImmediatePropagation(); if (e.key === 'Escape') { e.preventDefault(); end(false); } }; window.addEventListener('keydown', kd, true);
@@ -13155,6 +13157,91 @@ const HEIST_COOL = 48, heistCut = H => { const S = HST(); return (S.runs && S.ru
 // swiping the app away or a phone call never costs more than a minute.
 { let acc = 0; const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.inGame || Net.room || !G.player || G.player.dead) return; acc += dt; if (acc >= 60) { acc = 0; doSave(true); } }; }
 { const bg = () => { try { if (G.inGame && !Net.room && G.player && !G.player.dead) doSave(true); } catch (e) { } }; document.addEventListener('visibilitychange', () => { if (document.hidden) bg(); }); window.addEventListener('pagehide', bg); }
+
+// ================= SKILLS: nine things your character gets better at by doing them =================
+// Each skill runs from level 1 to 20 and levels up by doing the thing: punch to get strong, run to build stamina,
+// drive fast to drive better, land shots to aim better, cook, haggle, hack, talk your way through things, and gamble
+// and take chances for luck. SKM (in a_core) holds each skill as 0..1 for the systems that read it.
+const SKDEF = {
+  str: ['💪', 'Strength', 'Land punches and melee hits, knock people out, lift weights at home.', f => `Melee damage +${Math.round(100 * f)}% · damage taken −${Math.round(20 * f)}%`],
+  sta: ['🏃', 'Stamina', 'Run and swim. The weight bench helps too.', f => `Run speed +${Math.round(15 * f)}% · swim +${Math.round(40 * f)}% · heal ${(1.5 * f).toFixed(1)} HP/s out of combat`],
+  drv: ['🏎', 'Driving', 'Drive fast without slowing down for anything.', f => `Grip +${Math.round(30 * f)}% · acceleration +${Math.round(15 * f)}% · crash damage −${Math.round(25 * f)}%`],
+  aim: ['🎯', 'Aiming', 'Land shots with guns.', f => `Bullet spread −${Math.round(55 * f)}% · reload ${Math.round(35 * f)}% faster`],
+  cook: ['🍳', 'Cooking', 'Cook at a kitchen and ship product from your labs.', f => `Lab output +${Math.round(30 * f)}% · bigger perfect zone when cooking`],
+  bar: ['🤝', 'Bartering', 'Buy and sell in shops, with dealers, at the pawn shop and the chop shop.', f => `Buy ${Math.round(15 * f)}% cheaper · sell for ${Math.round(20 * f)}% more`],
+  hack: ['💻', 'Hacking', 'Hack anything — on the street or from a computer.', f => `Uploads ${Math.round(45 * f)}% faster · +${Math.round(50 * f)}% puzzle time · trace −${Math.round(30 * f)}%` + (f >= 1 ? ' · +2 battery' : f >= .5 ? ' · +1 battery' : '')],
+  cha: ['😎', 'Charisma', 'Talk to people, finish jobs, bribe cops.', f => `Mission pay +${Math.round(25 * f)}% · rep gains +${Math.round(50 * f)}% · bribes +${Math.round(22 * f)}% likelier · ${Math.round(25 * f)}% of witnesses look away`],
+  luck: ['🍀', 'Luck', 'Gamble, and live dangerously — it grows with every lucky break.', f => `${Math.round(12 * f)}% critical hits · ${Math.round(15 * f)}% lucky dodges · casino winnings +${Math.round(10 * f)}% · find cash in the street`] };
+const SK_MAX = 20, skNeed = l => Math.round(20 * Math.pow(1.22, l - 1));
+const SKS = () => { const S = G.save; if (!S.sk) { S.sk = {}; for (const k in SKDEF) S.sk[k] = { l: 1, x: 0 };
+  // existing saves start with credit for what they've already done
+  try { const H = S.hk; if (H && H.lvl) S.sk.hack.l = Math.min(SK_MAX, 1 + H.lvl * 2); const C = S.cook; if (C) S.sk.cook.l = Math.min(10, 1 + Math.floor(Object.values(C).reduce((a, v) => a + (v | 0), 0) / 3)); } catch (e) { } }
+  for (const k in SKDEF) if (!S.sk[k]) S.sk[k] = { l: 1, x: 0 }; return S.sk; };
+const skF = k => (SKS()[k].l - 1) / (SK_MAX - 1);
+function skSync() { if (!G.save) return; const S = SKS(); for (const k in SKDEF) SKM[k] = (S[k].l - 1) / (SK_MAX - 1); }
+function skGain(k, n) { if (!G.save || !SKDEF[k] || !(n > 0) || (typeof Net !== 'undefined' && Net.room && G.player && G.player.dead)) return; const s = SKS()[k]; if (s.l >= SK_MAX) return; s.x += n;
+  while (s.l < SK_MAX && s.x >= skNeed(s.l)) { s.x -= skNeed(s.l); s.l++; skSync(); const D = SKDEF[k]; msg(D[0] + ' ' + D[1] + ' is now level ' + s.l + (s.l === SK_MAX ? ' — MAXED!' : '') + ' · ' + D[3](skF(k)), '#ffd23f'); Snd.play('mission'); G.skFlash = { k, t: G.t }; }
+  if (s.l >= SK_MAX) s.x = 0; }
+// ---------- combat: aim, strength, luck ----------
+const SKF = { on: 0, crit: 0 };
+{ const _pw = pw; pw = function (i) { const w = _pw(i); if (!SKF.on || !w) return w; const m = (w.melee ? 1 + SKM.str : 1) * (SKF.crit ? 2 : 1); return Object.assign({}, w, { spread: (w.spread || 0) * (1 - SKM.aim * .55), dmg: w.dmg * m }); }; }
+{ const _f = playerFire0; playerFire0 = function () { SKF.on = 1; SKF.crit = Math.random() < SKM.luck * .12; try { return _f.apply(this, arguments); } finally { SKF.on = 0; } }; }
+{ const _h = Ped.prototype.hurt; Ped.prototype.hurt = function (n, by, kind) { const alive = !this.dead; const r = _h.apply(this, arguments);
+  if (alive && by === G.player && SKF.on && !this.isPlayer) { const w = WEAPONS[G.player.weapon] || {}; if (w.melee) skGain('str', 2); else skGain('aim', 1); if (SKF.crit) { G.critT = G.t; skGain('luck', .5); } } return r; }; }
+{ const _sr = startReload; startReload = function () { const p = G.player, t0 = p.reloadT; _sr(); if (!(t0 > 0) && p.reloadT > 0) { p.reloadT *= 1 - SKM.aim * .35; p.reloadMax = p.reloadT; } }; }
+{ const _hp = hurtPlayer; hurtPlayer = function (n, by, kind) { const p = G.player; if (n > 0 && p && !p.dead) { G.skHurtT = G.t;
+  if (by && by !== p && Math.random() < SKM.luck * .15) { n *= .3; G.luckyT = G.t; skGain('luck', 1); } n *= 1 - SKM.str * .2; } return _hp.call(this, n, by, kind); }; }
+{ const _d = Car.prototype.damage; Car.prototype.damage = function (n) { if (n > 0 && this === pCar() && this.driver === G.player) arguments[0] = n * (1 - SKM.drv * .25); return _d.apply(this, arguments); }; }
+{ const _t = takedownNow; takedownNow = function () { const q = takedownTarget(), was = q && q.ko; const r = _t.apply(this, arguments); if (q && q.ko && !was) skGain('str', 15); return r; }; }
+{ const _du = decorUse; decorUse = function (it) { const r = _du.apply(this, arguments); if (it && it.t === 'gym' && r && !(G.skGymT > G.t)) { G.skGymT = G.t + 90; skGain('str', 20); skGain('sta', 20); } return r; }; }
+// ---------- moving: stamina and driving; healing; street finds ----------
+{ let lx = null, ly = null, lc = null; const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || !G.save || !G.player) return; const p = G.player, c = pCar();
+  if (!G.skSynced) { G.skSynced = 1; skSync(); } const o = c || p, d = lx === null || lc !== c ? 0 : Math.hypot(o.x - lx, o.y - ly); lx = o.x; ly = o.y; lc = c;
+  if (!p.dead && d > 0 && d < 60 && !G.scene) { const v = d / Math.max(dt, 1e-4);
+    if (!c) { if (p.swim) skGain('sta', d / 250); else if (v > 150) skGain('sta', d / 400); }
+    else if (c.driver === p && v > 220 && !c.d.boat) skGain('drv', d / 900); }
+  if (!p.dead && p.hp < 100 && SKM.sta > 0 && G.t - (G.skHurtT || -99) > 6) p.hp = Math.min(100, p.hp + dt * SKM.sta * 1.5);
+  if (!c && !p.dead && !G.scene && SKM.luck > 0) { G.skFindT = (G.skFindT || 0) + dt; if (G.skFindT > 90) { G.skFindT = 0; if (Math.random() < SKM.luck * .35) { const v = Math.round(rnd(20, 200) * (1 + SKM.luck)); addCash(v); msg('🍀 Lucky find: ' + money(v) + ' lying in the gutter.', '#2ecc71'); skGain('luck', 3); } } } }; }
+// ---------- bartering: shops, dealers, the pawn shop, the chop shop, property ----------
+const SK_BUY = new Set(['shopk', 'gunshop', 'pawn', 'market', 'tech', 'devws', 'decor', 'bar', 'shopk', 'hgarage', 'yard', 'airport', 'guns', 'gunws', 'pets', 'lab']);
+const SK_SELL = new Set(['pawn', 'market', 'devws', 'yard', 'gunws', 'guns', 'farm']);
+const tradeDlg = () => (G.dlgOpen && G.skTradeDlg && G.skTradeDlg === G.dlgSeq) || performance.now() < (G.skTradeUntil || 0);
+const buyCtx = () => (G.invOpen && Panel.mode && SK_BUY.has(Panel.mode)) || G._skBuy || tradeDlg(), sellCtx = () => (G.invOpen && Panel.mode && SK_SELL.has(Panel.mode)) || tradeDlg();
+const barXP = n => 3 + Math.log10(Math.max(10, n)) * 3;
+{ const _sd = showDialog; showDialog = function () { const trade = G._skNextTrade || tradeDlg(); G._skNextTrade = 0; const r = _sd.apply(this, arguments); G.skTradeDlg = trade ? G.dlgSeq : 0;
+  const q = G.talkPed; if (q && !q._skT && !q.isPlayer) { q._skT = 1; skGain('cha', 4); } return r; }; }
+{ const _cd = closeDialog; closeDialog = function () { if (G.dlgOpen && G.skTradeDlg === G.dlgSeq) G.skTradeUntil = performance.now() + 60; return _cd.apply(this, arguments); }; }
+{ const _dm = dealerMenu; dealerMenu = function () { G._skNextTrade = 1; try { return _dm.apply(this, arguments); } finally { G._skNextTrade = 0; } }; }
+{ const _oc = openChop; openChop = function () { G._skNextTrade = 1; try { return _oc.apply(this, arguments); } finally { G._skNextTrade = 0; } }; }
+{ const _bp = buyProperty; buyProperty = function () { G._skBuy = 1; try { return _bp.apply(this, arguments); } finally { G._skBuy = 0; } }; }
+let skHagT = 0; const haggled = (off, n) => { if (performance.now() - skHagT > 1500) { skHagT = performance.now(); toast('🤝 Haggled ' + money(off) + ' off'); } skGain('bar', barXP(n)); };
+for (const nm of ['payAny', 'payCash']) { const _p = nm === 'payAny' ? payAny : payCash; const w = function (n) { const casino = G.invOpen && Panel.mode === 'casino';
+  if (n > 0 && !casino && buyCtx()) { const off = Math.floor(n * SKM.bar * .15); const r = _p.call(this, n - off); if (r) { if (off >= 1) haggled(off, n); else skGain('bar', barXP(n)); } return r; }
+  const r = _p.apply(this, arguments); if (r && casino && n > 0) skGain('luck', 1.5); return r; }; if (nm === 'payAny') payAny = w; else payCash = w; }
+{ const _ac = addCash; addCash = function (n, quiet) { if (n > 0) { if (G.invOpen && Panel.mode === 'casino') n = Math.round(n * (1 + SKM.luck * .1));
+  else if (sellCtx()) { const b = Math.round(n * SKM.bar * .2); if (b > 0) { n += b; if (performance.now() - skHagT > 1500) { skHagT = performance.now(); toast('🤝 Talked them up ' + money(b)); } } skGain('bar', barXP(n)); } } return _ac.call(this, n, quiet); }; }
+// ---------- charisma ----------
+{ const _cm = completeMission; completeMission = function () { const m = G.mission; if (m && m.reward > 0 && SKM.cha > 0 && !m._skBoost) { m._skBoost = 1; m.reward = Math.round(m.reward * (1 + SKM.cha * .25)); }
+  const r = _cm.apply(this, arguments); if (m) { skGain('cha', m.heistId ? 60 : 25); skGain('luck', 5); if (/shipment/i.test(m.title || '')) skGain('cook', 20); } return r; }; }
+{ const _ra = repAdd; repAdd = function (g, n) { return _ra.call(this, g, n > 0 ? Math.round(n * (1 + SKM.cha * .5)) : n); }; }
+{ const _pw2 = pickWitness; pickWitness = function () { const w = _pw2.apply(this, arguments); if (w && Math.random() < SKM.cha * .25) return null; return w; }; }
+// ---------- cooking & hacking ----------
+{ const _cd = cookDone; cookDone = function (r, n, res) { const out = _cd.apply(this, arguments); if (out) skGain('cook', 6 * (n | 0 || 1) + (res === 'perfect' ? 6 : 0)); return out; }; }
+{ const _x = hkXP; hkXP = function (n) { skGain('hack', n); return _x.apply(this, arguments); }; }
+{ const _p = pcDo; pcDo = function () { skGain('hack', 8); return _p.apply(this, arguments); }; }
+{ const _t = traceAdd; traceAdd = function (n, d) { return _t.call(this, n * (1 - SKM.hack * .3), d); }; }
+{ const _ds = devStats; devStats = function (d) { const s = _ds(d); if (d && DEV_MODELS[d.m].f === 'phone') s.charges += (SKM.hack >= .5 ? 1 : 0) + (SKM.hack >= 1 ? 1 : 0); return s; }; }
+// ---------- the Skills screen ----------
+(() => { const st = document.createElement('style'); st.textContent = `#panel .skbar{height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:4px}#panel .skbar b{display:block;height:100%;background:linear-gradient(90deg,#ffd23f,#ff9f43)}#panel .sklv{font-weight:800;color:#ffd23f}`; document.head.appendChild(st); })();
+PMODES.skills = function (H) { const S = SKS(); H.title.textContent = '⭐ Skills'; const tot = Object.values(S).reduce((a, s) => a + s.l, 0), c = H.col('Total level ' + tot + ' / ' + SK_MAX * 9);
+  for (const k in SKDEF) { const [e, n, how, eff] = SKDEF[k], s = S[k], f = (s.l - 1) / (SK_MAX - 1), r = H.row(c, e, n + '  ·  level ' + s.l + (s.l >= SK_MAX ? ' (max)' : ''), (s.l === 1 ? 'Up to: ' + eff(1) : eff(f)) + ' — ' + how, []);
+    const bar = H.mk('div', 'skbar'), b = H.mk('b'); b.style.width = (s.l >= SK_MAX ? 100 : Math.round(100 * s.x / skNeed(s.l))) + '%'; bar.appendChild(b); const t = r.querySelector('.pt'); if (t) t.appendChild(bar); }
+  H.foot.appendChild(H.mk('span', 'pnote', 'Skills grow by doing. Every level makes that part of the game a bit easier.')); };
+{ const _ph = PMODES.phone; PMODES.phone = function (H) { const r = _ph.call(this, H); try { const tabs = H.el.querySelector('.ptabs'); if (tabs) { const b = H.mk('button', '', '⭐ Skills'); b.onclick = () => { Snd.play('ui'); Panel.open('skills'); }; tabs.appendChild(b); } } catch (e) { } return r; }; }
+// ---------- HUD: crit and lucky-dodge pops, level-up glow ----------
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); if (G.mode !== 'play') return;
+  const pop = (t, s, col) => { const a = 1 - (G.t - t) / .7; if (a <= 0) return; ctx.globalAlpha = a; txt(s, VW / 2, VH * .38 - (1 - a) * 24 * sc, 18 * sc, col, 'center'); ctx.globalAlpha = 1; };
+  if (G.critT) pop(G.critT, '💥 CRIT', '#ff6b6b'); if (G.luckyT) pop(G.luckyT, '🍀 LUCKY', '#2ecc71'); }; }
 
 // ================= MENU RULES =================
 // Things (items, guns, attachments, parts, furniture) are icon tiles. Places, jobs, services and listings are compact lists with

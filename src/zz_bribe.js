@@ -10,11 +10,11 @@ function bribeCop() { const p = G.player; let best = null, bd = 1e12; for (const
 function bribeOffer(q) { q = q || bribeCop(); if (!q) return toast('No cop close enough to talk to');
   if (!bribeable(q)) return say(q.name + ' — SVPD', stars() > 2 ? '"Too late for that. Hands where I can see them!"' : '"Not a chance. Not for what you did."');
   const st = Math.max(1, stars()), R = G.rap || [], fine = Math.max(250 * st, R.reduce((s, e) => s + chargeFine(e), 0)), lo = Math.max(100, r50b(fine * .4)), hi = Math.max(250, r50b(fine * .9));
-  const cor = copCorrupt(q), ch = b => clamp(b - (st - 1) * (cor ? .08 : .15) - (plArmed() ? .1 : 0), .05, .95), c1 = ch(cor ? .62 : .2), c2 = ch(cor ? .92 : .45); G.talkPed = q; q.talking = 1; q.state = 'idle';
+  const cor = copCorrupt(q), ch = b => clamp(b + SKM.cha * .22 - (st - 1) * (cor ? .08 : .15) - (plArmed() ? .1 : 0), .05, .95), c1 = ch(cor ? .62 : .2), c2 = ch(cor ? .92 : .45); G.talkPed = q; q.talking = 1; q.state = 'idle';
   const tryB = (amt, chance) => { closeDialog(); q.bribeTried = 1; q.talking = 0;
     if (Math.random() < chance && payCash(amt)) { callOffCops(); G.heat = 0; G.reports = []; for (const c of G.peds) if (c.role === 'cop' && !c.dead && c.target === G.player) { c.state = 'walk'; c.target = null; }
-      pedSay(q, pick(['I didn\'t see anything. Beat it.', 'Get out of here before I change my mind.', 'Pleasure doing business. Drive safe.'])); msg('💵 He pockets it — the cops back off.', '#2ecc71'); }
-    else { crime(1, 'Attempted bribery'); q.state = 'chase'; q.target = G.player; pedSay(q, pick(['Are you trying to bribe me?!', 'That\'s a felony, pal!', 'Nice try. Hands behind your back!'])); msg('🚔 He didn\'t bite — attempted bribery added to your sheet.', '#ff6b6b'); } };
+      pedSay(q, pick(['I didn\'t see anything. Beat it.', 'Get out of here before I change my mind.', 'Pleasure doing business. Drive safe.'])); msg('💵 He pockets it — the cops back off.', '#2ecc71'); skXP('cha', 25); }
+    else { crime(1, 'Attempted bribery'); q.state = 'chase'; q.target = G.player; pedSay(q, pick(['Are you trying to bribe me?!', 'That\'s a felony, pal!', 'Nice try. Hands behind your back!'])); msg('🚔 He didn\'t bite — attempted bribery added to your sheet.', '#ff6b6b'); skXP('cha', 5); } };
   say(q.name + ' — SVPD', '"' + pick(['You know why I stopped you?', 'Make it quick.', 'Let\'s hear it.']) + '" ' + (cor ? '(He\'s eyeing your wallet.)' : '(He looks straight-laced.)') + '\nWanted for: ' + (R.map(e => e.k).join(', ') || 'disorderly conduct') + ' · cash on you ' + money(G.cash), [
     { t: '💵 Slip him ' + money(lo) + ' — ~' + Math.round(c1 * 100) + '% he takes it', c: 'y', d: G.cash < lo, f: () => tryB(lo, c1) },
     { t: '💵 Make it worth his while: ' + money(hi) + ' — ~' + Math.round(c2 * 100) + '%', c: 'y', d: G.cash < hi, f: () => tryB(hi, c2) },

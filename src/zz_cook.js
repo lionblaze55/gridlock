@@ -22,7 +22,7 @@ function stars5(n) { const k = Math.min(COOK_MASTER, n | 0); return '★'.repeat
   else H.row(c2, '🛒', 'Missing ingredients', 'Groceries sell the basics. Farms, hunting and fishing get you the rest.');
   H.foot.appendChild(H.mk('span', 'pnote', 'Perfect timing = bonus portions. Good = what you planned. Under or over = half of it is ruined. Uses ingredients from your bag' + (canDecorate() ? ' and home stash' : '') + (nearFarm() ? ' and farm storage' : '') + '.')); }; }
 // ---- the mini-game ----
-function cookGame(r, n) { const el = document.getElementById('panel'); const old = el.querySelector('.ckmodal'); if (old) old.remove(); const it = ITEMS[r.id], D = cookDiff(r.ing), lvl = COOK()[r.id] | 0, zone = D.zone + Math.min(lvl, COOK_MASTER) * .008, z0 = .45 + (hash01(r.id) - .5) * .3, z1 = z0 + zone, g0 = z0 - .13, g1 = z1 + .13;
+function cookGame(r, n) { const el = document.getElementById('panel'); const old = el.querySelector('.ckmodal'); if (old) old.remove(); const it = ITEMS[r.id], D = cookDiff(r.ing), lvl = COOK()[r.id] | 0, zone = D.zone + Math.min(lvl, COOK_MASTER) * .008 + SKM.cook * .07, z0 = .45 + (hash01(r.id) - .5) * .3, z1 = z0 + zone, g0 = z0 - .13, g1 = z1 + .13;
   const ov = document.createElement('div'); ov.className = 'ckmodal'; ov.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,.78);z-index:7;display:flex;align-items:center;justify-content:center';
   const pct = v => (v * 100).toFixed(1) + '%';
   ov.innerHTML = `<div style="width:min(560px,94%);background:#161a22;border:3px solid #f2c230;border-radius:14px;padding:14px 16px;text-align:center;font-family:Rubik,system-ui,sans-serif;color:#fff">

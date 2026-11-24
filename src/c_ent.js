@@ -91,12 +91,12 @@ function updateCar0(c, dt) {
   const fx = Math.cos(c.a), fy = Math.sin(c.a);
   let fwd = c.vx * fx + c.vy * fy, lat = -c.vx * fy + c.vy * fx;
   const th = c.throttle;
-  if (th > 0) { if (fwd < -15) fwd += 950 * th * dt; else fwd += th * d.acc * (1 - clamp(fwd / d.max, 0, 1.2)) * dt; }
+  if (th > 0) { if (fwd < -15) fwd += 950 * th * dt; else fwd += th * d.acc * (c.driver === G.player ? 1 + SKM.drv * .15 : 1) * (1 - clamp(fwd / d.max, 0, 1.2)) * dt; }
   else if (th < 0) { if (fwd > 15) fwd -= (d.brk || 1200) * .85 * -th * dt; else if (fwd > -d.max * .38) fwd += th * d.acc * .65 * dt; }
   else { const f = Math.min(Math.abs(fwd), 70 * dt); fwd -= Math.sign(fwd) * f; }
   if (c.brake) { const f = Math.min(Math.abs(fwd), d.brk * dt); fwd -= Math.sign(fwd) * f; }
   fwd -= fwd * .12 * dt;
-  const grip = (c.hand ? 1.4 : d.grip) * (c.shoveT > 0 ? (c.shoveT -= dt, c.shoveG || .2) : 1);
+  const grip = (c.hand ? 1.4 : d.grip * (c.driver === G.player ? 1 + SKM.drv * .3 : 1)) * (c.shoveT > 0 ? (c.shoveT -= dt, c.shoveG || .2) : 1);
   if (c.hand) { const f = Math.min(Math.abs(fwd), 280 * dt); fwd -= Math.sign(fwd) * f; }
   const latOld = lat; lat *= Math.exp(-grip * dt);
   c.vx = fx * fwd - fy * lat; c.vy = fy * fwd + fx * lat;

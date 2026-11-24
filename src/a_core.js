@@ -20,6 +20,8 @@ function shade(hex, f) { // f<1 darker, >1 lighter
   return '#' + ((1 << 24) | (clamp(r | 0, 0, 255) << 16) | (clamp(g | 0, 0, 255) << 8) | clamp(b | 0, 0, 255)).toString(16).slice(1);
 }
 function money(n) { return '$' + Math.floor(n).toLocaleString('en-US'); }
+const SKM = { str: 0, sta: 0, drv: 0, aim: 0, cook: 0, bar: 0, hack: 0, cha: 0, luck: 0 };
+const skXP = (k, n) => { if (typeof skGain === 'function') skGain(k, n); };
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   // runtime links (a furniture record's live scene item, etc.) are never saved; a loop anywhere else is cut instead of

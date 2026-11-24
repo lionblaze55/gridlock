@@ -391,7 +391,7 @@ function controlPlayer0(dt) {
     if (I.fire) playerFire(I.aiming ? (G.settings.assist ? aimMagnet(I.aimA, 500) : I.aimA) : (G.settings.assist ? autoAim(c.a, 500) : c.a));
   } else {
     if (G.sitting) { if (mag > .3) G.sitting = null; else { heal(dt * 2); p.mvx = p.mvy = 0; return; } }
-    const run = mag > .82 || I.sprint; const spd = (run ? 178 : 110 * clamp(mag / .82, 0, 1)) * (G.drunk > 0 ? .85 : 1) * drugSpd() * (p.swim ? .42 : 1);
+    const run = mag > .82 || I.sprint; const spd = (run ? 178 * (1 + SKM.sta * .15) : 110 * clamp(mag / .82, 0, 1)) * (p.swim ? 1 + SKM.sta * .4 : 1) * (G.drunk > 0 ? .85 : 1) * drugSpd() * (p.swim ? .42 : 1);
     if (mag > .12) { p.mvx = mx / (mag || 1) * spd; p.mvy = my / (mag || 1) * spd; if (!I.aiming) p.a = Math.atan2(my, mx); G.dancing = 0; } else { p.mvx = p.mvy = 0; }
     if (I.aiming) p.a = I.aimA;
     if (isThrow(p.weapon)) {

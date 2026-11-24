@@ -20,7 +20,7 @@ function addLabs2() { if (!W || !W.realty || W._labs2) return; W._labs2 = 1; con
 const LABRATE = [0, .8, 1.4, 2.2, 3.2, 4.5], labLvl = O => clamp(O.lvl | 0, 1, 5);
 const LMUL = new WeakMap(), labMul = O => { if (LMUL.has(O)) return LMUL.get(O); const r = W.realty.find(x => LIFE().own[x.id] === O), D = r && DRUGS.find(d => d.id === r.drug), m = D ? clamp(Math.sqrt(450 / D.base), 1, 3.6) : 1; if (r) LMUL.set(O, m); return m; };
 const labCap = O => Math.round((40 * labLvl(O) + 30 * (O.cooks | 0)) * labMul(O));
-const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O);
+const labRate = O => LABRATE[labLvl(O)] * (1 + .35 * (O.cooks | 0)) * labMul(O) * (1 + SKM.cook * .3);
 const labBurn = O => (4 * (1 + .25 * (labLvl(O) - 1)) * (1 + .3 * (O.cooks | 0))) / 4;
 const labSupply = (O, D) => Math.max(200, Math.round(50 / labBurn(O) * labRate(O) * D.base * .22 / 50) * 50);
 const labRaid = O => .005 * (O.up && O.up.sec ? .25 : 1) * (1 + .15 * (labLvl(O) - 1) + .25 * (O.crew | 0) + .1 * (O.cooks | 0));

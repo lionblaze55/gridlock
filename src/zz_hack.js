@@ -103,7 +103,7 @@ function hkStart(t, a) { const [id, , cost, up, relay] = a, d = activePhone(), c
   if (id === 'relay') return relayHack(t.o); if (relay && !relayOK(hX(t), hY(t))) { Snd.play('bad'); return toast('🔒 ' + (DISTRICTS[districtAt(hX(t), hY(t))] || {}).name + '\'s CityNet relay is locked. Find the 📡 tower and break in first.'); }
   if (id === 'unlock' && carTier(t.o) >= 3 && !d.adds.exploit) { Snd.play('bad'); return toast('High-end locks need an exploit suite on your phone (Byte Depot).'); }
   const need = cost === 99 ? Math.max(3, ch.max) : cost; if (ch.n < need) { Snd.play('bad'); return toast(cost === 99 ? 'Blackout needs a full battery (at least 3).' : '🔋 Not enough battery — it recharges over time.'); }
-  if (G.hkUp) return; d.chg -= need; G.hkUp = { t: 0, need: up * clamp(2.4 / Math.max(.5, st.speed), .25, 1.7), tgt: t, id }; Snd.play('beep'); devWear(d, .002); }
+  if (G.hkUp) return; d.chg -= need; G.hkUp = { t: 0, need: up * clamp(2.4 / Math.max(.5, st.speed), .25, 1.7) * (1 - SKM.hack * .45), tgt: t, id }; Snd.play('beep'); devWear(d, .002); }
 function hkDone(U) { const t = U.tgt, o = t.o, id = U.id, d = activePhone(), quiet = () => { if (d.adds.ghost) return; const cop = G.peds.find(q => !q.dead && q.role === 'cop' && dist2(q.x, q.y, G.player.x, G.player.y) < 260 * 260 && seesPlayer(q, 260)); if (cop) { pedSay(cop, 'Hey — what are you doing with that phone?'); crime(.3, 'Hacking'); } }, loud = (s, l) => crime(s, l);
   let xp = 4; HKS().n++;
   switch (id) {
@@ -143,7 +143,7 @@ function hackPuzzle(level, st, cb) { let ov = document.getElementById('hackov');
   seen.add('0,' + r0); if (!dfs(0, r0, [[0, r0]])) { path = []; for (let x = 0; x < n; x++) path.push([x, r0]); for (let y = r0; y !== r1; y += Math.sign(r1 - r0)) path.push([n - 1, y + Math.sign(r1 - r0)]); }
   for (let k = 0; k < path.length; k++) { const [x, y] = path[k], prev = k ? path[k - 1] : [x - 1, y], next = k < path.length - 1 ? path[k + 1] : [x + 1, y]; for (const [px, py] of [prev, next]) { const dd = DIRS.find(v => v[0] === px - x && v[1] === py - y); if (dd) M[y][x] |= dd[2]; } }
   const SH = [5, 10, 3, 6, 12, 9, 7, 14]; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { if (!M[y][x]) M[y][x] = SH[Math.floor(Math.random() * (level > 3 ? 8 : 6))]; const k = Math.floor(Math.random() * 4); for (let i = 0; i < k; i++) M[y][x] = rot(M[y][x]); }
-  const lim = Math.max(14, 30 + (st ? st.speed : 2) * 2.5 - level * 3); let t0 = performance.now(), done = false, lit = new Set();
+  const lim = Math.max(14, 30 + (st ? st.speed : 2) * 2.5 - level * 3) * (1 + SKM.hack * .5); let t0 = performance.now(), done = false, lit = new Set();
   const flow = () => { lit = new Set(); if (!(M[r0][0] & 8)) return false; const Q = [[0, r0]]; lit.add('0,' + r0); let win = false; while (Q.length) { const [x, y] = Q.shift(); if (x === n - 1 && y === r1 && (M[y][x] & 2)) win = true; for (const [dx, dy, a, b] of DIRS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= n || ny >= n || !(M[y][x] & a) || !(M[ny][nx] & b) || lit.has(nx + ',' + ny)) continue; lit.add(nx + ',' + ny); Q.push([nx, ny]); } } return win; };
   const end = ok => { if (done) return; done = true; ov.classList.remove('show'); ov.onpointerdown = null; window.removeEventListener('keydown', kd, true); Snd.play(ok ? 'mission' : 'bad'); cb(ok); };
   const kd = e => { e.stopImmediatePropagation(); if (e.key === 'Escape') { e.preventDefault(); end(false); } }; window.addEventListener('keydown', kd, true);
