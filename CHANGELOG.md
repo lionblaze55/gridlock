@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.01 — One shared city
+- **Everyone in a game now sees the same city.** Same cars on the road, same people on the sidewalk, same cops and gang members, in the same places, with the same clothes and names. Before, each phone made up its own traffic and crowds.
+- **One player runs the streets for everybody.** The world host (or, without one, whoever joined first) spawns traffic, parked cars and pedestrians around *every* player, not just themselves. Walk across town alone and your streets still fill up.
+- **It all carries over between players:**
+  - Shoot, run over or knock out someone, and they go down on everyone's screen. You get the kill, the cash and any drops.
+  - Pull someone out of a car and it's yours; it disappears from whoever was driving it before. Cars other players bought are locked to them.
+  - Gang members and cops on other players' streets come after you: gangs you're at war with attack on sight, and cops shoot at you once you have 2 stars. Their shots can hit you.
+  - Cars blowing up hurt anyone nearby, whoever's phone they belong to.
+  - Hacks that change the street are shared: streetlights, blackouts, traffic lights, hydrants and steam pipes. Car and phone hacks reach cars and people that belong to other players.
+- **Same time and weather for everyone,** kept in step continuously instead of only when you join.
+- **Property has one owner.** You can't buy a building another player in the game owns. In a hosted world that also covers guests who aren't online right now.
+- **Going indoors doesn't freeze anyone.** When you step inside, the cars and people around the others are handed to them, and the city carries on. If the player running the streets goes in, the next player outside takes over seamlessly. If someone leaves, the others keep the street they're standing in.
+- Your own police chases, hit squads, missions and the cars you drive stay yours; others see them too.
+- Interiors are still per player.
+- Works over LAN and online rooms, within the 4 KB presence limit. The closest and fastest-moving things update most often.
+
 ## 2.00 — Host your own world
 - **Host any of your saves.** Multiplayer has a new "World you host" picker. Choose a save slot, then host it on LAN or create an online room, and friends join *that* world.
 - **Guests keep their progress in your world.** Each guest gets their own profile in your world: money, bank, guns, cars, properties, skills, devices, everything a save holds.
