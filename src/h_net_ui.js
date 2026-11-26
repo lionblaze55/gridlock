@@ -53,13 +53,14 @@ const Net = {
       const s = { n: this.name.slice(0, 16), c: this.col, x: Math.round(c ? c.x : p.x), y: Math.round(c ? c.y : p.y), a: +(c ? c.a : p.a).toFixed(2), in: this.myScene(), hp: Math.max(0, Math.round(p.hp)), dead: p.dead ? 1 : 0, w: p.weapon, sh: p.shirt, sk: p.skin, k: G.kills, d: G.deaths, m: Math.floor(G.cash), pm: G.settings.pvp ? 0 : 1, st: stars(), mv: p.moving ? 1 : 0 };
       if (c) { s.car = c.type; s.cc = c.color; s.vx = Math.round(c.vx); s.vy = Math.round(c.vy); s.sr = c.siren > 0 ? 1 : 0; s.cd = c.dead ? 1 : 0; s.br = (c.brake || c.throttle < 0) ? 1 : 0; const md = encMods(c.mods); if (md) s.md = md; if (c.nosT > 0) s.nz = 1; }
       s.tod = +G.tod.toFixed(2); s.jt = this.jt; { const fm = farmsEnc(); if (fm) s.fm = fm; }
-      this.room.presence({ s, ev: this.ring.slice(-12) }).catch(() => { });
+      const pres = { s, ev: this.ring.slice(-12) }; if (typeof netXtra === 'function') try { netXtra(pres); } catch (e) { } this.room.presence(pres).catch(() => { });
     }
     // prune remote
     const t = performance.now();
     for (const [k, e] of this.peers) if (t - e.seen > 15000) this.peers.delete(k);
   },
   onPeers(ch) {
+    if (typeof netXrecv === 'function') try { netXrecv(ch); } catch (e) { console.error('netXrecv', e); }
     for (const p of ch.left) { const e = this.peers.get(p.peer); if (e) { this.feedAdd(e.name + ' left the game', '#aaa'); this.peers.delete(p.peer); } }
     for (const p of ch.peers) {
       if (p.sameTab) { this.me = p.peer; continue; }
@@ -209,7 +210,7 @@ function mpMenu() {
     if (!games.size) list.append(h('div', { class: 'small', text: 'No open games right now. Create one and share the code!' }));
     for (const [code, n] of games) { const row = h('div', { class: 'game' }, [h('span', {}, [h('b', { text: code }), h('span', { class: 'small', text: `  ${n} player${n > 1 ? 's' : ''}` })])]); const jb = h('button', { class: 'btn grn', style: 'width:auto;margin:0;padding:8px 14px' }); jb.textContent = 'Join'; jb.onclick = () => doJoin(code); row.append(jb); list.append(row); }
     menuBox.append(list);
-    menuBox.append(btn('Create a new game', () => { const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 4; i++) c += ch[Math.floor(Math.random() * ch.length)]; doJoin(c); }, 'grn', 'get a room code'));
+    menuBox.append(btn('Create a new game', () => { const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 4; i++) c += ch[Math.floor(Math.random() * ch.length)]; doJoin(c, true); }, 'grn', 'get a room code'));
     const inp = h('input', { type: 'text', maxlength: '4', placeholder: 'CODE', style: 'text-transform:uppercase;letter-spacing:4px;font-family:Bungee' });
     const jb = btn('Join', () => doJoin(inp.value));
     menuBox.append(h('div', { class: 'lbl', text: 'Join with a code' }), h('div', { class: 'row' }, [inp, jb]));

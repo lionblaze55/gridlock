@@ -17,7 +17,7 @@ async def main():
         code = await A.evaluate('Net.code'); print('code', code)
         await B.click('text=Multiplayer'); await B.wait_for_timeout(800)
         await B.screenshot(path='/tmp/mp_lobby.png')
-        await B.click('text=Join'); await B.wait_for_timeout(1500)
+        await B.click('.games button:has-text("Join")'); await B.wait_for_timeout(5000)
         print('B code', await B.evaluate('Net.code'))
         # put B in front of A
         await A.evaluate("()=>{G.player.x=8300;G.player.y=4224;G.player.a=0; giveWeapon('pistol',50); G.player.weapon=WI.pistol}")

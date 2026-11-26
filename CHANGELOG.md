@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.00 — Host your own world
+- **Host any of your saves.** Multiplayer has a new "World you host" picker. Choose a save slot, then host it on LAN or create an online room, and friends join *that* world.
+- **Guests keep their progress in your world.** Each guest gets their own profile in your world: money, bank, guns, cars, properties, skills, devices, everything a save holds.
+  - It's stored inside your save, keyed to that player, so it survives you closing the game and hosting again days later.
+  - While a guest is away, their profile is frozen. When they come back, the host hands it over and they carry on exactly where they left off.
+- **Guests' own saves are never touched.** In someone else's world you play a separate world profile, which is also cached on your phone. Saving to a slot is blocked while you're a guest, so a world profile can't overwrite your own game.
+- Your progress uploads to the host automatically every minute, whenever you open and close a menu, and when you leave.
+- The host's Multiplayer menu lists everyone who has progress in their world, with when they were last there and what they're worth.
+- If nobody in the room is hosting a saved world, guests' progress stays on their own device.
+- Works the same over LAN and online rooms. Profiles travel in small acknowledged chunks inside the room's 4 KB presence limit. A typical save arrives in about 3 seconds.
+
 ## 1.99 — LAN that actually works on Android, and finds games by itself
 - **Fixed: hosting a LAN game from the Android app never worked.** The APK was built without its LAN server: the build script only included a bare WebView, so "Host a LAN game" had nothing behind it.
   - The app now includes a small native network bridge (TCP and UDP).
