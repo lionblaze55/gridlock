@@ -39,7 +39,7 @@ async def main():
         await A.wait_for_timeout(1200)
         print('B dead', await B.evaluate("G.player.dead"), 'A kills', await A.evaluate("G.kills"), await A.evaluate("Net.feed.map(f=>f.text)"))
         await A.evaluate("()=>{const c=new Car(\x27sports\x27,8300,4160,0); G.cars.push(c); G.player.dead=0; G.player.hp=100; enterCar(c); applyMods(c,{p:\x27\x23ff6f3c\x27,liv:3,neon:2,sp:3})}"); await A.wait_for_timeout(1200)
-        print("B sees mods", await B.evaluate("()=>Net.remoteCars().map(r=>JSON.stringify(r.mods))"))
+        print("B sees mods", await B.evaluate("()=>Net.remoteCars().map(r=>JSON.stringify(r.mods))"), "rejects A", await A.evaluate("window.__roomRejects"), "B", await B.evaluate("window.__roomRejects"))
         await B.evaluate("()=>{G.tod=22; G.cam.x=8300;G.cam.y=4160}"); await B.screenshot(path="/tmp/mp_mods.png")
         print('presence size', await A.evaluate("JSON.stringify({s:{n:'x'},ev:Net.ring}).length"))
         print('\n'.join(errs[:20]))

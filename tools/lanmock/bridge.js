@@ -1,0 +1,2 @@
+(() => { const who = 'dev' + Math.random().toString(36).slice(2, 8); const call = (m, a) => { const x = new XMLHttpRequest(); x.open('POST', 'http://127.0.0.1:9911/', false); x.setRequestHeader('Content-Type', 'text/plain'); x.send(JSON.stringify({ w: who, m, a })); return JSON.parse(x.responseText).r; };
+  window.AndroidNet = {}; for (const m of ['listen', 'accept', 'read', 'write', 'close', 'stop', 'udpOpen', 'udpSend', 'udpRecv', 'udpClose', 'wifiIp']) window.AndroidNet[m] = (...a) => call(m, a); })();

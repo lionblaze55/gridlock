@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Independent checks for a hand-built APK: zip/alignment, v2 signature, dex structure + disassembly, AXML decode, arsc decode."""
-import struct, sys, zipfile, hashlib, zlib, io
+import sys, os, struct, sys, zipfile, hashlib, zlib, io
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -48,82 +48,14 @@ want = hashlib.sha256(b'\x5a' + struct.pack('<I', len(chunks)) + b''.join(chunks
 print(f'V2 SIGNATURE: alg=0x{alg:04x}/0x{salg:04x} digest {"OK" if want == dg else "MISMATCH"}, RSA signature OK, cert "{cert.subject.rfc4514_string()}" sha256={hashlib.sha256(lps(certs)[0]).hexdigest()[:16]}…')
 if want != dg: bad('content digest mismatch')
 
-# ---------- dex
+# ---------- dex (full structural check + per-method decode, shared with the builder)
 d = z.read('classes.dex'); print('DEX:')
-if d[:8] != b'dex\n035\0': bad('magic')
-if R(d, 8, 'I')[0] != zlib.adler32(d[12:]): bad('checksum')
-if d[12:32] != hashlib.sha1(d[32:]).digest(): bad('sha1')
-(fsz, hsz, endian, _, _, map_off, ns, so, nt, to, np_, po, nf, fo, nm, mo, nc, co, dsz, doff) = R(d, 32, '20I')
-if fsz != len(d) or hsz != 0x70 or endian != 0x12345678: bad('header fields')
-if dsz % 4 or doff + dsz != len(d): bad('data section size')
-def uleb(o):
-    v = sh = 0
-    while True:
-        b = d[o]; o += 1; v |= (b & 0x7f) << sh; sh += 7
-        if not b & 0x80: return v, o
-S = []
-for i in range(ns):
-    o, = R(d, so + 4 * i, 'I'); n, o = uleb(o); s = d[o:o + n].decode(); S.append(s)
-    if d[o + n] != 0: bad('string not NUL terminated')
-if S != sorted(S): bad('strings not sorted')
-TY = [S[R(d, to + 4 * i, 'I')[0]] for i in range(nt)]
-if [R(d, to + 4 * i, 'I')[0] for i in range(nt)] != sorted(R(d, to + 4 * i, 'I')[0] for i in range(nt)): bad('types not sorted')
-def tlist(o):
-    if not o: return ()
-    n, = R(d, o, 'I'); return tuple(TY[R(d, o + 4 + 2 * k, 'H')[0]] for k in range(n))
-PR = []
-for i in range(np_):
-    sh, rt, po_ = R(d, po + 12 * i, 'III'); params = tlist(po_); PR.append((TY[rt], params))
-    short = ''.join('L' if t[0] in 'L[' else t for t in (TY[rt],) + params)
-    if S[sh] != short: bad(f'shorty {S[sh]} != {short}')
-keys = [(R(d, po + 12 * i, 'III')[1], [TY.index(t) for t in PR[i][1]]) for i in range(np_)]
-if keys != sorted(keys): bad('protos not sorted')
-FI = [(TY[R(d, fo + 8 * i, 'HHI')[0]], S[R(d, fo + 8 * i, 'HHI')[2]], TY[R(d, fo + 8 * i, 'HHI')[1]]) for i in range(nf)]
-MI = []; mk = []
-for i in range(nm):
-    c, p_, n = R(d, mo + 8 * i, 'HHI'); MI.append((TY[c], S[n], PR[p_])); mk.append((c, n, p_))
-if mk != sorted(mk): bad('methods not sorted')
-print(f'  {ns} strings, {nt} types, {np_} protos, {nf} fields, {nm} methods')
-cls, acc, sup, itf, src, ann, cdo, sv = R(d, co, '8I'); print(f'  class {TY[cls]} extends {TY[sup]} access=0x{acc:x}')
-o = cdo; sf, o = uleb(o); inf, o = uleb(o); dm, o = uleb(o); vm, o = uleb(o)
-fidx = 0
-for _ in range(inf): x, o = uleb(o); a, o = uleb(o); fidx += x; print(f'  field {FI[fidx][1]}:{FI[fidx][2]} access=0x{a:x}')
-NAMES = {0x6e: 'invoke-virtual', 0x6f: 'invoke-super', 0x70: 'invoke-direct'}
-def dis(code_off):
-    regs, ins, outs, tries, dbg, n = R(d, code_off, 'HHHHII'); u = [R(d, code_off + 16 + 2 * k, 'H')[0] for k in range(n)]; i = 0; out = []
-    if code_off % 4: bad('code item not aligned')
-    maxargs = 0
-    while i < n:
-        op = u[i] & 0xff; aa = u[i] >> 8
-        if op in NAMES:
-            A = u[i] >> 12; G = (u[i] >> 8) & 0xf; m = MI[u[i + 1]]; r = [u[i + 2] & 0xf, (u[i + 2] >> 4) & 0xf, (u[i + 2] >> 8) & 0xf, u[i + 2] >> 12, G][:A]
-            exp = (0 if NAMES[op] == 'invoke-static' else 1) + len(m[2][1]); maxargs = max(maxargs, A)
-            if A != exp: bad(f'arg count {A} != {exp} for {m[1]}')
-            if max(r) >= regs: bad('register out of range')
-            out.append(f'{i:3d} {NAMES[op]} {{{",".join("v%d" % x for x in r)}}} {m[0]}->{m[1]}{m[2]}'); i += 3
-        elif op == 0x0c: out.append(f'{i:3d} move-result-object v{aa}'); i += 1
-        elif op == 0x0e: out.append(f'{i:3d} return-void'); i += 1
-        elif op == 0x12: out.append(f'{i:3d} const/4 v{(u[i] >> 8) & 0xf}, {u[i] >> 12}'); i += 1
-        elif op == 0x13: out.append(f'{i:3d} const/16 v{aa}, 0x{u[i + 1]:x}'); i += 2
-        elif op == 0x1a: out.append(f'{i:3d} const-string v{aa}, "{S[u[i + 1]]}"'); i += 2
-        elif op == 0x22: out.append(f'{i:3d} new-instance v{aa}, {TY[u[i + 1]]}'); i += 2
-        elif op in (0x54, 0x5b): out.append(f'{i:3d} {"iget" if op == 0x54 else "iput"}-object v{(u[i] >> 8) & 0xf}, v{u[i] >> 12}, {FI[u[i + 1]]}'); i += 2
-        elif op == 0x38: t = i + (u[i + 1] - 0x10000 if u[i + 1] & 0x8000 else u[i + 1]); out.append(f'{i:3d} if-eqz v{aa}, -> {t}'); i += 2
-        else: bad(f'unknown op {op:02x}'); break
-    if outs < maxargs: bad('outs too small')
-    if ins > regs: bad('ins > regs')
-    return f'regs={regs} ins={ins} outs={outs}', out
-midx = 0
-for kind, cnt in (('direct', dm), ('virtual', vm)):
-    midx = 0
-    for _ in range(cnt):
-        x, o = uleb(o); a, o = uleb(o); c_, o = uleb(o); midx += x; m = MI[midx]
-        if m[0] != TY[cls]: bad('method of another class in class_data')
-        hdr, lines = dis(c_); print(f'  {kind} {m[1]}{m[2]} access=0x{a:x} {hdr}')
-        for l in lines: print('      ' + l)
-# map list covers sections in order
-nmap, = R(d, map_off, 'I'); offs = [R(d, map_off + 4 + 12 * k, 'HHII')[3] for k in range(nmap)]
-if offs != sorted(offs): bad('map not sorted by offset')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dexgen import check_dex
+_errs, _rep, _ann = check_dex(d)
+for l in _rep: print('  ' + l)
+print('  method annotation:', _ann)
+for e_ in _errs: bad('dex: ' + e_)
 
 # ---------- AXML
 m = z.read('AndroidManifest.xml'); print('MANIFEST:')

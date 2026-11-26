@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.99 — LAN that actually works on Android, and finds games by itself
+- **Fixed: hosting a LAN game from the Android app never worked.** The APK was built without its LAN server: the build script only included a bare WebView, so "Host a LAN game" had nothing behind it.
+  - The app now includes a small native network bridge (TCP and UDP).
+  - The LAN host itself runs in the game, speaking the same protocol as the PC server (`lan-server.js`), so phones and computers can all join each other.
+- **LAN games are broadcast automatically.** When you host, phones on the same Wi-Fi see your game under Multiplayer → **Games nearby** and join with one tap. No more typing addresses.
+- **New setting: "Broadcast my LAN games" (on by default).** Turn it off and your game stays hidden, so only people you give the address to can join (Join LAN still works).
+- **PC host:** `node lan-server.js` now announces itself on the Wi-Fi too, so phones see games hosted from a computer (`--no-broadcast` turns it off).
+- The native bridge is attached inside a safety net: if it ever fails to load on a phone, the game still starts and only LAN hosting is affected.
+- Testing: online rooms are now tested against the room service's real rules: plain JSON only, identifier keys, 4 KB presence.
+
 ## 1.98 — Skills
 Nine skills that grow by doing, each from level 1 to 20. See them from your phone: ⭐ Skills.
 - 💪 **Strength** (melee hits, knockouts, the weight bench): melee damage up to +100%, damage taken up to −20%.

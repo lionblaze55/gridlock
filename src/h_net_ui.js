@@ -196,7 +196,7 @@ function mpMenu() {
   const sw = h('div', { class: 'sw' }); PCOLORS.forEach((c, i) => { const d = h('i', { style: 'background:' + c }); if (i === Net.col) d.className = 'on'; d.onclick = () => { Net.col = i; store.set('gl_col', i); mpMenu(); }; sw.appendChild(d); });
   menuBox.append(h('div', { class: 'lbl', text: 'Name tag color' }), sw);
   if (Net.room) {
-    menuBox.append(h('div', { class: 'small', html: Net.lan ? (Net.lanHost ? `You're hosting a LAN game. Friends on the same Wi-Fi can open <b>http://${Net.lan}</b> in any browser, or type <b>${Net.lan}</b> under Join LAN in their app.` : `You're in the LAN game at <b>${Net.lan}</b>.`) : `You're in room ${Net.code}. Share the code with friends so they can join.` }), btn('Back to game', () => hideMenu(), 'grn'), btn('Leave room', () => { Net.leave(); mpMenu(); }, 'red'), btn('Back', () => showMenu(G.inGame ? pauseMenu : mainMenu), 'alt'));
+    menuBox.append(h('div', { class: 'small', html: Net.lan ? (Net.lanHost ? `You're hosting a LAN game at <b>${Net.lan}</b>. ` + (G.settings.lanBcast !== 0 ? 'Phones on the same Wi-Fi see it under Multiplayer → Games nearby.' : 'It isn\'t broadcast (Settings), so friends type this address under Join LAN.') : `You're in the LAN game at <b>${Net.lan}</b>.`) : `You're in room ${Net.code}. Share the code with friends so they can join.` }), btn('Back to game', () => hideMenu(), 'grn'), btn('Leave room', () => { Net.leave(); mpMenu(); }, 'red'), btn('Back', () => showMenu(G.inGame ? pauseMenu : mainMenu), 'alt'));
     return;
   }
   if (Net.avail === null) { menuBox.append(h('div', { class: 'small', text: 'Connecting to the lobby…' })); }
@@ -260,6 +260,8 @@ function settingsMenu(back) {
   if (G.inGame) menuBox.append(btn('Choose radio station', () => { hideMenu(); Panel.open('radio'); }, 'alt', STATIONS.length - 1 + ' stations'));
   menuBox.append(...seg('Multiplayer PvP', [[1, 'PvP on'], [0, 'Passive ☮']], S.pvp, v => { S.pvp = v; save(); re(); }));
   menuBox.append(h('div', { class: 'small', text: 'Passive players can\'t hurt or be hurt by other players.' }));
+  menuBox.append(...seg('Broadcast my LAN games', [[1, 'On'], [0, 'Off']], onv('lanBcast', 1), v => { S.lanBcast = v; save(); re(); }));
+  menuBox.append(h('div', { class: 'small', text: 'When you host a LAN game, phones on the same Wi-Fi see it in their Multiplayer menu automatically. Turn off to only let in people you give the address to.' }));
   menuBox.append(...seg('Lighting (day/night)', [[1, 'On'], [0, 'Off (faster)']], S.lights === undefined ? 1 : S.lights, v => { S.lights = v; save(); re(); }));
   menuBox.append(...seg('Weather', [[1, 'Rain sometimes'], [0, 'Always clear']], S.weather === undefined ? 1 : S.weather, v => { S.weather = v; save(); re(); }));
   menuBox.append(...seg('Minimap', [[1, 'On'], [0, 'Off']], S.minimap, v => { S.minimap = v; save(); re(); }));

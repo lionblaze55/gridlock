@@ -9,6 +9,7 @@ and an APK Signature Scheme v2 block (RSA 2048 / SHA-256).
 usage: build_apk.py <index.html> <icon.png> <out.apk> <keydir> <versionCode> <versionName>
 """
 import hashlib, os, struct, sys, zipfile, zlib, io, datetime
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
@@ -29,127 +30,113 @@ def uleb(v):
 def pad4(b): return b + b'\0' * (-len(b) % 4)
 
 # ============================================================ DEX
+# Two classes. MainActivity: a full-screen WebView showing the game. Lan: a tiny socket bridge, exposed to the
+# game as window.AndroidNet, that lets a phone host a LAN game and find others (TCP server + UDP broadcast).
+# The game's JavaScript does the protocol work; the bridge only moves bytes. The bridge is attached inside a
+# catch-all, so if it ever fails to load on some phone the game still starts exactly as before.
+from dexgen import Dex, Code, check_dex
 def build_dex(js_back):
-    CLS = 'L' + ACT.replace('.', '/') + ';'
-    ACTV, WV, WS, WIN, VIEW, BUN, CTX, STR = 'Landroid/app/Activity;', 'Landroid/webkit/WebView;', 'Landroid/webkit/WebSettings;', 'Landroid/view/Window;', 'Landroid/view/View;', 'Landroid/os/Bundle;', 'Landroid/content/Context;', 'Ljava/lang/String;'
+    D = Dex()
+    CLS = 'L' + ACT.replace('.', '/') + ';'; LAN = 'Lcom/gridlock/sanvarro/Lan;'
+    ACTV, WV, WS, WIN, VIEW, BUN, CTX, STR, OBJ = 'Landroid/app/Activity;', 'Landroid/webkit/WebView;', 'Landroid/webkit/WebSettings;', 'Landroid/view/Window;', 'Landroid/view/View;', 'Landroid/os/Bundle;', 'Landroid/content/Context;', 'Ljava/lang/String;', 'Ljava/lang/Object;'
+    SSC, SC, SELC, SS, SOCK, ISA, SA, BB, BUF, AL = 'Ljava/nio/channels/ServerSocketChannel;', 'Ljava/nio/channels/SocketChannel;', 'Ljava/nio/channels/SelectableChannel;', 'Ljava/net/ServerSocket;', 'Ljava/net/Socket;', 'Ljava/net/InetSocketAddress;', 'Ljava/net/SocketAddress;', 'Ljava/nio/ByteBuffer;', 'Ljava/nio/Buffer;', 'Ljava/util/ArrayList;'
+    DC, DS, IA, SB, WM, ML, WI, JSI = 'Ljava/nio/channels/DatagramChannel;', 'Ljava/net/DatagramSocket;', 'Ljava/net/InetAddress;', 'Ljava/lang/StringBuilder;', 'Landroid/net/wifi/WifiManager;', 'Landroid/net/wifi/WifiManager$MulticastLock;', 'Landroid/net/wifi/WifiInfo;', 'Landroid/webkit/JavascriptInterface;'
     URL = 'file:///android_asset/index.html'
-    # (class, name, return, params)
-    M = {
-        'act_init': (ACTV, '<init>', 'V', ()), 'act_onCreate': (ACTV, 'onCreate', 'V', (BUN,)), 'act_getWindow': (ACTV, 'getWindow', WIN, ()),
-        'act_setContentView': (ACTV, 'setContentView', 'V', (VIEW,)), 'act_onPause': (ACTV, 'onPause', 'V', ()), 'act_onResume': (ACTV, 'onResume', 'V', ()), 'act_onBack': (ACTV, 'onBackPressed', 'V', ()),
-        'win_addFlags': (WIN, 'addFlags', 'V', ('I',)), 'win_decor': (WIN, 'getDecorView', VIEW, ()), 'view_sysui': (VIEW, 'setSystemUiVisibility', 'V', ('I',)),
-        'wv_init': (WV, '<init>', 'V', (CTX,)), 'wv_settings': (WV, 'getSettings', WS, ()), 'wv_load': (WV, 'loadUrl', 'V', (STR,)), 'wv_onPause': (WV, 'onPause', 'V', ()), 'wv_onResume': (WV, 'onResume', 'V', ()),
-        'ws_js': (WS, 'setJavaScriptEnabled', 'V', ('Z',)), 'ws_dom': (WS, 'setDomStorageEnabled', 'V', ('Z',)), 'ws_media': (WS, 'setMediaPlaybackRequiresUserGesture', 'V', ('Z',)),
-        'my_init': (CLS, '<init>', 'V', ()), 'my_onCreate': (CLS, 'onCreate', 'V', (BUN,)), 'my_onPause': (CLS, 'onPause', 'V', ()), 'my_onResume': (CLS, 'onResume', 'V', ()), 'my_onBack': (CLS, 'onBackPressed', 'V', ()),
-    }
-    F = {'w': (CLS, 'w', WV)}
-    shorty = lambda r, ps: ''.join('L' if t[0] in 'L[' else t for t in (r,) + tuple(ps))
-    types = sorted({t for m in M.values() for t in (m[0], m[2]) + m[3]} | {CLS, WV, ACTV})
-    protos_raw = {(m[2], m[3]) for m in M.values()}
-    strings = set(types) | {m[1] for m in M.values()} | {shorty(r, p) for r, p in protos_raw} | {'w', URL, js_back}
-    strings = sorted(strings)  # ASCII only, so code-unit order == byte order
-    S = {s: i for i, s in enumerate(strings)}
-    types.sort(key=lambda t: S[t]); TY = {t: i for i, t in enumerate(types)}
-    protos = sorted(protos_raw, key=lambda p: (TY[p[0]], [TY[x] for x in p[1]]))
-    PR = {p: i for i, p in enumerate(protos)}
-    fields = sorted(F.values(), key=lambda f: (TY[f[0]], S[f[1]], TY[f[2]])); FI = {f: i for i, f in enumerate(fields)}
-    meths = sorted(set(M.values()), key=lambda m: (TY[m[0]], S[m[1]], PR[(m[2], m[3])])); MI = {m: i for i, m in enumerate(meths)}
-    mi = lambda k: MI[M[k]]; fw = FI[F['w']]
-
-    def inv(op, k, regs):
-        r = list(regs) + [0] * (5 - len(regs)); return [(len(regs) << 12) | (r[4] << 8) | op, mi(k), (r[3] << 12) | (r[2] << 8) | (r[1] << 4) | r[0]]
-    INV_V, INV_S, INV_D = 0x6e, 0x6f, 0x70
-    mro = lambda a: [(a << 8) | 0x0c]
-    c16 = lambda a, v: [(a << 8) | 0x13, v & 0xffff]
-    c4 = lambda a, v: [((v & 0xf) << 12) | (a << 8) | 0x12]
-    cstr = lambda a, s: [(a << 8) | 0x1a, S[s]]
-    newi = lambda a, t: [(a << 8) | 0x22, TY[t]]
-    iput = lambda a, b: [(b << 12) | (a << 8) | 0x5b, fw]
-    iget = lambda a, b: [(b << 12) | (a << 8) | 0x54, fw]
-    ifeqz = lambda a, off: [(a << 8) | 0x38, off & 0xffff]
-    RET = [0x000e]
-
-    code = {}
-    code['my_init'] = (1, 1, 1, inv(INV_D, 'act_init', [0]) + RET)
-    # onCreate: v0-v2 locals, v3 this, v4 bundle
-    code['my_onCreate'] = (5, 2, 2,
-        inv(INV_S, 'act_onCreate', [3, 4]) + inv(INV_V, 'act_getWindow', [3]) + mro(0) + c16(1, 0x480) + inv(INV_V, 'win_addFlags', [0, 1]) +
-        newi(0, WV) + inv(INV_D, 'wv_init', [0, 3]) + iput(0, 3) + inv(INV_V, 'wv_settings', [0]) + mro(1) +
-        c4(2, 1) + inv(INV_V, 'ws_js', [1, 2]) + inv(INV_V, 'ws_dom', [1, 2]) + c4(2, 0) + inv(INV_V, 'ws_media', [1, 2]) +
-        inv(INV_V, 'act_setContentView', [3, 0]) + cstr(1, URL) + inv(INV_V, 'wv_load', [0, 1]) + RET)
-    # onPause: v0 local, v1 this
-    code['my_onPause'] = (2, 1, 1, iget(0, 1) + ifeqz(0, 5) + inv(INV_V, 'wv_onPause', [0]) + inv(INV_S, 'act_onPause', [1]) + RET)
-    # onResume: v0,v1 locals, v2 this
-    code['my_onResume'] = (3, 1, 2, inv(INV_S, 'act_onResume', [2]) + iget(0, 2) + ifeqz(0, 5) + inv(INV_V, 'wv_onResume', [0]) +
-        inv(INV_V, 'act_getWindow', [2]) + mro(0) + inv(INV_V, 'win_decor', [0]) + mro(0) + c16(1, 0x1706) + inv(INV_V, 'view_sysui', [0, 1]) + RET)
-    # onBackPressed: v0,v1 locals, v2 this
-    code['my_onBack'] = (3, 1, 2, iget(0, 2) + ifeqz(0, 8) + cstr(1, js_back) + inv(INV_V, 'wv_load', [0, 1]) + RET + inv(INV_S, 'act_onBack', [2]) + RET)
-
-    # ---- layout
-    n_s, n_t, n_p, n_f, n_m = len(strings), len(types), len(protos), len(fields), len(meths)
-    off = 0x70
-    o_str = off; off += 4 * n_s
-    o_typ = off; off += 4 * n_t
-    o_pro = off; off += 12 * n_p
-    o_fld = off; off += 8 * n_f
-    o_met = off; off += 8 * n_m
-    o_cls = off; off += 32
-    data_off = off
-    data = bytearray()
-    def at(): return data_off + len(data)
-    def align4():
-        while at() % 4: data.append(0)
-    # code items
-    align4(); o_code0 = at(); code_off = {}
-    order = sorted(code, key=lambda k: mi(k))
-    for k in order:
-        align4(); regs, ins, outs, insns = code[k]; code_off[k] = at()
-        data.extend(u16(regs) + u16(ins) + u16(outs) + u16(0) + u32(0) + u32(len(insns)) + b''.join(u16(x) for x in insns))
-    # type lists
-    align4(); o_tl0 = at(); tl_off = {}
-    for p in protos:
-        if p[1] and p[1] not in tl_off:
-            align4(); tl_off[p[1]] = at(); data.extend(u32(len(p[1])) + b''.join(u16(TY[t]) for t in p[1]))
-    n_tl = len(tl_off)
-    # string data
-    o_sd0 = at(); sd_off = []
-    for s in strings:
-        sd_off.append(at()); data.extend(uleb(len(s)) + s.encode('ascii') + b'\0')
-    # class data
-    o_cd = at()
-    virt = sorted(['my_onCreate', 'my_onPause', 'my_onResume', 'my_onBack'], key=lambda k: mi(k))
-    access = {'my_onCreate': 0x4, 'my_onPause': 0x4, 'my_onResume': 0x4, 'my_onBack': 0x1}
-    cd = uleb(0) + uleb(1) + uleb(1) + uleb(len(virt)) + uleb(fw) + uleb(0x2)
-    cd += uleb(mi('my_init')) + uleb(0x10001) + uleb(code_off['my_init'])
-    prev = 0
-    for k in virt:
-        cd += uleb(mi(k) - prev) + uleb(access[k]) + uleb(code_off[k]); prev = mi(k)
-    data.extend(cd)
-    # map list
-    align4(); o_map = at()
-    items = [(0x0000, 1, 0), (0x0001, n_s, o_str), (0x0002, n_t, o_typ), (0x0003, n_p, o_pro), (0x0004, n_f, o_fld), (0x0005, n_m, o_met), (0x0006, 1, o_cls),
-             (0x2001, len(code), o_code0), (0x1001, n_tl, o_tl0), (0x2002, n_s, o_sd0), (0x2000, 1, o_cd), (0x1000, 1, o_map)]
-    items = [i for i in items if i[1]]
-    data.extend(u32(len(items)) + b''.join(u16(t) + u16(0) + u32(n) + u32(o) for t, n, o in items))
-    align4()
-    # ---- id sections
-    ids = bytearray()
-    ids += b''.join(u32(o) for o in sd_off)
-    ids += b''.join(u32(S[t]) for t in types)
-    ids += b''.join(u32(S[shorty(r, ps)]) + u32(TY[r]) + u32(tl_off.get(ps, 0) if ps else 0) for r, ps in protos)
-    ids += b''.join(u16(TY[c]) + u16(TY[t]) + u32(S[n]) for c, n, t in fields)
-    ids += b''.join(u16(TY[c]) + u16(PR[(r, ps)]) + u32(S[n]) for c, n, r, ps in meths)
-    ids += u32(TY[CLS]) + u32(0x1) + u32(TY[ACTV]) + u32(0) + u32(0xffffffff) + u32(0) + u32(o_cd) + u32(0)
-    assert 0x70 + len(ids) == data_off
-    file_size = data_off + len(data)
-    hdr = bytearray(b'dex\n035\0' + b'\0' * 24 + u32(file_size) + u32(0x70) + u32(0x12345678) + u32(0) + u32(0) + u32(o_map) +
-                    u32(n_s) + u32(o_str) + u32(n_t) + u32(o_typ) + u32(n_p) + u32(o_pro) + u32(n_f) + u32(o_fld) + u32(n_m) + u32(o_met) + u32(1) + u32(o_cls) +
-                    u32(len(data)) + u32(data_off))
-    assert len(hdr) == 0x70
-    dex = bytearray(hdr + ids + data)
-    dex[12:32] = hashlib.sha1(dex[32:]).digest()
-    dex[8:12] = u32(zlib.adler32(bytes(dex[12:])))
-    return bytes(dex), dict(strings=strings, types=types, protos=protos, fields=fields, meths=meths, code=code)
+    m = lambda c, n, r, *ps: (c, n, r, tuple(ps))
+    # ---------------- MainActivity (same behaviour as before, plus the bridge)
+    A = D.cls(CLS, ACTV); D.field(A, 'w', WV); fW = (CLS, 'w', WV)
+    c = Code(1, 1, 1); c.idir(m(ACTV, '<init>', 'V'), 0); c.ret_void(); D.method(A, '<init>', 'V', (), 0x10001, c, direct=True)
+    # onCreate: v0 webview, v1 v2 scratch, v3 this, v4 bundle
+    c = Code(5, 2, 3)
+    c.isup(m(ACTV, 'onCreate', 'V', BUN), 3, 4); c.iv(m(ACTV, 'getWindow', WIN), 3); c.mreso(0); c.const16(1, 0x480); c.iv(m(WIN, 'addFlags', 'V', 'I'), 0, 1)
+    c.newi(0, WV); c.idir(m(WV, '<init>', 'V', CTX), 0, 3); c.iput_o(0, 3, fW); c.iv(m(WV, 'getSettings', WS), 0); c.mreso(1)
+    c.const4(2, 1); c.iv(m(WS, 'setJavaScriptEnabled', 'V', 'Z'), 1, 2); c.iv(m(WS, 'setDomStorageEnabled', 'V', 'Z'), 1, 2); c.const4(2, 0); c.iv(m(WS, 'setMediaPlaybackRequiresUserGesture', 'V', 'Z'), 1, 2)
+    c.label('t0'); c.newi(1, LAN); c.idir(m(LAN, '<init>', 'V', CTX), 1, 3); c.cstr(2, 'AndroidNet'); c.iv(m(WV, 'addJavascriptInterface', 'V', OBJ, STR), 0, 1, 2); c.label('t1')
+    c.label('after'); c.iv(m(ACTV, 'setContentView', 'V', VIEW), 3, 0); c.cstr(1, URL); c.iv(m(WV, 'loadUrl', 'V', STR), 0, 1); c.ret_void()
+    c.label('h'); c.goto('after'); c.try_('t0', 't1', 'h')
+    D.method(A, 'onCreate', 'V', (BUN,), 0x4, c)
+    c = Code(2, 1, 1); c.iget_o(0, 1, fW); c.ifeqz(0, 'x'); c.iv(m(WV, 'onPause', 'V'), 0); c.label('x'); c.isup(m(ACTV, 'onPause', 'V'), 1); c.ret_void(); D.method(A, 'onPause', 'V', (), 0x4, c)
+    c = Code(3, 1, 2); c.isup(m(ACTV, 'onResume', 'V'), 2); c.iget_o(0, 2, fW); c.ifeqz(0, 'x'); c.iv(m(WV, 'onResume', 'V'), 0); c.label('x')
+    c.iv(m(ACTV, 'getWindow', WIN), 2); c.mreso(0); c.iv(m(WIN, 'getDecorView', VIEW), 0); c.mreso(0); c.const16(1, 0x1706); c.iv(m(VIEW, 'setSystemUiVisibility', 'V', 'I'), 0, 1); c.ret_void()
+    D.method(A, 'onResume', 'V', (), 0x4, c)
+    c = Code(3, 1, 2); c.iget_o(0, 2, fW); c.ifeqz(0, 'x'); c.cstr(1, js_back); c.iv(m(WV, 'loadUrl', 'V', STR), 0, 1); c.ret_void(); c.label('x'); c.isup(m(ACTV, 'onBackPressed', 'V'), 2); c.ret_void()
+    D.method(A, 'onBackPressed', 'V', (), 0x1, c)
+    # ---------------- Lan bridge
+    L = D.cls(LAN, OBJ)
+    F = {k: (LAN, k, t) for k, t in [('ctx', CTX), ('srv', SSC), ('cons', AL), ('udp', DC), ('buf', BB), ('lock', ML)]}
+    for k, (_, n, t) in F.items(): D.field(L, n, t)
+    PUB = 0x1
+    def api(name, ret, params, code): D.method(L, name, ret, params, PUB, code, annot=JSI)
+    getcon = lambda c, dst, this, idr: (c.iget_o(dst, this, F['cons']), c.iv(m(AL, 'get', OBJ, 'I'), dst, idr), c.mreso(dst))
+    # <init>(Context): v0 tmp, v1 this, v2 ctx
+    c = Code(3, 2, 1); c.idir(m(OBJ, '<init>', 'V'), 1); c.iput_o(2, 1, F['ctx']); c.newi(0, AL); c.idir(m(AL, '<init>', 'V'), 0); c.iput_o(0, 1, F['cons'])
+    c.consthigh16(0, 1); c.ist(m(BB, 'allocate', BB, 'I'), 0); c.mreso(0); c.iput_o(0, 1, F['buf']); c.ret_void()
+    D.method(L, '<init>', 'V', (CTX,), 0x10001, c, direct=True)
+    # int listen(int port): v0-v2 tmp, v3 this, v4 port
+    c = Code(5, 2, 2); c.label('a')
+    c.ist(m(SSC, 'open', SSC)); c.mreso(0); c.const4(1, 0); c.iv(m(SSC, 'configureBlocking', SELC, 'Z'), 0, 1)
+    c.iv(m(SSC, 'socket', SS), 0); c.mreso(1); c.const4(2, 1); c.iv(m(SS, 'setReuseAddress', 'V', 'Z'), 1, 2)
+    c.newi(2, ISA); c.idir(m(ISA, '<init>', 'V', 'I'), 2, 4); c.iv(m(SS, 'bind', 'V', SA), 1, 2); c.iput_o(0, 3, F['srv']); c.const4(0, 1); c.ret(0)
+    c.label('b'); c.label('h'); c.const4(0, 0); c.ret(0); c.try_('a', 'b', 'h'); api('listen', 'I', ('I',), c)
+    # int accept(): -1 = nobody waiting
+    c = Code(5, 1, 2); c.label('a')
+    c.iget_o(0, 4, F['srv']); c.ifeqz(0, 'none'); c.iv(m(SSC, 'accept', SC), 0); c.mreso(0); c.ifeqz(0, 'none')
+    c.const4(1, 0); c.iv(m(SC, 'configureBlocking', SELC, 'Z'), 0, 1); c.iv(m(SC, 'socket', SOCK), 0); c.mreso(1); c.const4(2, 1); c.iv(m(SOCK, 'setTcpNoDelay', 'V', 'Z'), 1, 2)
+    c.iget_o(1, 4, F['cons']); c.iv(m(AL, 'add', 'Z', OBJ), 1, 0); c.iv(m(AL, 'size', 'I'), 1); c.mres(0); c.addlit8(0, 0, -1); c.ret(0)
+    c.label('none'); c.const4(0, -1); c.ret(0); c.label('b'); c.label('h'); c.const4(0, -1); c.ret(0); c.try_('a', 'b', 'h'); api('accept', 'I', (), c)
+    # String read(int id): null = closed, "" = nothing yet, else bytes as ISO-8859-1 chars. v0-v4 tmp, v5 this, v6 id
+    c = Code(7, 2, 5); c.label('a')
+    getcon(c, 0, 5, 6); c.ifeqz(0, 'closed'); c.cast(0, SC); c.iget_o(1, 5, F['buf']); c.iv(m(BUF, 'clear', BUF), 1)
+    c.iv(m(SC, 'read', 'I', BB), 0, 1); c.mres(2); c.ifltz(2, 'closed'); c.ifnez(2, 'got'); c.cstr(0, ''); c.reto(0)
+    c.label('got'); c.iv(m(BB, 'array', '[B'), 1); c.mreso(1); c.newi(0, STR); c.const4(3, 0); c.cstr(4, 'ISO-8859-1'); c.idir(m(STR, '<init>', 'V', '[B', 'I', 'I', STR), 0, 1, 3, 2, 4); c.reto(0)
+    c.label('closed'); c.const4(0, 0); c.reto(0); c.label('b'); c.label('h'); c.const4(0, 0); c.reto(0); c.try_('a', 'b', 'h'); api('read', STR, ('I',), c)
+    # int write(int id, String bytes): v0-v4 tmp, v5 this, v6 id, v7 data
+    c = Code(8, 3, 2); c.label('a')
+    getcon(c, 0, 5, 6); c.ifeqz(0, 'fail'); c.cast(0, SC); c.cstr(1, 'ISO-8859-1'); c.iv(m(STR, 'getBytes', '[B', STR), 7, 1); c.mreso(1); c.ist(m(BB, 'wrap', BB, '[B'), 1); c.mreso(1)
+    c.const16(2, 4000); c.label('loop'); c.iv(m(BUF, 'hasRemaining', 'Z'), 1); c.mres(3); c.ifeqz(3, 'ok'); c.iv(m(SC, 'write', 'I', BB), 0, 1); c.addlit8(2, 2, -1); c.ifgtz(2, 'loop')
+    c.label('fail'); c.const4(0, 0); c.ret(0); c.label('ok'); c.const4(0, 1); c.ret(0); c.label('b'); c.label('h'); c.const4(0, 0); c.ret(0); c.try_('a', 'b', 'h'); api('write', 'I', ('I', STR), c)
+    # void close(int id): v0 cons, v1 conn, v2 null, v3 this, v4 id
+    c = Code(5, 2, 3); c.label('a')
+    c.iget_o(0, 3, F['cons']); c.iv(m(AL, 'get', OBJ, 'I'), 0, 4); c.mreso(1); c.ifeqz(1, 'end'); c.const4(2, 0); c.iv(m(AL, 'set', OBJ, 'I', OBJ), 0, 4, 2)
+    c.cast(1, SC); c.iv(m(SC, 'close', 'V'), 1); c.label('end'); c.ret_void(); c.label('b'); c.label('h'); c.ret_void(); c.try_('a', 'b', 'h'); api('close', 'V', ('I',), c)
+    # void stop(): close the listening socket
+    c = Code(3, 1, 1); c.iget_o(0, 2, F['srv']); c.const4(1, 0); c.iput_o(1, 2, F['srv']); c.ifeqz(0, 'end'); c.label('a'); c.iv(m(SSC, 'close', 'V'), 0); c.label('b')
+    c.label('end'); c.ret_void(); c.label('h'); c.ret_void(); c.try_('a', 'b', 'h'); api('stop', 'V', (), c)
+    # int udpOpen(int port): v0-v3 tmp, v4 this, v5 port. Takes a Wi-Fi multicast lock first (best effort).
+    c = Code(6, 2, 3); c.label('a')
+    c.iget_o(0, 4, F['ctx']); c.iv(m(CTX, 'getApplicationContext', CTX), 0); c.mreso(0); c.cstr(1, 'wifi'); c.iv(m(CTX, 'getSystemService', OBJ, STR), 0, 1); c.mreso(0); c.cast(0, WM)
+    c.cstr(1, 'gridlock'); c.iv(m(WM, 'createMulticastLock', ML, STR), 0, 1); c.mreso(0); c.const4(1, 0); c.iv(m(ML, 'setReferenceCounted', 'V', 'Z'), 0, 1); c.iv(m(ML, 'acquire', 'V'), 0); c.iput_o(0, 4, F['lock'])
+    c.label('b'); c.label('c')
+    c.ist(m(DC, 'open', DC)); c.mreso(0); c.iv(m(DC, 'socket', DS), 0); c.mreso(1); c.const4(2, 1); c.iv(m(DS, 'setReuseAddress', 'V', 'Z'), 1, 2); c.iv(m(DS, 'setBroadcast', 'V', 'Z'), 1, 2)
+    c.newi(2, ISA); c.idir(m(ISA, '<init>', 'V', 'I'), 2, 5); c.iv(m(DS, 'bind', 'V', SA), 1, 2); c.const4(2, 0); c.iv(m(DC, 'configureBlocking', SELC, 'Z'), 0, 2); c.iput_o(0, 4, F['udp']); c.const4(0, 1); c.ret(0)
+    c.label('d'); c.label('h'); c.const4(0, 0); c.ret(0); c.try_('a', 'b', 'c'); c.try_('c', 'd', 'h'); api('udpOpen', 'I', ('I',), c)
+    # int udpSend(String host, int port, String msg): v0-v2 tmp, v3 this, v4 host, v5 port, v6 msg
+    c = Code(7, 4, 3); c.label('a')
+    c.iget_o(0, 3, F['udp']); c.ifeqz(0, 'fail'); c.cstr(1, 'UTF-8'); c.iv(m(STR, 'getBytes', '[B', STR), 6, 1); c.mreso(1); c.ist(m(BB, 'wrap', BB, '[B'), 1); c.mreso(1)
+    c.newi(2, ISA); c.idir(m(ISA, '<init>', 'V', STR, 'I'), 2, 4, 5); c.iv(m(DC, 'send', 'I', BB, SA), 0, 1, 2); c.const4(0, 1); c.ret(0)
+    c.label('fail'); c.const4(0, 0); c.ret(0); c.label('b'); c.label('h'); c.const4(0, 0); c.ret(0); c.try_('a', 'b', 'h'); api('udpSend', 'I', (STR, 'I', STR), c)
+    # String udpRecv(): "" = nothing, else "senderIp|message". v0-v5 tmp, v6 this
+    c = Code(7, 1, 5); c.label('a')
+    c.iget_o(0, 6, F['udp']); c.ifeqz(0, 'empty'); c.iget_o(1, 6, F['buf']); c.iv(m(BUF, 'clear', BUF), 1); c.iv(m(DC, 'receive', SA, BB), 0, 1); c.mreso(0); c.ifeqz(0, 'empty')
+    c.cast(0, ISA); c.iv(m(ISA, 'getAddress', IA), 0); c.mreso(0); c.iv(m(IA, 'getHostAddress', STR), 0); c.mreso(0)
+    c.iv(m(BUF, 'position', 'I'), 1); c.mres(2); c.iv(m(BB, 'array', '[B'), 1); c.mreso(1); c.newi(3, STR); c.const4(4, 0); c.cstr(5, 'UTF-8'); c.idir(m(STR, '<init>', 'V', '[B', 'I', 'I', STR), 3, 1, 4, 2, 5)
+    c.newi(1, SB); c.idir(m(SB, '<init>', 'V'), 1); c.iv(m(SB, 'append', SB, STR), 1, 0); c.cstr(2, '|'); c.iv(m(SB, 'append', SB, STR), 1, 2); c.iv(m(SB, 'append', SB, STR), 1, 3)
+    c.iv(m(SB, 'toString', STR), 1); c.mreso(0); c.reto(0)
+    c.label('empty'); c.cstr(0, ''); c.reto(0); c.label('b'); c.label('h'); c.cstr(0, ''); c.reto(0); c.try_('a', 'b', 'h'); api('udpRecv', STR, (), c)
+    # void udpClose(): v0 v1 tmp, v2 this
+    c = Code(3, 1, 1)
+    c.iget_o(0, 2, F['udp']); c.const4(1, 0); c.iput_o(1, 2, F['udp']); c.ifeqz(0, 'B'); c.label('a'); c.iv(m(DC, 'close', 'V'), 0); c.label('a2')
+    c.label('B'); c.iget_o(0, 2, F['lock']); c.const4(1, 0); c.iput_o(1, 2, F['lock']); c.ifeqz(0, 'end'); c.label('c'); c.iv(m(ML, 'release', 'V'), 0); c.label('c2')
+    c.label('end'); c.ret_void(); c.try_('a', 'a2', 'B'); c.try_('c', 'c2', 'end'); api('udpClose', 'V', (), c)
+    # int wifiIp(): this phone's Wi-Fi address as an int (0 when hosting a hotspot or unknown)
+    c = Code(3, 1, 2); c.label('a')
+    c.iget_o(0, 2, F['ctx']); c.iv(m(CTX, 'getApplicationContext', CTX), 0); c.mreso(0); c.cstr(1, 'wifi'); c.iv(m(CTX, 'getSystemService', OBJ, STR), 0, 1); c.mreso(0); c.cast(0, WM)
+    c.iv(m(WM, 'getConnectionInfo', WI), 0); c.mreso(0); c.ifeqz(0, 'zero'); c.iv(m(WI, 'getIpAddress', 'I'), 0); c.mres(0); c.ret(0)
+    c.label('zero'); c.const4(0, 0); c.ret(0); c.label('b'); c.label('h'); c.const4(0, 0); c.ret(0); c.try_('a', 'b', 'h'); api('wifiIp', 'I', (), c)
+    dex = D.build()
+    errs, report, ann = check_dex(dex)
+    if errs: raise SystemExit('DEX CHECK FAILED:\n  ' + '\n  '.join(errs))
+    return dex, dict(report=report, annotation=ann)
 
 # ============================================================ string pool (UTF-16)
 def string_pool(strs):
@@ -175,6 +162,7 @@ def build_manifest(vcode, vname):
         ('uses-permission', [A('name', STR_T, 'android.permission.INTERNET')], []),
         ('uses-permission', [A('name', STR_T, 'android.permission.ACCESS_NETWORK_STATE')], []),
         ('uses-permission', [A('name', STR_T, 'android.permission.ACCESS_WIFI_STATE')], []),
+        ('uses-permission', [A('name', STR_T, 'android.permission.CHANGE_WIFI_MULTICAST_STATE')], []),
         ('application', [A('theme', REF_T, 0x0103000a), A('label', STR_T, LABEL), A('icon', REF_T, 0x7f010000), A('usesCleartextTraffic', BOOL_T, True)], [
             ('activity', [A('name', STR_T, ACT), A('exported', BOOL_T, True), A('launchMode', INT_T, 1), A('screenOrientation', INT_T, 13), A('configChanges', HEX_T, 0xff0)], [
                 ('intent-filter', [], [

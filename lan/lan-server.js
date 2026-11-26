@@ -35,6 +35,11 @@ server.on('upgrade', (req, sock) => {
   });
   sock.on('close', bye); sock.on('error', bye);
 });
+// announce the game on the Wi-Fi so phones list it under "Games nearby" (turn off with --no-broadcast)
+if (!process.argv.includes('--no-broadcast')) { const dgram = require('dgram'); const u = dgram.createSocket({ type: 'udp4', reuseAddr: true }); u.on('error', () => { });
+  u.bind(() => { try { u.setBroadcast(true); } catch (e) { } setInterval(() => { const msg = Buffer.from(JSON.stringify({ gl: 1, v: 1, n: (os.hostname() || 'Computer').slice(0, 16), p: PORT, c: clients.size, id: 'node' }));
+    const dests = new Set(['255.255.255.255']); for (const a of Object.values(os.networkInterfaces()).flat()) if (a && a.family === 'IPv4' && !a.internal) dests.add(a.address.replace(/\.\d+$/, '.255'));
+    for (const d of dests) u.send(msg, 47771, d, () => { }); }, 2000); }); }
 server.listen(PORT, () => {
   const ips = Object.values(os.networkInterfaces()).flat().filter(a => a && a.family === 'IPv4' && !a.internal).map(a => a.address);
   console.log('Gridlock LAN game is running.\nOn this computer:   http://localhost:' + PORT + '\n' + ips.map(ip => 'On the same Wi-Fi:  http://' + ip + ':' + PORT).join('\n') + '\nIn the game: Multiplayer -> Join this host\'s game.  Ctrl+C to stop.');
