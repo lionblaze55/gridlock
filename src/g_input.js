@@ -11,7 +11,7 @@ const Input = {
     const btns = [fire];
     const nOwned = p ? p.ammo.filter(a => a > 0).length : 1;
     btns.push({ id: 'wpn', x: fire.x + 14 * s, y: fire.y - 108 * s, r: 23 * s, label: 'SWAP', show: nOwned > 1 });
-    if (p && stars() > 0) { const [, ry] = starRow(), low = ry + 14 * hudSc() + 23 * s + 4, maxY = fire.y - fire.r - 23 * s - 4; if (btns[1].y < low) btns[1].y = Math.min(low, maxY); }
+    if (!tall && G.settings.minimap) { const sc = Math.min(1.15, Math.max(.75, Math.min(VW, VH) / 420)), mB = 46 * sc + 108 * sc * MSZ() + 6, sw = btns[1]; if (sw.y - sw.r < mB + 6) sw.y = Math.min(mB + 6 + sw.r, fire.y - fire.r - sw.r - 4); }
     if (inCar && tall) { // stacked column on the right, clear of the steering stick
       const hasNos = p.car.mods && p.car.mods.nos; btns[1].x = fire.x - 104 * s; btns[1].y = fire.y - 196 * s;
       btns.push({ id: 'hand', x: fire.x - 2 * s, y: fire.y - 104 * s, r: 33 * s, label: 'DRIFT', col: '#1d3557', show: true });

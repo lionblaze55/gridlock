@@ -31,9 +31,8 @@ function controlPlayerL(dt) {
 function drawPed(p) { drawPedZ(p); if (p === G.player && G.surrender && !p.car && !p.dead) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.scale(1.3, 1.3); ctx.fillStyle = p.skin || '#e0ac69'; ctx.beginPath(); ctx.arc(-2, -9, 2.4, 0, TAU); ctx.arc(-2, 9, 2.4, 0, TAU); ctx.fill(); ctx.restore(); } }
 // ---------- HUD button + cop warnings ----------
 function drawLawHUDL(sc) {
-  drawLawHUD0(sc); Input.surBtn = null; if (!canSurrender() && !G.surrender) return;
-  const w = 120 * sc, h = 34 * sc, x = VW / 2 - w / 2, y = VH - h - 18 * sc; ctx.fillStyle = G.surrender ? 'rgba(30,90,140,.9)' : 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 8) : ctx.rect(x, y, w, h); ctx.fill(); ctx.strokeStyle = '#7fdbff'; ctx.lineWidth = 2; ctx.stroke();
-  txt(G.surrender ? 'HANDS UP…' : '🙌 SURRENDER', VW / 2, y + h * .66, 13 * sc, '#fff', 'center'); if (!G.surrender) Input.surBtn = [x, y, w, h];
+  drawLawHUD0(sc); if (!canSurrender() && !G.surrender) return;
+  hudPill({ k: 'law', pri: 60, label: G.surrender ? 'HANDS UP…' : '🙌 SURRENDER', on: !!G.surrender, col: '#7fdbff', fn: G.surrender ? null : toggleSurrender });
 }
 function lawTick(dt) {
   if ((G.lawT = (G.lawT || 0) - dt) > 0) return; G.lawT = 1.5; const p = G.player; if (!p || p.dead || stars() === 0 || G.scene) return;

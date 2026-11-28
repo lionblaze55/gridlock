@@ -44,8 +44,8 @@ function boozeFX() { const b = G.bac || 0; if (G.mode !== 'play') return; const 
   if (b > .045) { const k = Math.min(1, (b - .045) / .18), dx = Math.sin(G.t * 1.15) * (6 + 22 * k) * DPR, dy = Math.cos(G.t * .9) * (3 + 10 * k) * DPR; g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = .18 + .22 * k; g.drawImage(cv, dx, dy); g.restore(); }
   if (b > .1) { const k = Math.min(1, (b - .1) / .2), gr = ctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * (.42 - .14 * k), VW / 2, VH / 2, Math.max(VW, VH) * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(10,0,0,' + (.35 + .4 * k) + ')'); g.fillStyle = gr; g.fillRect(0, 0, VW, VH); }
   if (G.hang > 0) { g.fillStyle = 'rgba(60,70,80,' + Math.min(.16, G.hang / 900) + ')'; g.fillRect(0, 0, VW, VH); } }
-{ const _rh = renderHUD; renderHUD = function () { boozeFX(); _rh(); const b = G.bac || 0, st = bacState(b); if (G.mode !== 'play' || (!st && !(G.hang > 0))) return; const sc = hudSc(), x = 52 * sc + 6, y = 40 * sc + (G.player.armor > 0 ? 34 : 22) * sc;
-  const t = st ? '🍺 ' + st[1] + ' ' + b.toFixed(2) : '🤕 Hangover', w = (st ? 120 : 92) * sc; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - 2, y - 2, w, 16 * sc); txt(t, x + 3 * sc, y + 10 * sc, 10.5 * sc, st ? st[2] : '#b0bec5'); }; }
+{ const _rh = renderHUD; renderHUD = function () { boozeFX(); _rh(); }; }
+function boozeBadge() { const b = G.bac || 0, st = bacState(b); if (!st && !(G.hang > 0)) return null; return [st ? '🍺 ' + st[1] + ' ' + b.toFixed(2) : '🤕 Hangover', st ? st[2] : '#b0bec5']; }
 { const _dg = drawGaragePads; drawGaragePads = function () { _dg(); if (G.scene || !G.puke) return; for (const k of G.puke) { const a = Math.max(0, 1 - (G.t - k.t) / 90); if (a <= 0 || !inView(k.x, k.y, 30)) continue; ctx.fillStyle = 'rgba(150,170,60,' + .7 * a + ')'; ctx.beginPath(); ctx.ellipse(k.x, k.y, 12, 8, k.t, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(k.x + 10, k.y - 5, 4, 0, TAU); ctx.fill(); } }; }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') boozeTick(dt); }; }
 // your properties in green on the map and minimap

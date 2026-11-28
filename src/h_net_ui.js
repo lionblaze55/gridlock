@@ -143,16 +143,11 @@ const Net = {
   },
   drawMini(dot) { if (!this.room) return; for (const e of this.peers.values()) if (e.s && e.s.in === -1 && !G.scene || e.s && G.scene && e.s.in === -1) dot(e.s.x, e.s.y, e.col, 3.2); },
   drawHUD(sc) {
-    this.chatBtn = null; this.boardBtn = null;
+    this.chatBtn = null;
     if (!this.room) return;
     const y = 52 * sc; ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(8, y, 38 * sc, 30 * sc); ctx.font = `${16 * sc}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText('💬', 8 + 19 * sc, y + 15 * sc);
     this.chatBtn = [8, y, 38 * sc, 30 * sc];
-    const np = this.peers.size + 1; const lab = `${this.lan ? 'LAN ' + this.lan : 'ROOM ' + this.code} · ${np} ${np === 1 ? 'player' : 'players'}` + (this.connected ? '' : ' · connecting…');
-    ctx.font = `700 ${11 * sc}px Rubik, sans-serif`; const w = ctx.measureText(lab).width + 12; ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(8, y + 34 * sc, w, 18 * sc); ctx.fillStyle = '#7fdbff'; ctx.textAlign = 'left'; ctx.fillText(lab, 14, y + 43 * sc);
-    this.boardBtn = [8, y + 34 * sc, w, 18 * sc];
-    // feed
-    let fy = y + 66 * sc; for (const f of this.feed) { f.t -= 1 / 60; if (f.t <= 0) continue; ctx.globalAlpha = Math.min(1, f.t); ctx.font = `600 ${12 * sc}px Rubik, sans-serif`; const tw = Math.min(VW * .5, ctx.measureText(f.text).width + 10); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(8, fy - 9 * sc, tw, 18 * sc); ctx.fillStyle = f.col; ctx.fillText(f.text, 13, fy, VW * .5 - 10); fy += 20 * sc; ctx.globalAlpha = 1; }
-    this.feed = this.feed.filter(f => f.t > 0);
+    for (const f of this.feed) f.t -= 1 / 60; this.feed = this.feed.filter(f => f.t > 0);
     if (G.showBoard) {
       const rows = [{ n: this.name + ' (you)', k: G.kills, d: G.deaths, m: G.cash, c: PCOLORS[this.col] }].concat([...this.peers.values()].filter(e => e.s).map(e => ({ n: e.name, k: e.s.k | 0, d: e.s.d | 0, m: e.s.m | 0, c: e.col }))).sort((a, b) => b.k - a.k || b.m - a.m);
       const bw = Math.min(360, VW - 40), bh = 34 + rows.length * 22, bx = (VW - bw) / 2, by = VH * .2;
@@ -266,6 +261,8 @@ function settingsMenu(back) {
   menuBox.append(...seg('Lighting (day/night)', [[1, 'On'], [0, 'Off (faster)']], S.lights === undefined ? 1 : S.lights, v => { S.lights = v; save(); re(); }));
   menuBox.append(...seg('Weather', [[1, 'Rain sometimes'], [0, 'Always clear']], S.weather === undefined ? 1 : S.weather, v => { S.weather = v; save(); re(); }));
   menuBox.append(...seg('Minimap', [[1, 'On'], [0, 'Off']], S.minimap, v => { S.minimap = v; save(); re(); }));
+  menuBox.append(...seg('Minimap size', [[0, 'Small'], [1, 'Medium'], [2, 'Large']], S.miniSize | 0, v => { S.miniSize = v; save(); re(); }));
+  menuBox.append(...seg('Minimap zoom', [[0, '1×'], [1, '2×'], [2, '3×']], S.miniZoom | 0, v => { S.miniZoom = v; save(); re(); }));
   menuBox.append(btn('Back', () => showMenu(back), 'alt'));
 }
 function howTo() {

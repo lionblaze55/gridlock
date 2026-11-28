@@ -40,9 +40,6 @@ const MZ = () => [1, .6, .36][G.settings.miniZoom | 0];
 function drawMinimapV(sc) {
   drawMinimap0(sc); const R = 54 * sc * MSZ(), cx = VW - R - 12, cy = 46 * sc + R + 6, z = G.settings.miniZoom | 0;
   if (W.rail && !G.scene) { const p = G.scene ? G.outPos : (pCar() || G.player), scale = 3.2 * sc * MZ(), x = cx + (W.rail.xc - p.x) / T * scale; if (Math.abs(x - cx) < R) { ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.clip(); ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = Math.max(1.5, 2 * scale / 3); ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(x, cy - R); ctx.lineTo(x, cy + R); ctx.stroke(); ctx.setLineDash([]); if (G.train) { const ty = cy + (G.train.y - p.y) / T * scale; ctx.fillStyle = '#ffd54f'; ctx.fillRect(x - 3, Math.min(ty, ty - G.train.dir * G.train.len / T * scale), 6, G.train.len / T * scale); } ctx.restore(); } }
-  const bx = cx - R - 4 * sc - (R > 60 * sc ? 18 * sc : 0), by = cy - R + 64 * sc, bw = 34 * sc, bh = 24 * sc; Input.miniZBtn = [bx - 8, by - 6, bw + 16, bh + 12];
-  ctx.fillStyle = 'rgba(10,14,22,.85)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 7) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.strokeStyle = '#f2c230'; ctx.lineWidth = 1.5; ctx.stroke();
-  txt(['1×', '2×', '3×'][z], bx + bw / 2, by + bh * .72, 12 * sc, '#f2c230', 'center');
 }
 
 // ---------- multiplayer farm sync ----------

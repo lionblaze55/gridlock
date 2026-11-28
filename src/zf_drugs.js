@@ -70,8 +70,8 @@ function drugOverlay(sc) { const F = G.dfx; if (!F) return; let any = 0, k0 = nu
     else { ctx.fillStyle = `rgba(${d.col},${(.07 + pulse * .06) * f})`; ctx.fillRect(0, 0, VW, VH); }
     if (F[k] > tl) { tl = F[k]; k0 = k; } }
   if (F.crash > 0) { ctx.fillStyle = 'rgba(30,30,40,.22)'; ctx.fillRect(0, 0, VW, VH); }
-  const lbl = k0 ? `${ITEMS[k0].e} ${DFX[k0].n} ${Math.ceil(tl)}s` : F.crash > 0 ? `😵 Comedown ${Math.ceil(F.crash)}s` : null;
-  if (lbl) { txt(lbl, 14 * sc, 104 * sc, 12 * sc, k0 ? `rgb(${DFX[k0].col})` : '#bdbdbd', 'left', 'Rubik, sans-serif'); if (F.load > 6.5 && Math.floor(G.t * 2) % 2) txt('♥ heart racing', 14 * sc, 120 * sc, 11 * sc, '#ff5252', 'left', 'Rubik, sans-serif'); } }
+  G.dfxLbl = k0 ? [`${ITEMS[k0].e} ${DFX[k0].n} ${Math.ceil(tl)}s`, `rgb(${DFX[k0].col})`] : F.crash > 0 ? [`😵 Comedown ${Math.ceil(F.crash)}s`, '#bdbdbd'] : null; }
+function drugBadges() { const F = G.dfx, out = []; if (!F || !G.dfxLbl) return out; out.push(G.dfxLbl); if (F.load > 6.5 && Math.floor(G.t * 2) % 2) out.push(['♥ heart racing', '#ff5252']); return out; }
 function useInv(id) { if (DFX[id]) return takeDrug(id); return useInvW(id); }
 function hurtPlayerD(n, by, kind) { if (by && by !== G.player && (by instanceof Ped || by instanceof Car || by.isRemoteTarget)) { G.attacker = by instanceof Car ? by : by; G.attackT = G.t; } return hurtPlayer0(n * drugDmg(), by, kind); }
 function drawLab(g, x, y, w, h) { g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x + 3, y + 4, w, h); g.fillStyle = '#546e7a'; g.fillRect(x, y, w, h); g.fillStyle = '#cfd8dc'; g.fillRect(x + 3, y + 3, w - 6, h - 6);

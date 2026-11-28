@@ -159,5 +159,5 @@ IT.tote = { s: 1, act: 'Bet on the races' };
 // ticker at the top of the screen while you're at the track
 { const _rh = renderHUD; renderHUD = function () { _rh(); const R = G.hr, D = W.downs; if (!R || !D || G.scene || G.mode !== 'play' || Panel.mode || dist2(G.player.x, G.player.y, D.cx, D.cy) > 2200 * 2200) return; const sc = hudSc(), e = G.t - R.t0;
   let t = R.phase === 'bet' ? 'RACE ' + R.id + ' · post in ' + Math.max(0, Math.ceil(HR.bet - e)) + 's · bet at the tote window' : R.phase === 'post' ? 'RACE ' + R.id + ' · loading the gate' : R.phase === 'run' ? R.hs.slice().sort((a, b) => (a.fin || 99) - (b.fin || 99) || b.s - a.s).slice(0, 3).map((h, i) => (i + 1) + '. ' + h.n).join('   ') : 'OFFICIAL: ' + R.order.slice(0, 3).map((h, i) => (i + 1) + '. ' + h.n).join('  ');
-  const w = Math.min(VW * .7, 520 * sc), y = 112 * sc; ctx.fillStyle = 'rgba(20,12,4,.78)'; ctx.fillRect(VW / 2 - w / 2, y - 15 * sc, w, 22 * sc); txt('🏇 ' + t, VW / 2, y, 12 * sc, '#ffcc80', 'center'); }; }
+  hudLine('🏇 ' + t, '#ffcc80', 12 * sc, 'rgba(20,12,4,.78)'); }; }
 { const _u = update; update = function (dt) { _u(dt); if (G.mode === 'play') hrTick(dt); }; }

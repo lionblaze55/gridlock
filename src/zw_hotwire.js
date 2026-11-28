@@ -26,11 +26,11 @@ const needlePos = B => (Math.sin(B.ph) + 1) / 2;
 function wireTap() { const B = G.bi, c = B.c, n = needlePos(B);
   if (Math.abs(n - B.zone) < B.w / 2) { B.hits++; Snd.play('zap', c.x, c.y, .3); B.zone = rnd(.2, .8); B.spd *= 1.08; if (B.hits >= B.need) { c.wired = 1; c.owned = 1; G.bi = null; Snd.play('start', c.x, c.y); toast('Vroom — it\'s running'); } }
   else { B.fails++; Snd.play('zap', c.x, c.y, .7); hurtPlayer(4 + carTier(c) * 2, null, 'shock'); spawnFx('spark', c.x, c.y); toast('Zap! Wrong wire'); if (Math.random() < .3 + carTier(c) * .1) carAlarm(c); if (B.fails >= 4 && Math.random() < .5) { G.bi = null; c.wired = 0; c.deadIgn = 1; toast('You fried the ignition. This one isn\'t going anywhere.'); } } }
-function drawBreakIn(sc) { const B = G.bi; if (!B) return; const w = 240 * sc, h = 16 * sc, x = VW / 2 - w / 2, y = VH * .62;
-  ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x - 8 * sc, y - 26 * sc, w + 16 * sc, h + 38 * sc);
-  if (B.stage === 'pick') { const k = clamp(B.t / B.need, 0, 1); ctx.fillStyle = '#37474f'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#4fc3f7'; ctx.fillRect(x, y, w * k, h); txt('PICKING THE LOCK — stay still', VW / 2, y - 8 * sc, 12 * sc, '#fff', 'center'); return; }
-  ctx.fillStyle = '#37474f'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#43a047'; ctx.fillRect(x + w * (B.zone - B.w / 2), y, w * B.w, h); const nx = x + w * needlePos(B); ctx.fillStyle = '#ffeb3b'; ctx.fillRect(nx - 2 * sc, y - 4 * sc, 4 * sc, h + 8 * sc);
-  txt('HOTWIRE ' + B.hits + '/' + B.need + ' — tap FIRE in the green', VW / 2, y - 8 * sc, 12 * sc, '#fff', 'center'); }
+function drawBreakIn(sc) { const B = G.bi; if (!B) return; const w = 240 * sc, h = 16 * sc;
+  hudPrompt(w + 16 * sc, h + 38 * sc, (px, py) => { const x = px + 8 * sc, y = py + 26 * sc, mid = px + w / 2 + 8 * sc; ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(px, py, w + 16 * sc, h + 38 * sc);
+    if (B.stage === 'pick') { const k = clamp(B.t / B.need, 0, 1); ctx.fillStyle = '#37474f'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#4fc3f7'; ctx.fillRect(x, y, w * k, h); txt('PICKING THE LOCK — stay still', mid, y - 8 * sc, 12 * sc, '#fff', 'center'); return; }
+    ctx.fillStyle = '#37474f'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#43a047'; ctx.fillRect(x + w * (B.zone - B.w / 2), y, w * B.w, h); const nx = x + w * needlePos(B); ctx.fillStyle = '#ffeb3b'; ctx.fillRect(nx - 2 * sc, y - 4 * sc, 4 * sc, h + 8 * sc);
+    txt('HOTWIRE ' + B.hits + '/' + B.need + ' — tap FIRE in the green', mid, y - 8 * sc, 12 * sc, '#fff', 'center'); }, 20); }
 function controlPlayer(dt) { const B = G.bi, I = Input;
   if (B && B.stage === 'wire' && pCar() === B.c && !G.dlgOpen) { const tap = I.edge.act || (I.fire && !G.biFire); G.biFire = !!I.fire; if (tap) { I.edge.act = false; wireTap(); } const f = I.fire; I.fire = false; controlPlayerL(dt); I.fire = f; if (G.bi) { B.c.throttle = 0; B.c.brake = 1; } return; }
   G.biFire = !!I.fire; controlPlayerL(dt); const c = pCar(); if (c && (c.deadIgn || c.totaled)) { c.throttle = 0; c.boost = 0; } }

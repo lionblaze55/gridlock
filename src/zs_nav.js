@@ -1,8 +1,8 @@
 // ================= BIGGER MINIMAP + QUICK GPS ("go to nearest…", your homes, garages and cars) =================
-const MSZ = () => [1, 1.3, 1.6][G.settings.miniSize | 0];
+const MSZ = () => { const k = [1, 1.3, 1.6][G.settings.miniSize | 0]; if (VH > VW * 1.15 || Input.kbd) return k; const sc = Math.min(1.15, Math.max(.75, Math.min(VW, VH) / 420)), s = (G.settings.ctrlScale || 1) * clamp(Math.min(VW, VH) / 400, .8, 1.25); return Math.max(1, Math.min(k, (VH - 225 * s - 62 * sc) / (108 * sc))); };
 function drawMiniButtons(sc) { const R = 54 * sc * MSZ(), cx = VW - R - 12, cy = 46 * sc + R + 6, bw = 34 * sc, bh = 24 * sc, bx = cx - R - 4 * sc - (R > 60 * sc ? 18 * sc : 0), by0 = cy - R + 64 * sc;
   const btn = (y, label, key) => { Input[key] = [bx - 8, y - 4, bw + 16, bh + 8]; ctx.fillStyle = 'rgba(10,14,22,.85)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, y, bw, bh, 7) : ctx.rect(bx, y, bw, bh); ctx.fill(); ctx.strokeStyle = '#f2c230'; ctx.lineWidth = 1.5; ctx.stroke(); txt(label, bx + bw / 2, y + bh * .7, 11 * sc, '#f2c230', 'center'); };
-  btn(by0 - 30 * sc, ['S', 'M', 'L'][G.settings.miniSize | 0], 'miniSBtn'); btn(by0 - 60 * sc, 'GPS', 'gpsBtn'); }
+  btn(by0 - 60 * sc, 'GPS', 'gpsBtn'); }
 function drawMinimap(sc) { drawMinimapV(sc); drawMiniButtons(sc); }
 // ---------- destinations ----------
 const NAVCATS = [

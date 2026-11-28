@@ -53,9 +53,4 @@ function reportTick() {
 }
 // a phoned-in report keeps the stars while patrols search the scene
 function wantedUpdate(dt) { if (G.t < (G.holdStarsT || 0) && stars() > 0 && G.t - G.lastSeen > 1.3) G.lastSeen = G.t - 1.4; if (G.player && G.player.dead) G.reports = []; wantedUpdate0(dt); }
-function drawLawHUD0(sc) {
-  const r = G.reports.filter(r => !(r.who && r.who.dead)).sort((a, b) => a.t - b.t)[0]; if (!r || !G.player || G.player.dead) return;
-  const left = Math.ceil(r.t - G.t), x = VW - 18 * sc - 5 * 25 * sc - 14 * sc, y = 24 * sc, on = Math.floor(G.t * 3) % 2;
-  ctx.fillStyle = on ? 'rgba(200,30,30,.85)' : 'rgba(0,0,0,.6)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - 34 * sc, y - 12 * sc, 46 * sc, 24 * sc, 6) : ctx.rect(x - 34 * sc, y - 12 * sc, 46 * sc, 24 * sc); ctx.fill();
-  txt('☎ ' + left, x - 11 * sc, y + 5 * sc, 14 * sc, '#fff', 'center');
-}
+function drawLawHUD0(sc) { } // the ☎ witness timer now sits with the wanted stars (hudStatus)

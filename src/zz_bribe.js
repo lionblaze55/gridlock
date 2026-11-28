@@ -20,9 +20,8 @@ function bribeOffer(q) { q = q || bribeCop(); if (!q) return toast('No cop close
     { t: '💵 Make it worth his while: ' + money(hi) + ' — ~' + Math.round(c2 * 100) + '%', c: 'y', d: G.cash < hi, f: () => tryB(hi, c2) },
     { t: 'Never mind', f: () => { q.talking = 0; closeDialog(); } }]); }
 // the HUD button, next to SURRENDER
-{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); Input.bribeBtn = null; if (G.surrender || !canSurrender()) return; const bq = bribeCop(); if (!bq) return;
-  const w = 104 * sc, h = 34 * sc, x = VW / 2 - 60 * sc - w - 10 * sc, y = VH - h - 18 * sc; ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 8) : ctx.rect(x, y, w, h); ctx.fill(); ctx.strokeStyle = copCorrupt(bq) ? '#f2c230' : '#57e389'; ctx.lineWidth = 2; ctx.stroke();
-  txt('💵 BRIBE', x + w / 2, y + h * .66, 13 * sc, '#fff', 'center'); Input.bribeBtn = [x, y, w, h]; }; }
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); if (G.surrender || !canSurrender()) return; const bq = bribeCop(); if (!bq) return;
+  hudPill({ k: 'bribe', pri: 50, label: '💵 BRIBE', col: copCorrupt(bq) ? '#f2c230' : '#57e389', fn: bribeOffer }); }; }
 
 // corrupt cops drop hints when you're wanted and close
 { const _u = update; update = function (dt) { _u(dt); if (G.mode !== 'play' || stars() < 1 || stars() > 3 || (G.corHintT = (G.corHintT || 0) - dt) > 0) return; G.corHintT = 2; const p = G.player;

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.02 — A screen where nothing overlaps
+The on-screen buttons and pop-ups used to be drawn by a dozen separate systems, each at its own fixed spot, so they landed on top of each other. Now one layout manager places everything, and anything that isn't a fixed control is put where there is free space.
+- **Action buttons sit in one row.** SNEAK, HACK, TAKEDOWN, BRIBE and SURRENDER are now one row of pills next to the movement stick, always in the same order. Extra ones wrap to a second row instead of covering the USE, SWAP or GET IN buttons.
+  - The SNEAK pill itself now shows how visible you are (HIDDEN / DIM / EXPOSED), replacing the separate eye meter.
+  - The HACK pill carries the phone's charge bars.
+- **Wanted stars moved beside the minimap** on wide screens (still under it on tall ones), together with the witness-call timer and the POLICE / gang / description tags. They no longer run into the SWAP button or the messages.
+- **One message column.** The job line, game messages and the multiplayer feed share one column that fits between the stats and the minimap. Long messages wrap to two lines instead of running under other things.
+- **Pop-ups find free space.** The hacking profile card, the lock-pick / hotwire bar, hints and toasts are placed in the lowest clear spot above the controls. On tall screens they sit above the whole control area instead of between buttons.
+- **Big titles shrink to fit.** "MISSION PASSED" and district names scale down rather than covering the buttons.
+- **Simpler minimap.** Only the GPS button stays on the map. Map size and zoom moved to Settings. On short screens the map can no longer grow into the buttons below it.
+- **Top-left tidy-up.** Bank balance, drunk / drug status and the multiplayer room tag stack under the weapon box instead of landing on each other. The ammo box grows for large ammo counts.
+- **Driving:** the speedometer has its own spot (under the stick on tall screens). The aircraft altitude gauge is a bar inside the ALT readout instead of a strip over the minimap.
+- **Fixed overlapping control buttons:** the aircraft EXIT button sat on SWAP, the plane BRAKE sat on the movement stick on tall screens, and SWAP could touch the minimap with large buttons.
+- Checked automatically: 19 situations (on foot, wanted, sneaking, hacking, driving, flying, missions, interiors, large buttons, big map, no map, keyboard) on 6 screen sizes, solo and multiplayer. Version 2.01 had 460 collisions on 86 of those 114 screens; this version has none. The checker is in `tools/hud_audit`.
+
 ## 2.01 — One shared city
 - **Everyone in a game now sees the same city.** Same cars on the road, same people on the sidewalk, same cops and gang members, in the same places, with the same clothes and names. Before, each phone made up its own traffic and crowds.
 - **One player runs the streets for everybody.** The world host (or, without one, whoever joined first) spawns traffic, parked cars and pedestrians around *every* player, not just themselves. Walk across town alone and your streets still fill up.

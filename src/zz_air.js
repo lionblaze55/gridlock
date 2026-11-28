@@ -111,16 +111,16 @@ function flyHeli(c, dt) { const d = c.d, pilot = c.driver === G.player && pCar()
 
 // ---------- controls, camera, instruments ----------
 { const _lo = Input.layout; Input.layout = function () { const L = _lo.call(this), c = pCar(); if (!isAir(c)) return L; const s = L.s, fire = L.btns[0], tall = VH > VW * 1.15; L.btns = L.btns.filter(b => !['hand', 'gas', 'nos', 'rev', 'horn'].includes(b.id));
-  const ex = L.btns.find(b => b.id === 'car'); if (ex) { ex.x = fire.x - 4 * s; ex.y = fire.y - (tall ? 200 : 116) * s; ex.r = 24 * s; }
+  const ex = L.btns.find(b => b.id === 'car'), sw = L.btns.find(b => b.id === 'wpn'); if (ex) { ex.x = fire.x - (tall ? 2 : 44) * s; ex.y = fire.y - (tall ? 98 : 124) * s; ex.r = 24 * s; } if (sw && tall) { sw.x = fire.x - 2 * s; sw.y = fire.y - 162 * s; }
   L.btns.push({ id: 'up', x: fire.x - (tall ? 96 : 112) * s, y: fire.y - (tall ? 96 : 60) * s, r: 34 * s, label: '▲', sub: 'CLIMB', col: '#1e6b3c', show: true }, { id: 'down', x: fire.x - (tall ? 96 : 112) * s, y: fire.y + (tall ? -10 : 26) * s, r: 30 * s, label: '▼', sub: 'DESCEND', col: '#5b1010', show: true });
-  if (c.d.air === 'plane' && !airborne(c)) L.btns.push({ id: 'rev', x: fire.x - (tall ? 180 : 200) * s, y: fire.y + 26 * s, r: 28 * s, label: 'BRAKE', col: '#37474f', show: true }); this._L = L; return L; }; }
+  if (c.d.air === 'plane' && !airborne(c)) L.btns.push({ id: 'rev', x: fire.x - (tall ? 96 : 200) * s, y: fire.y + (tall ? -176 : 26) * s, r: 28 * s, label: 'BRAKE', col: '#37474f', show: true }); this._L = L; return L; }; }
 { const _ucm = updateCamera; updateCamera = function (dt) { const c = pCar(); if (!isAir(c) || G.scene) return _ucm(dt); const cam = G.cam, base = Math.min(VW, VH) / (7.6 * T) * (G.settings.zoom || 1) * (VH > VW * 1.15 ? .84 : 1), alt = c.alt || 0;
   const tz = base * lerp(c.d.air === 'heli' ? .8 : .7, c.d.air === 'heli' ? .42 : .34, Math.min(1, alt * 1.2)) * lerp(1, .85, clamp(c.spd / (c.d.max || 1), 0, 1)), tx = c.x + c.vx * .55, ty = c.y + c.vy * .55, k = 1 - Math.exp(-dt * 4);
   cam.x = lerp(cam.x, tx, k); cam.y = lerp(cam.y, ty, k); cam.z = lerp(cam.z, tz, 1 - Math.exp(-dt * 1.4)); if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt * 25); }; }
-{ const _rh = renderHUD; renderHUD = function () { _rh(); const c = pCar(); if (!isAir(c) || G.mode !== 'play') return; const sc = hudSc(), alt = c.alt || 0, ft = Math.round(alt * 2400 / 10) * 10, x = VW / 2, y = VH - 50 * sc;
-  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(x - 92 * sc, y - 16 * sc, 184 * sc, 20 * sc); txt('ALT ' + ft.toLocaleString() + ' ft', x, y, 13 * sc, alt > .02 ? '#4fc3f7' : '#cfd8dc', 'center');
-  const bx = VW - 22 * sc, by = VH * .3, bh = VH * .32; ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(bx - 5 * sc, by, 10 * sc, bh); ctx.fillStyle = '#4fc3f7'; ctx.fillRect(bx - 5 * sc, by + bh * (1 - alt), 10 * sc, bh * alt);
-  if (!airborne(c)) { const tip = c.d.air === 'heli' ? 'Hold ▲ CLIMB to lift off · stick to fly · ▼ to land' : 'Stick to taxi · roll to ' + Math.round(c.d.vto * .13) + ' mph and hold ▲ CLIMB to take off'; ctx.fillStyle = 'rgba(0,0,0,.55)'; const w = ctx.measureText ? Math.min(VW * .8, 470 * sc) : 400; ctx.fillRect(x - w / 2, VH * .18 - 14 * sc, w, 22 * sc); txt(tip, x, VH * .18, 12 * sc, '#fff', 'center'); } }; }
+{ const _rh = renderHUD; renderHUD = function () { _rh(); const c = pCar(); if (!isAir(c) || G.mode !== 'play') return; const sc = hudSc(), alt = c.alt || 0, ft = Math.round(alt * 2400 / 10) * 10, w = 150 * sc, h = 26 * sc, [x, y] = hudFit(w, h, VH - 6, VW / 2, VH * .4); hudReserve(x, y, w, h, 'alt');
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(x, y, w, h); txt('ALT ' + ft.toLocaleString() + ' ft', x + w / 2, y + 10 * sc, 12 * sc, alt > .02 ? '#4fc3f7' : '#cfd8dc', 'center');
+  ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x + 8 * sc, y + h - 7 * sc, w - 16 * sc, 4 * sc); ctx.fillStyle = '#4fc3f7'; ctx.fillRect(x + 8 * sc, y + h - 7 * sc, (w - 16 * sc) * clamp(alt, 0, 1), 4 * sc);
+  if (!airborne(c)) hudLine(c.d.air === 'heli' ? 'Hold ▲ CLIMB to lift off · stick to fly · ▼ to land' : 'Stick to taxi · roll to ' + Math.round(c.d.vto * .13) + ' mph and hold ▲ CLIMB to take off', '#fff', 12 * sc); }; }
 // rotor thump / prop drone layered over the engine
 const AirSnd = { n: null, g: null, f: null,
   tick() { const S = Snd; if (!S.ctx || !S.noise) return; const c = pCar(), on = isAir(c) && !c.dead && (c.spin || 0) > .05;

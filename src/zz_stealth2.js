@@ -70,8 +70,8 @@ function koTick() { const peds = G.scene ? G.scene.peds : G.peds; for (const q o
 { const _ai = updatePedAI; updatePedAI = function (q, dt) { if (q.ko && !q.dead) { q.mvx = q.mvy = 0; return; } return _ai(q, dt); }; }
 
 // ---------- HUD: SNEAK, TAKEDOWN and the eye meter ----------
-{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); const p = G.player; Input.xBtns = (Input.xBtns || []).filter(b => b.k !== 'stealth'); if (G.mode !== 'play' || !p || p.dead || p.car || G.surrender) return;
-  const w = 86 * sc, h = 30 * sc, x = 14 * sc, y = VH - 250 * sc, g = ctx; const btn = (bx, by, bw, label, on, col, fn) => { g.fillStyle = on ? 'rgba(20,30,40,.85)' : 'rgba(0,0,0,.55)'; g.beginPath(); g.roundRect ? g.roundRect(bx, by, bw, h, 8) : g.rect(bx, by, bw, h); g.fill(); g.strokeStyle = col; g.lineWidth = on ? 2.5 : 1.5; g.stroke(); txt(label, bx + bw / 2, by + h * .67, 12 * sc, on ? col : '#ddd', 'center'); Input.xBtns.push({ k: 'stealth', r: [bx, by, bw, h], fn }); };
-  btn(x, y, w, '🥷 SNEAK', !!p.sneak, '#9b8cff', toggleSneak);
-  if (p.sneak) { const v = playerVis(), lv = v < .45 ? 0 : v < .75 ? 1 : 2; g.save(); g.font = `${16 * sc}px sans-serif`; g.textAlign = 'left'; g.globalAlpha = [.45, .75, 1][lv]; g.fillText('👁', x + w + 8 * sc, y + h * .72); g.restore(); txt(['hidden', 'dim', 'exposed'][lv], x + w + 30 * sc, y + h * .68, 10.5 * sc, ['#7fff9f', '#ffd23f', '#ff6b6b'][lv], 'left'); }
-  const tq = takedownTarget(); if (tq) { btn(x, y - h - 8 * sc, w + 20 * sc, '✋ TAKEDOWN', true, '#ff9f43', takedownNow); } }; }
+{ const _dl = drawLawHUDL; drawLawHUDL = function (sc) { _dl(sc); const p = G.player; if (G.mode !== 'play' || !p || p.dead || p.car || G.surrender) return;
+  // sneaking: the pill itself shows how visible you are
+  if (p.sneak) { const v = playerVis(), lv = v < .45 ? 0 : v < .75 ? 1 : 2; hudPill({ k: 'stealth', pri: 10, label: '🥷 ' + ['HIDDEN', 'DIM', 'EXPOSED'][lv], on: true, col: ['#7fff9f', '#ffd23f', '#ff6b6b'][lv], fn: toggleSneak }); }
+  else hudPill({ k: 'stealth', pri: 10, label: '🥷 SNEAK', on: false, col: '#9b8cff', fn: toggleSneak });
+  if (takedownTarget()) hudPill({ k: 'stealth', pri: 40, label: '✋ TAKEDOWN', on: true, col: '#ff9f43', fn: takedownNow }); }; }
